@@ -1,0 +1,52 @@
+/* Full screen section */
+.landing-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  background: url("https://source.unsplash.com/1600x900/?technology,coding")
+    no-repeat center center/cover;
+  filter: brightness(90%);
+}
+
+/* Center overlay content */
+.landing-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+}
+
+/* Title */
+.landing-title {
+  font-size: 60px;
+  font-weight: 900;
+  text-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Subtitle */
+.landing-subtitle {
+  font-size: 24px;
+  margin-top: 15px;
+  opacity: 0.9;
+}
+
+/* Button */
+.landing-btn {
+  margin-top: 25px;
+  padding: 14px 34px;
+  background: #4f46e5;
+  color: white;
+  border-radius: 10px;
+  border: none;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.landing-btn:hover {
+  background: #3b35c4;
+  transform: scale(1.05);
+}

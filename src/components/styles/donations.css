@@ -1,0 +1,59 @@
+.donations-container {
+  padding: 30px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.donations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 20px;
+}
+
+.don-card {
+  padding: 25px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  border-left: 5px solid #4f46e5;
+}
+
+.pin-box {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f7f7ff;
+  border: 1px dashed #4f46e5;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.pin-value {
+  font-size: 32px;
+  font-weight: 900;
+  color: #4f46e5;
+  margin: 5px 0;
+}
+
+.pin-expiry {
+  font-size: 14px;
+  color: #666;
+}
+
+.picked-info {
+  color: orange;
+  font-weight: bold;
+}
+
+.completed-info {
+  color: green;
+  font-weight: bold;
+}
+
+.rejected-info {
+  color: red;
+  font-weight: bold;
+}
