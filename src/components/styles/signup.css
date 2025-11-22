@@ -1,71 +1,145 @@
-/* FULL PAGE CONTAINER */
-.signup-container {
+/* MAIN PAGE BACKGROUND */
+.signup-page {
   width: 100%;
   min-height: 100vh;
-  background: #f3f3f3;
+  background: #0d0d0d;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding-top: 80px;
+  align-items: flex-start;
+  padding-top: 140px; 
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* FORM */
-.signup-form {
-  width: 380px;
-  background: #fff;
+/* GLOW ORBS (same as login) */
+.signup-page::before,
+.signup-page::after {
+  content: "";
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  filter: blur(180px);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+.signup-page::before {
+  background: #ff7b00;
+  top: -120px;
+  left: -120px;
+}
+
+.signup-page::after {
+  background: #0066ff;
+  bottom: -150px;
+  right: -120px;
+}
+
+/* SIGNUP CARD */
+.signup-card {
+  width: 450px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px);
+  border-radius: 18px;
   padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 0 35px rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  animation: fadeIn 0.4s ease;
+  gap: 16px;
+  z-index: 10;
+  animation: fadeInUp 0.7s ease;
 }
 
 /* TITLE */
 .signup-title {
   text-align: center;
   font-size: 30px;
-  font-weight: 700;
-  margin-bottom: 10px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 18px;
 }
 
-/* INPUT FIELDS */
-.signup-input {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+/* INPUTS */
+.signup-input,
+.signup-select,
+.signup-file {
+  width: 100%;
+  padding: 14px;
   font-size: 16px;
-  transition: 0.2s ease;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.18);
+  border-radius: 12px;
+  outline: none;
+  transition: 0.3s ease;
 }
 
-.signup-input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 4px rgba(79, 70, 229, 0.4);
-  outline: none;
+/* Focus glow */
+.signup-input:focus,
+.signup-select:focus {
+  border-color: #ff7b00;
+  box-shadow: 0 0 12px rgba(255,123,0,0.7);
+}
+
+/* Placeholder */
+.signup-input::placeholder {
+  color: #cccccc;
+}
+
+/* FILE INPUT */
+.signup-file {
+  padding: 10px;
+  cursor: pointer;
+  color: #ccc;
+}
+
+/* SELECT BOX */
+.signup-select {
+  background-color: rgba(255,255,255,0.08);
+  color: #fff;
 }
 
 /* BUTTON */
 .signup-btn {
-  padding: 14px;
-  background: #4f46e5;
-  color: white;
+  padding: 15px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
+  background: #ff7b00;
+  color: #fff;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  margin-top: 10px;
-  transition: 0.25s ease;
+  margin-top: 12px;
+  transition: 0.3s ease;
+  box-shadow: 0 0 12px rgba(255,123,0,0.6);
 }
 
 .signup-btn:hover {
-  background: #3c37c8;
-  transform: scale(1.03);
+  background: #ff8f28;
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(255,140,40,0.9);
+}
+
+.signup-btn:active {
+  transform: scale(0.97);
 }
 
 /* ANIMATION */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* BODY FIX – allow scrolling */
+body {
+  overflow-y: auto !important;
+  overflow-x: hidden;
 }

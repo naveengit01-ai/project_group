@@ -1,71 +1,84 @@
-/* MAIN CONTAINER */
 .trips-container {
   width: 100%;
-  padding: 40px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  min-height: 100vh;
+  padding-top: 140px;
+  padding-bottom: 60px;
+  color: #fff;
+  background: radial-gradient(circle at left, #ff7a00 0%, #0d0d0d 40%, #001f34 100%);
 }
 
-/* PAGE TITLE */
 .page-title {
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 25px;
-  color: #333;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 900;
+  margin-bottom: 40px;
+  color: #43403d;
+  text-shadow: 0 0 12px rgba(64, 254, 6, 0.6);
+  background-color: #03e5cb;
+  width: 300px;
+  margin: 10px auto;
+  border-radius: 8px;
 }
 
-/* GRID LAYOUT */
 .trips-grid {
+  width: 90%;
+  margin: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 25px;
-  width: 100%;
-  max-width: 1100px;
+  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
-/* TRIP CARD */
 .trip-card {
-  background: #ffffff;
-  padding: 22px;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
-  transition: 0.25s ease;
-  border-left: 6px solid #4f46e5;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 25px;
+  transition: 0.3s ease;
+  box-shadow: 0 0 25px rgba(0,0,0,0.5);
 }
 
 .trip-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-8px);
+  box-shadow: 0 0 35px rgba(255, 122, 0, 0.4);
 }
 
-/* TRIP HEADING */
-.trip-card h2 {
-  font-size: 22px;
-  margin-bottom: 12px;
-  color: #4f46e5;
+.trip-title {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #ff7a00;
 }
 
-/* TRIP DETAILS */
-.trip-card p {
-  font-size: 17px;
-  margin: 5px 0;
-  color: #333;
+.trip-details p {
+  font-size: 16px;
+  margin: 6px 0;
+  color: #e8e8e8;
 }
 
-/* COMPLETED TRIP LABEL */
+.picked-info,
+.completed-info,
+.rejected-info {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.picked-info {
+  background: rgba(255, 200, 0, 0.15);
+  border: 1px solid rgba(255, 200, 0, 0.4);
+}
+
 .completed-info {
-  background: #4caf50;
-  color: white;
-  padding: 8px 14px;
-  border-radius: 8px;
-  margin-top: 12px;
-  font-weight: 600;
-  display: inline-block;
+  background: rgba(0, 255, 100, 0.12);
+  border: 1px solid rgba(0, 255, 100, 0.3);
+  color: #00ff75;
 }
 
-/* EMPTY MESSAGE */
-.trips-container p {
-  font-size: 18px;
-  margin-top: 10px;
-  color: #777;
+.rejected-info {
+  background: rgba(255, 0, 0, 0.15);
+  border: 1px solid rgba(255, 0, 0, 0.4);
+  color: #ff3d3d;
 }

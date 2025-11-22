@@ -73,7 +73,7 @@
 
 
 import React, { useState } from "react";
-import "./styles/opt.css";
+import "./styles/otp.css";
 
 export default function VerifyPin({ tripId }) {
   const [pin, setPin] = useState("");

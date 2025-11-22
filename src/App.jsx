@@ -1,103 +1,3 @@
-// import React, { useState, useEffect } from "react";
-// import "./App.css";
-
-// import Header from "./components/Header";
-// import Landing from "./components/Landing";
-// import Login from "./components/Login";
-// import Signup from "./components/Signup";
-
-// import Profile from "./components/profile";
-// import MyDonations from "./components/donations";
-// import MyTrips from "./components/mytrips";
-
-// import Food from "./components/Food";
-// import Trips from "./components/Trips";
-// import VerifyPin from "./components/VerifyPin";
-
-// export default function App() {
-//   const [loggedIn, setLoggedIn] = useState(false);
-//   const [page, setPage] = useState("home");
-//   const [currentUser, setCurrentUser] = useState(null);
-
-//   useEffect(() => {
-//     const stored = localStorage.getItem("user");
-//     if (stored) {
-//       const user = JSON.parse(stored);
-//       setLoggedIn(true);
-//       setCurrentUser(user);
-//     }
-
-//     const savedPage = sessionStorage.getItem("page");
-//     if (savedPage) setPage(savedPage);
-//   }, []);
-
-//   const changePage = (p) => {
-//     setPage(p);
-//     sessionStorage.setItem("page", p);
-//   };
-
-//   // login success handler
-//   const handleLoginSuccess = (user) => {
-//     setLoggedIn(true);
-//     setCurrentUser(user);
-//     localStorage.setItem("user", JSON.stringify(user));
-//     changePage("home");
-//   };
-
-//   // signup success handler → redirect to login
-//   const handleSignup = (goTo) => {
-//     if (goTo === "login") {
-//       changePage("login");
-//     }
-//   };
-
-//   // extract trip id from verify-pin#123
-//   let tripId = null;
-//   if (page.startsWith("verify-pin")) {
-//     tripId = page.split("#")[1];
-//   }
-
-//   return (
-//     <div className="pageWrapper">
-//       <Header
-//         loggedIn={loggedIn}
-//         user={currentUser}
-//         onHomeClick={() => changePage("home")}
-//         onLoginClick={() => changePage("login")}
-//         onSignupClick={() => changePage("signup")}
-//         onProfileClick={() => changePage("profile")}
-//         onDonationsClick={() => changePage("donations")}
-//         onMyTripsClick={() => changePage("mytrips")}
-//         onTripsClick={() => changePage("trips")}
-//         onFoodClick={() => changePage("food")}
-//       />
-
-//       <main className="mainContent">
-
-//         {/* Verify PIN page */}
-//         {page.startsWith("verify-pin") && <VerifyPin tripId={tripId} />}
-
-//         {/* Other pages */}
-//         {!page.startsWith("verify-pin") && (
-//           <>
-//             {page === "home" && <Landing />}
-//             {page === "login" && <Login onLogin={handleLoginSuccess} />}
-//             {page === "signup" && <Signup onSignup={handleSignup} />}
-//             {page === "profile" && <Profile user={currentUser} />}
-//             {page === "donations" && <MyDonations user={currentUser} />}
-//             {page === "mytrips" && <MyTrips user={currentUser} />}
-//             {page === "food" && <Food user={currentUser} />}
-
-//             {page === "trips" && <Trips setPage={changePage} />}
-//           </>
-//         )}
-
-//       </main>
-//     </div>
-//   );
-// }
-
-
 import React, { useState, useEffect } from "react";
 import "./App.css";
 
@@ -105,11 +5,9 @@ import Header from "./components/Header";
 import Landing from "./components/Landing";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
-
 import Profile from "./components/profile";
 import MyDonations from "./components/donations";
 import MyTrips from "./components/mytrips";
-
 import Food from "./components/Food";
 import Clothes from "./components/Cloths";
 import Trips from "./components/Trips";
@@ -120,28 +18,31 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Load user
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
-      const user = JSON.parse(stored);
       setLoggedIn(true);
-      setCurrentUser(user);
+      setCurrentUser(JSON.parse(stored));
     }
 
-    const savedPage = sessionStorage.getItem("page");
-    if (savedPage) setPage(savedPage);
+    // Restore verify-pin with tripId if needed
+    const storedPage = sessionStorage.getItem("page");
+    if (storedPage) {
+      setPage(storedPage);
+    }
   }, []);
 
-  const changePage = (p) => {
-    setPage(p);
-    sessionStorage.setItem("page", p);
-  };
+  // Keep page saved in session
+  useEffect(() => {
+    sessionStorage.setItem("page", page);
+  }, [page]);
 
   const handleLoginSuccess = (user) => {
     setLoggedIn(true);
     setCurrentUser(user);
     localStorage.setItem("user", JSON.stringify(user));
-    changePage("home");
+    setPage("home");
   };
 
   return (
@@ -149,39 +50,38 @@ export default function App() {
       <Header
         loggedIn={loggedIn}
         user={currentUser}
-        onHomeClick={() => changePage("home")}
-        onLoginClick={() => changePage("login")}
-        onSignupClick={() => changePage("signup")}
-        onProfileClick={() => changePage("profile")}
-        onDonationsClick={() => changePage("donations")}
-        onMyTripsClick={() => changePage("mytrips")}
-        onTripsClick={() => changePage("trips")}
-        onFoodClick={() => changePage("food")}
-        onClothesClick={() => changePage("clothes")}
+        page={page}
+        setPage={setPage}
+        onSignupClick={() => setPage("signup")}
+        onHomeClick={() => setPage("home")}
+        onProfileClick={() => setPage("profile")}
+        onDonationsClick={() => setPage("donations")}
+        onMyTripsClick={() => setPage("mytrips")}
+        onTripsClick={() => setPage("trips")}
+        onFoodClick={() => setPage("food")}
+        onClothesClick={() => setPage("clothes")}
       />
 
       <main className="mainContent">
+        {page === "home" && <Landing />}
+        {page === "login" && <Login onLogin={handleLoginSuccess} />}
+        {page === "signup" && <Signup onSignup={setPage} />}
+        {page === "profile" && <Profile user={currentUser} />}
+        {page === "donations" && <MyDonations user={currentUser} />}
+        {page === "mytrips" && <MyTrips user={currentUser} />}
 
-        {/* VERIFY PIN PAGE */}
-        {page.startsWith("verify-pin#") && (
+        {/* IMPORTANT — pass setPage here */}
+        {page === "food" && <Food user={currentUser} setPage={setPage} />}
+
+        {/* IMPORTANT — pass setPage here for clothes too */}
+        {page === "clothes" && <Clothes user={currentUser} setPage={setPage} />}
+
+        {page === "trips" && <Trips setPage={setPage} />}
+
+        {/* VERIFY PIN PAGE — parse tripId */}
+        {page.startsWith("verify-pin") && (
           <VerifyPin tripId={page.split("#")[1]} />
         )}
-
-        {/* ALL OTHER PAGES */}
-        {!page.startsWith("verify-pin#") && (
-          <>
-            {page === "home" && <Landing />}
-            {page === "login" && <Login onLogin={handleLoginSuccess} />}
-            {page === "signup" && <Signup onSignup={changePage} />}
-            {page === "profile" && <Profile user={currentUser} />}
-            {page === "donations" && <MyDonations user={currentUser} />}
-            {page === "mytrips" && <MyTrips user={currentUser} />}
-            {page === "food" && <Food user={currentUser} />}
-            {page === "clothes" && <Clothes user={currentUser} />}
-            {page === "trips" && <Trips setPage={changePage} />}
-          </>
-        )}
-
       </main>
     </div>
   );

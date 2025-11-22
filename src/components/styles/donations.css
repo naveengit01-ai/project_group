@@ -1,59 +1,115 @@
+/* ===========================
+   MAIN CONTAINER
+=========================== */
 .donations-container {
-  padding: 30px;
+  width: 100%;
+  min-height: 100vh;
+  padding-top: 140px;
+  padding-bottom: 60px;
+  color: #fff;
+  background: radial-gradient(circle at left, #ff7a00 0%, #0d0d0d 40%, #001f34 100%);
 }
 
+/* PAGE TITLE */
 .page-title {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 20px;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 900;
+  margin-bottom: 40px;
+  color: #43403d;
+  text-shadow: 0 0 12px rgba(64, 254, 6, 0.6);
+  background-color: #03e5cb;
+  width: 300px;
+  margin: 10px auto;
+  letter-spacing: 1px;
+  border-radius: 8px;
 }
 
+/* GRID */
 .donations-grid {
+  width: 90%;
+  margin: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 20px;
+  gap: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
+/* CARD */
 .don-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
   padding: 25px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-  border-left: 5px solid #4f46e5;
+  transition: 0.3s ease;
+  box-shadow: 0 0 25px rgba(0,0,0,0.5);
 }
 
+.don-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 0 35px rgba(255, 122, 0, 0.4);
+}
+
+.don-card h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #ff7a00;
+}
+
+.don-card p {
+  font-size: 16px;
+  margin: 6px 0;
+  color: #e8e8e8;
+}
+
+/* PIN BOX */
 .pin-box {
   margin-top: 15px;
-  padding: 15px;
-  background: #f7f7ff;
-  border: 1px dashed #4f46e5;
-  border-radius: 10px;
+  padding: 18px;
+  background: rgba(255, 122, 0, 0.1);
+  border: 1px solid rgba(255, 122, 0, 0.3);
+  border-radius: 12px;
   text-align: center;
 }
 
 .pin-value {
   font-size: 32px;
   font-weight: 900;
-  color: #4f46e5;
-  margin: 5px 0;
+  margin: 10px 0;
+  color: #ff7a00;
+  letter-spacing: 3px;
 }
 
 .pin-expiry {
   font-size: 14px;
-  color: #666;
+  color: #cccccc;
+}
+
+/* STATUS BADGES */
+.picked-info,
+.completed-info,
+.rejected-info {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
 }
 
 .picked-info {
-  color: orange;
-  font-weight: bold;
+  background: rgba(255, 200, 0, 0.15);
+  border: 1px solid rgba(255, 200, 0, 0.4);
 }
 
 .completed-info {
-  color: green;
-  font-weight: bold;
+  background: rgba(0, 255, 100, 0.12);
+  border: 1px solid rgba(0, 255, 100, 0.3);
+  color: #00ff75;
 }
 
 .rejected-info {
-  color: red;
-  font-weight: bold;
+  background: rgba(255, 0, 0, 0.15);
+  border: 1px solid rgba(255, 0, 0, 0.4);
+  color: #ff3d3d;
 }

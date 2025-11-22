@@ -15,14 +15,16 @@ export default function Signup({ onSignup }) {
 
   const [photoFile, setPhotoFile] = useState(null);
 
+  // Handle text inputs
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate empty fields
+    // Validation
     for (let key in form) {
       if (form[key].trim() === "") {
         alert(`${key} cannot be empty`);
@@ -35,61 +37,106 @@ export default function Signup({ onSignup }) {
       return;
     }
 
-    // Create FormData for file + text
+    // Prepare formData
     const formData = new FormData();
-    for (let key in form) {
+    Object.keys(form).forEach((key) => {
       formData.append(key, form[key]);
-    }
+    });
     formData.append("profile_photo", photoFile);
 
-    const res = await fetch("http://localhost:5000/signup", {
-      method: "POST",
-      body: formData,  // IMPORTANT: no headers
-    });
+    try {
+      const res = await fetch("http://localhost:5000/signup", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.status === "success") {
-      alert("Signup successful!");
-      onSignup("login"); // redirect to login page
-    } else if (data.status === "exists") {
-      alert("Username already exists!");
-    } else {
-      alert("Something went wrong: " + (data.message || "Server error"));
+      if (data.status === "success") {
+        alert("Signup successful!");
+        onSignup("login");
+      } else if (data.status === "exists") {
+        alert("Username already exists!");
+      } else {
+        alert("Signup failed: " + data.message);
+      }
+    } catch (err) {
+      alert("Server error: " + err.message);
     }
   };
 
   return (
-    <div className="signup-container">
-      <form className="signup-form" onSubmit={handleSubmit}>
-        <h2 className="signup-title">Signup</h2>
+    <div className="signup-page">
+      <form className="signup-card" onSubmit={handleSubmit}>
 
-        <input name="firstname" placeholder="First Name" onChange={handleChange} className="signup-input" />
-        <input name="lastname" placeholder="Last Name" onChange={handleChange} className="signup-input" />
-        <input name="address" placeholder="Address" onChange={handleChange} className="signup-input" />
-        <input name="email" placeholder="Email" onChange={handleChange} className="signup-input" />
+        <h2 className="signup-title">Create an Account</h2>
+
+        {/* Name Row */}
+        <div style={{ display: "flex", gap: "12px" }}>
+          <input
+            name="firstname"
+            placeholder="First Name"
+            onChange={handleChange}
+            className="signup-input"
+          />
+          <input
+            name="lastname"
+            placeholder="Last Name"
+            onChange={handleChange}
+            className="signup-input"
+          />
+        </div>
 
         <input
-          name="ph_no"
-          type="number"
-          placeholder="Phone Number"
+          name="address"
+          placeholder="Address"
           onChange={handleChange}
           className="signup-input"
         />
 
-        {/* FILE UPLOAD FIELD */}
         <input
-          type="file"
-          name="profile_photo"
-          accept="image/*"
-          onChange={(e) => setPhotoFile(e.target.files[0])}
+          name="email"
+          placeholder="Email"
+          onChange={handleChange}
           className="signup-input"
         />
 
-        <input name="user_name" placeholder="Username" onChange={handleChange} className="signup-input" />
-        <input name="password" type="password" placeholder="Password" onChange={handleChange} className="signup-input" />
+        <input
+          name="ph_no"
+          placeholder="Phone Number"
+          onChange={handleChange}
+          className="signup-input"
+          type="number"
+        />
 
-        <select name="user_type" className="signup-input" onChange={handleChange}>
+        {/* File Upload */}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setPhotoFile(e.target.files[0])}
+          className="signup-file"
+        />
+
+        <input
+          name="user_name"
+          placeholder="Username"
+          onChange={handleChange}
+          className="signup-input"
+        />
+
+        <input
+          name="password"
+          placeholder="Password"
+          type="password"
+          onChange={handleChange}
+          className="signup-input"
+        />
+
+        <select
+          name="user_type"
+          className="signup-select"
+          onChange={handleChange}
+        >
           <option value="">Select Role</option>
           <option value="user">User</option>
           <option value="rider">Rider</option>

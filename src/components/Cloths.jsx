@@ -4,7 +4,7 @@ import "./styles/Food.css"; // reuse same CSS
 export default function Clothes() {
   const [clothType, setClothType] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [condition, setCondition] = useState(""); // new field
+  const [condition, setCondition] = useState("");
   const [location, setLocation] = useState("");
 
   const [generatedPIN, setGeneratedPIN] = useState("");
@@ -83,39 +83,43 @@ export default function Clothes() {
 
   return (
     <div className="foodContainer">
-      <form className="foodForm" onSubmit={handleSubmit}>
-        <h2>Clothes Donation</h2>
 
-        <input
-          type="text"
-          placeholder="Cloth Type (Shirt, Pants, Jackets...)"
-          value={clothType}
-          onChange={(e) => setClothType(e.target.value)}
-        />
+      {/* SHOW FORM ONLY IF PIN NOT GENERATED */}
+      {!lastTrip && !riderVerifiedMsg && (
+        <form className="foodForm" onSubmit={handleSubmit}>
+          <h2>Clothes Donation</h2>
 
-        <input
-          type="text"
-          placeholder="Quantity"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Cloth Type (Shirt, Pants, Jackets...)"
+            value={clothType}
+            onChange={(e) => setClothType(e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Condition (New / Good / Used)"
-          value={condition}
-          onChange={(e) => setCondition(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Quantity"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Pickup Location"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Condition (New / Good / Used)"
+            value={condition}
+            onChange={(e) => setCondition(e.target.value)}
+          />
 
-        <button>Donate Clothes</button>
-      </form>
+          <input
+            type="text"
+            placeholder="Pickup Location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
+
+          <button>Donate Clothes</button>
+        </form>
+      )}
 
       {/* Success message */}
       {riderVerifiedMsg && (

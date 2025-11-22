@@ -1,14 +1,28 @@
-/* Entire App Wrapper */
+/* === ENTIRE APP BACKGROUND FIX === */
 .pageWrapper {
   width: 100%;
   min-height: 100vh;
-  background: #f3f3f3;
+  background: #0d0d0d; /* deep dark base */
   font-family: "Arial", sans-serif;
+  overflow-x: hidden;
 }
 
-/* Main content below fixed header */
+/* Ensure main content takes full screen always */
 .mainContent {
-  margin-top: 0px; /* space for fixed header */
   width: 100%;
   min-height: calc(100vh - 80px);
+  margin-top: 80px; /* header height */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Prevent scroll bars caused by gradients */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  background: #0d0d0d;
 }

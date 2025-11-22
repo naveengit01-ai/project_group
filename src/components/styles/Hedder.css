@@ -1,9 +1,12 @@
-/* HEADER */
+/* ===========================
+   HEADER MAIN WRAPPER
+=========================== */
 .header {
-  width: 91%;
-  padding: 1px 60px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  padding: 15px 50px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -11,56 +14,97 @@
   top: 0;
   left: 0;
   z-index: 1000;
+  box-sizing: border-box;
 }
 
+/* ===========================
+   LOGO
+=========================== */
 .logo {
   font-size: 28px;
-  font-weight: 800;
-  color: #333;
+  font-weight: 900;
+  color: #fff;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: 0.3s ease;
+}
+.logo:hover {
+  color: #ff7a00;
+  transform: scale(1.05);
 }
 
+/* ===========================
+   NAVIGATION
+=========================== */
 .nav {
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 20px;
 }
 
+/* LINK */
 .link {
+  color: #e6e6e6;
   font-size: 18px;
   cursor: pointer;
-  color: #333;
+  transition: 0.25s;
+}
+.link:hover {
+  color: #ff7a00;
 }
 
-/* BUTTONS */
+/* ===========================
+   BUTTONS
+=========================== */
 .btn {
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: 600;
+  transition: 0.3s ease;
   border: none;
 }
 
+/* LOGIN */
 .loginBtn {
-  background: #4f46e5;
+  background: #ff7a00;
   color: #fff;
+  box-shadow: 0 0 10px rgba(255, 122, 0, 0.6);
+}
+.loginBtn:hover {
+  background: #ff8f22;
+  transform: scale(1.05);
 }
 
+/* SIGNUP */
 .signupBtn {
   background: transparent;
-  border: 2px solid #4f46e5;
-  color: #4f46e5;
+  border: 2px solid #ff7a00;
+  color: #ff7a00;
+}
+.signupBtn:hover {
+  background: #ff7a00;
+  color: white;
 }
 
+/* DONATE BUTTON */
 .donateBtn {
+  background: #ff7a00;
+  color: white;
   padding: 10px 22px;
-  background: #ff9800;
-  color: #fff;
-  border-radius: 8px;
-  cursor: pointer;
+  border-radius: 10px;
   font-weight: 700;
+  box-shadow: 0 0 10px rgba(255, 122, 0, 0.6);
+  transition: 0.3s ease;
+}
+.donateBtn:hover {
+  background: #ff8f22;
+  transform: scale(1.05);
 }
 
-/* PROFILE ICON */
+/* ===========================
+   PROFILE ICON + DROPDOWN
+=========================== */
 .profileWrapper {
   position: relative;
 }
@@ -69,167 +113,266 @@
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  background: #ddd;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  font-weight: 700;
   font-size: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  transition: 0.25s;
+}
+.profileCircle:hover {
+  border-color: #ff7a00;
+  transform: scale(1.08);
 }
 
 .dropdown {
   position: absolute;
-  top: 55px;
+  top: 60px;
   right: 0;
-  background: #fff;
-  width: 160px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  width: 180px;
+  border-radius: 12px;
   padding: 10px 0;
-  z-index: 2000;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.5);
 }
-
 .dropdownItem {
   padding: 12px 18px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-/* SIDEBAR */
-.sidebar {
-  position: fixed;
-  top: 0;
-  right: -300px;
-  width: 300px;
-  height: 100%;
-  background: #fff;
-  padding: 30px;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
-  transition: 0.3s ease;
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.sidebar-open {
-  right: 0;
-}
-
-.sidebarTitle {
-  font-size: 22px;
-  font-weight: 700;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
-.sidebarItem {
-  font-size: 18px;
-  cursor: pointer;
-  padding: 10px 0;
-}
-
-.closeBtn {
-  margin-top: auto;
-  padding: 12px;
-  background: #f44336;
   color: #fff;
-  border: none;
-  border-radius: 8px;
   cursor: pointer;
+  transition: 0.25s;
+}
+.dropdownItem:hover {
+  background: rgba(255, 122, 0, 0.2);
+  padding-left: 25px;
 }
 
-/* FIXED — Sidebar stays hidden until opened */
+/* ===========================
+   FIXED: SIDEBAR SHOULD NOT COVER HEADER
+=========================== */
 .sidebar {
   position: fixed;
-  top: 0;
+  top: 70px; /* BELOW HEADER */
   right: 0;
-  width: 0px;               /* HIDDEN width */
-  height: 100%;
-  background: #ffffff;
-  overflow: hidden;         /* HIDE inner content */
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
-  transition: width 0.35s ease;
-  z-index: 2000;
-  padding: 0;               /* Remove content padding when closed */
-  pointer-events: none;     /* Can't click when hidden */
+  width: 280px;
+  height: calc(100% - 70px); /* FIT SCREEN MINUS HEADER */
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(18px);
+  padding: 30px 20px;
+  z-index: 900; /* BELOW HEADER, ABOVE CONTENT */
+  animation: slideIn 0.35s ease;
+  overflow-y: auto; /* if content grows scroll inside */
 }
 
-/* When opened */
-.sidebar-open {
-  width: 300px;             /* Sidebar slides out smoothly */
-  padding: 30px;
-  pointer-events: auto;     /* Enable clicking inside */
+/* HEADER MUST STAY ON TOP */
+.header {
+  z-index: 2000 !important;
 }
 
-/* Sidebar Header */
+/* KEEP DROPDOWN ABOVE SIDEBAR */
+.dropdown {
+  z-index: 2100 !important;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 .sidebarTitle {
-  font-size: 22px;
-  font-weight: 700;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #eee;
+  font-size: 24px;
+  color: #fff;
   margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Sidebar Links */
 .sidebarItem {
-  font-size: 18px;
-  font-weight: 500;
+  color: white;
   padding: 12px 5px;
   cursor: pointer;
-  color: #333;
-  border-radius: 8px;
   transition: 0.25s;
+  border-radius: 6px;
 }
-
 .sidebarItem:hover {
-  background: #f5f5f5;
-  padding-left: 12px;
+  background: rgba(255, 122, 0, 0.25);
+  padding-left: 15px;
 }
 
-/* Close Button */
-.closeBtn {
-  margin-top: auto;
-  padding: 12px;
-  background: #e53935;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
+/* NOTIFICATION */
+.notifBell {
+  font-size: 22px;
   cursor: pointer;
+  color: white;
   transition: 0.25s;
 }
-
-.closeBtn:hover {
-  background: #c62828;
+.notifBell:hover {
+  color: #ff7a00;
 }
 
-/* Background overlay */
-.overlayBG {
+/* HEADER CONTAINER */
+.header {
+  width: 100%;
+  padding: 15px 45px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 1500;
+  z-index: 1000;
+  box-sizing: border-box;
 }
 
-/* Notification bell */
-.notifBell {
-  position: relative;
-  font-size: 22px;
+/* LOGO */
+.logo {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+.logo:hover {
+  color: #ff7b00;
+}
+
+/* NAVIGATION */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* TEXT LINKS */
+.link {
+  color: #e6e6e6;
+  font-size: 18px;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+.link:hover {
+  color: #ff7b00;
+}
+
+/* BASE BUTTON STYLE */
+.btn {
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.30s ease;
+  border: none;
+}
+
+/* LOGIN BUTTON (Orange Glow) */
+.loginBtn {
+  background: #ff7b00;
+  color: #fff;
+  box-shadow: 0 0 10px #ff7b00a1;
+}
+.loginBtn:hover {
+  background: #ff8800;
+  box-shadow: 0 0 14px #ff8800e1;
+  transform: scale(1.05);
+}
+
+/* SIGNUP BUTTON — SAME AS LOGIN */
+.signupBtn {
+  background: #ff7b00;
+  color: #fff;
+  box-shadow: 0 0 10px #ff7b00a1;
+  border: none;
+}
+.signupBtn:hover {
+  background: #ff8800;
+  box-shadow: 0 0 14px #ff8800e1;
+  transform: scale(1.05);
+}
+
+/* DONATE BUTTON */
+.donateBtn {
+  background: #ff7b00;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 0 10px #ff7b00a1;
   cursor: pointer;
 }
+.donateBtn:hover {
+  background: #ff8800;
+  transform: scale(1.05);
+}
 
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -8px;
-  background: red;
-  color: white;
-  padding: 2px 6px;
+/* PROFILE ICON */
+.profileWrapper {
+  position: relative;
+}
+.profileCircle {
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
-  font-size: 12px;
+  background: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.2);
+  transition: 0.25s;
+}
+.profileCircle:hover {
+  border-color: #ff7b00;
+  transform: scale(1.08);
+}
+
+/* DROPDOWN */
+.dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  background: #111;
+  width: 170px;
+  border-radius: 12px;
+  padding: 12px 0;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.45);
+  animation: fadeDown 0.2s ease;
+}
+.dropdownItem {
+  padding: 12px 18px;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.dropdownItem:hover {
+  background: #222;
+  padding-left: 25px;
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* NOTIFICATION BELL */
+.notifBell {
+  color: #ffffff;
+  font-size: 22px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+.notifBell:hover {
+  color: #ff7b00;
 }

@@ -1,52 +1,94 @@
-/* Full screen section */
-.landing-container {
+/* MAIN PAGE BACKGROUND */
+.landing-page {
   width: 100%;
-  height: 100vh;
-  position: relative;
-  background: url("https://source.unsplash.com/1600x900/?technology,coding")
-    no-repeat center center/cover;
-  filter: brightness(90%);
+  min-height: 100vh;
+  background: radial-gradient(circle at left, #ff7a00 0%, #0d0d0d 40%, #001f34 100%);
+  padding: 120px 0 80px 0;
+  color: white;
 }
 
-/* Center overlay content */
-.landing-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* HERO SECTION */
+.landing-hero {
   text-align: center;
-  color: white;
+  margin-bottom: 70px;
 }
 
-/* Title */
 .landing-title {
-  font-size: 60px;
+  font-size: 48px;
   font-weight: 900;
-  text-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 12px rgba(255, 122, 0, 0.5);
 }
 
-/* Subtitle */
 .landing-subtitle {
-  font-size: 24px;
-  margin-top: 15px;
-  opacity: 0.9;
+  margin-top: 12px;
+  font-size: 20px;
+  color: #e0e0e0;
 }
 
-/* Button */
-.landing-btn {
-  margin-top: 25px;
-  padding: 14px 34px;
-  background: #4f46e5;
-  color: white;
-  border-radius: 10px;
-  border: none;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.25s ease;
+/* ABOUT SECTION GRID */
+.about-section {
+  width: 92%;
+  max-width: 850px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
 
-.landing-btn:hover {
-  background: #3b35c4;
-  transform: scale(1.05);
+/* CARD */
+.about-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  padding: 35px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 0 35px rgba(0,0,0,0.5);
+  transition: 0.3s ease;
+}
+
+.about-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 0 45px rgba(255, 122, 0, 0.4);
+}
+
+/* IMAGE */
+.about-img {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 12px rgba(255,125,0,0.6));
+}
+
+/* TITLES */
+.about-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+/* DESCRIPTION TEXT */
+.about-text {
+  font-size: 17px;
+  color: #e6e6e6;
+  line-height: 1.6;
+  max-width: 650px;
+  margin: auto;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 600px) {
+  .landing-title {
+    font-size: 36px;
+  }
+
+  .about-img {
+    width: 110px;
+    height: 110px;
+  }
+
+  .about-card {
+    padding: 25px;
+  }
 }
