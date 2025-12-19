@@ -10,7 +10,9 @@
   position: relative;
   overflow-x: hidden;
 }
-
+option{
+  background-color:red;
+}
 /* GLOW ORBS (same as login) */
 .signup-page::before,
 .signup-page::after {

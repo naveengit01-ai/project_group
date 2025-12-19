@@ -139,7 +139,7 @@ export default function Signup({ onSignup }) {
         >
           <option value="">Select Role</option>
           <option value="user">User</option>
-          <option value="rider">Rider</option>
+          {/* <option value="rider">Rider</option> */}
         </select>
 
         <button className="signup-btn">Signup</button>
