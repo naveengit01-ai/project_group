@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import "./styles/Login.css";
 
+// 👉 change to http://localhost:5000 for local testing
 const BASE_URL = "https://back-end-project-group.onrender.com";
-// for local testing:
-// const BASE_URL = "http://localhost:5000";
 
 export default function Login({ onLogin }) {
   const [user_name, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState("user"); // ✅ LOCKED
+  const [userType] = useState("user"); // 🔒 locked to user (backend compatible)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Basic validation
     if (!user_name.trim() || !password.trim()) {
       alert("Username and password are required");
       return;
@@ -36,6 +36,7 @@ export default function Login({ onLogin }) {
       const data = await res.json();
 
       if (data.status === "success") {
+        // Save user session
         localStorage.setItem("user", JSON.stringify(data.user));
         onLogin(data.user);
       } else {
@@ -48,14 +49,14 @@ export default function Login({ onLogin }) {
         "Possible reasons:\n" +
         "- Backend sleeping (Render)\n" +
         "- Server error\n\n" +
-        "Try again or refresh."
+        "Try again."
       );
     }
   };
 
   return (
     <div className="loginWrapper">
-      {/* Glow Background */}
+      {/* Background Glow Effects */}
       <div className="glow glow1"></div>
       <div className="glow glow2"></div>
       <div className="glow glow3"></div>
@@ -80,13 +81,10 @@ export default function Login({ onLogin }) {
           className="loginInput"
         />
 
-        {/* Role locked until rider signup exists */}
-        <select
-          value={userType}
-          className="loginSelect"
-          disabled
-        >
+        {/* Role locked until rider signup is implemented */}
+        <select className="loginSelect" disabled>
           <option value="user">User</option>
+          <option value="rider">Rider</option>
         </select>
 
         <button className="loginBtn">Login</button>
