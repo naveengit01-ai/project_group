@@ -9,8 +9,8 @@ export default function MyTrips() {
     if (!rider) return;
 
     async function loadTrips() {
-      const foodRes = await fetch(`http://localhost:5000/my-trips/${rider.id}`);
-      const clothRes = await fetch(`http://localhost:5000/my-clothes-trips/${rider.id}`);
+      const foodRes = await fetch(`https://back-end-project-group.onrender.com/my-trips/${rider.id}`);
+      const clothRes = await fetch(`https://back-end-project-group.onrender.com/my-clothes-trips/${rider.id}`);
 
       const foodData = await foodRes.json();
       const clothData = await clothRes.json();

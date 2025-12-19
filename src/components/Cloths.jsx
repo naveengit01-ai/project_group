@@ -19,7 +19,8 @@ export default function Clothes() {
       setGeneratedPIN(saved.pin);
 
       const interval = setInterval(async () => {
-        const res = await fetch(`http://localhost:5000/check-trip-status/${saved.trip_id}`);
+        const res = await fetch(`https://back-end-project-group.onrender.com
+/check-trip-status/${saved.trip_id}`);
         const data = await res.json();
 
         if (data.trip_status === "completed") {
@@ -54,7 +55,7 @@ export default function Clothes() {
       location,
     };
 
-    const res = await fetch("http://localhost:5000/addClothes", {
+    const res = await fetch("https://back-end-project-group.onrender.com/addClothes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

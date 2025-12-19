@@ -8,7 +8,8 @@ export default function MyDonations() {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user) return;
 
-    fetch(`http://localhost:5000/my-donations/${user.id}`)
+    fetch(`https://back-end-project-group.onrender.com
+/my-donations/${user.id}`)
       .then((res) => res.json())
       .then((data) => setDonations(data));
   }, []);

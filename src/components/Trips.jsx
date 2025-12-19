@@ -8,8 +8,8 @@ export default function Trips({ setPage }) {
   useEffect(() => {
     async function loadTrips() {
       try {
-        const foodRes = await fetch("http://localhost:5000/get-trips");
-        const clothesRes = await fetch("http://localhost:5000/get-clothes-trips");
+        const foodRes = await fetch("https://back-end-project-group.onrender.com/get-trips");
+        const clothesRes = await fetch("https://back-end-project-group.onrender.com/get-clothes-trips");
 
         const foodData = await foodRes.json();
         const clothesData = await clothesRes.json();
@@ -37,8 +37,8 @@ export default function Trips({ setPage }) {
     const isFood = !!trip.food_type;
 
     const API = isFood
-      ? "http://localhost:5000/pick-trip"
-      : "http://localhost:5000/pick-clothes-trip";
+      ? "https://back-end-project-group.onrender.com/pick-trip"
+      : "https://back-end-project-group.onrender.com/pick-clothes-trip";
 
     try {
       const res = await fetch(API, {
@@ -73,7 +73,7 @@ export default function Trips({ setPage }) {
     if (!reason) return;
 
     try {
-      const res = await fetch("http://localhost:5000/reject-trip", {
+      const res = await fetch("https://back-end-project-group.onrender.com/reject-trip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

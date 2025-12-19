@@ -22,7 +22,8 @@ export default function Food() {
 
       const interval = setInterval(async () => {
         const res = await fetch(
-          `http://localhost:5000/check-trip-status/${saved.trip_id}`
+          `https://back-end-project-group.onrender.com
+/check-trip-status/${saved.trip_id}`
         );
         const data = await res.json();
 
@@ -61,7 +62,7 @@ export default function Food() {
       location,
     };
 
-    const res = await fetch("http://localhost:5000/addTrip", {
+    const res = await fetch("https://back-end-project-group.onrender.com/addTrip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

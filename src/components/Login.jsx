@@ -14,7 +14,7 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    const res = await fetch("http://localhost:5000/login", {
+    const res = await fetch("https://back-end-project-group.onrender.com/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

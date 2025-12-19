@@ -85,7 +85,7 @@ export default function VerifyPin({ tripId }) {
 
     if (pin.trim() === "") return alert("Enter PIN!");
 
-    const res = await fetch("http://localhost:5000/verify-pin", {
+    const res = await fetch("https://back-end-project-group.onrender.com/verify-pin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -32,7 +32,7 @@ export default function Profile() {
 
   // photo URL (if stored in backend)
   const photoURL = user.profile_photo
-    ? `http://localhost:5000${user.profile_photo}`
+    ? `https://back-end-project-group.onrender.com${user.profile_photo}`
     : "https://via.placeholder.com/150"; // default image
 
   return (

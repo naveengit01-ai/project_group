@@ -45,7 +45,7 @@ export default function Signup({ onSignup }) {
     formData.append("profile_photo", photoFile);
 
     try {
-      const res = await fetch("http://localhost:5000/signup", {
+      const res = await fetch("https://back-end-project-group.onrender.com/signup", {
         method: "POST",
         body: formData,
       });
