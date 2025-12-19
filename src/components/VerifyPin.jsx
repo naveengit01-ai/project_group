@@ -34,7 +34,7 @@ export default function VerifyPin({ tripId }) {
         localStorage.setItem("rider_verified", "done");
 
         setTimeout(() => {
-          window.location.href = "/mytrips";
+          window.location.href = "/home";
         }, 1500);
 
       } else if (data.status === "invalid") {
