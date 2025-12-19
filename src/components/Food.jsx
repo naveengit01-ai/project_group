@@ -11,18 +11,25 @@ export default function Food() {
   const [generatedPIN, setGeneratedPIN] = useState("");
   const [lastTrip, setLastTrip] = useState(null);
   const [riderVerifiedMsg, setRiderVerifiedMsg] = useState("");
+  const [showForm, setShowForm] = useState(true);
 
-  // Load from storage if donation is already created
+  // ================= LOAD EXISTING DONATION =================
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("last_donation"));
 
-    if (saved) {
-      setLastTrip(saved);
-      setGeneratedPIN(saved.pin);
+    if (!saved) {
+      setShowForm(true);
+      return;
+    }
 
-      const interval = setInterval(async () => {
+    setLastTrip(saved);
+    setGeneratedPIN(saved.pin);
+    setShowForm(false);
+
+    const interval = setInterval(async () => {
+      try {
         const res = await fetch(
-          `https://back-end-project-group.onrender.com/check-trip-status/${saved.trip_id}`
+          `http://localhost:5000/check-trip-status/${saved.trip_id}`
         );
         const data = await res.json();
 
@@ -31,26 +38,33 @@ export default function Food() {
             "✔ Rider verified the PIN. You can give the food now."
           );
 
+          clearInterval(interval);
+
           setTimeout(() => {
             localStorage.removeItem("last_donation");
             setLastTrip(null);
             setGeneratedPIN("");
             setRiderVerifiedMsg("");
+            setShowForm(true); // ✅ FORM RETURNS
           }, 15000);
-
-          clearInterval(interval);
         }
-      }, 5000);
+      } catch (err) {
+        console.error("Status check failed:", err);
+      }
+    }, 5000);
 
-      return () => clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, []);
 
+  // ================= SUBMIT DONATION =================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser) return alert("Please login!");
+    if (!storedUser) {
+      alert("Please login!");
+      return;
+    }
 
     const payload = {
       user_id: storedUser.id,
@@ -61,39 +75,54 @@ export default function Food() {
       location,
     };
 
-    const res = await fetch("https://back-end-project-group.onrender.com/addTrip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(
+        "https://back-end-project-group.onrender.com/addTrip",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.status === "success") {
-      const tripInfo = {
-        trip_id: data.trip_id,
-        foodType,
-        quantity,
-        price,
-        providerType,
-        location,
-        pin: data.pin,
-      };
+      if (data.status === "success") {
+        const tripInfo = {
+          trip_id: data.trip_id,
+          foodType,
+          quantity,
+          price,
+          providerType,
+          location,
+          pin: data.pin,
+        };
 
-      localStorage.setItem("last_donation", JSON.stringify(tripInfo));
+        localStorage.setItem("last_donation", JSON.stringify(tripInfo));
 
-      setLastTrip(tripInfo);
-      setGeneratedPIN(data.pin);
-    } else {
-      alert("Error: " + data.message);
+        setLastTrip(tripInfo);
+        setGeneratedPIN(data.pin);
+        setShowForm(false);
+
+        // clear inputs
+        setFoodType("");
+        setQuantity("");
+        setPrice("");
+        setProviderType("");
+        setLocation("");
+      } else {
+        alert("Error creating donation");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error");
     }
   };
 
   return (
     <div className="foodContainer">
-
-      {/* SHOW FORM ONLY IF PIN NOT GENERATED */}
-      {!lastTrip && !riderVerifiedMsg && (
+      {/* ================= DONATION FORM ================= */}
+      {showForm && (
         <form className="foodForm" onSubmit={handleSubmit}>
           <h2>Food Donation</h2>
 
@@ -102,6 +131,7 @@ export default function Food() {
             placeholder="Food Type"
             value={foodType}
             onChange={(e) => setFoodType(e.target.value)}
+            required
           />
 
           <input
@@ -109,6 +139,7 @@ export default function Food() {
             placeholder="Quantity"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
+            required
           />
 
           <input
@@ -121,6 +152,7 @@ export default function Food() {
           <select
             value={providerType}
             onChange={(e) => setProviderType(e.target.value)}
+            required
           >
             <option value="">Provider Type</option>
             <option value="hotel">Hotel</option>
@@ -132,13 +164,14 @@ export default function Food() {
             placeholder="Pickup Location"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
+            required
           />
 
           <button>Donate</button>
         </form>
       )}
 
-      {/* Rider Verified Message */}
+      {/* ================= VERIFIED MESSAGE ================= */}
       {riderVerifiedMsg && (
         <div className="pinBox">
           <h3>{riderVerifiedMsg}</h3>
@@ -146,7 +179,7 @@ export default function Food() {
         </div>
       )}
 
-      {/* PIN Info */}
+      {/* ================= PIN DISPLAY ================= */}
       {!riderVerifiedMsg && lastTrip && (
         <div className="pinBox">
           <h3>Your Pickup Verification PIN</h3>
