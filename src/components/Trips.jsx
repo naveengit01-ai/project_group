@@ -1,44 +1,51 @@
 import React, { useEffect, useState } from "react";
 import "./styles/Trips.css";
 
+const BASE_URL = "https://back-end-project-group.onrender.com";
+
 export default function Trips({ setPage }) {
   const [trips, setTrips] = useState([]);
 
-  // Load FOOD + CLOTHES trips
+  // ================= LOAD TRIPS =================
   useEffect(() => {
     async function loadTrips() {
       try {
-        const foodRes = await fetch("https://back-end-project-group.onrender.com/get-trips");
-        const clothesRes = await fetch("https://back-end-project-group.onrender.com/get-clothes-trips");
+        const foodRes = await fetch(`${BASE_URL}/get-trips`);
+        const clothesRes = await fetch(`${BASE_URL}/get-clothes-trips`);
 
         const foodData = await foodRes.json();
         const clothesData = await clothesRes.json();
 
-        // Sort latest first
-        const merged = [...foodData, ...clothesData].sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
+        // Normalize MongoDB _id → id
+        const merged = [...foodData, ...clothesData]
+          .map(trip => ({
+            ...trip,
+            id: trip._id
+          }))
+          .sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+          );
 
         setTrips(merged);
       } catch (err) {
         console.error("Error loading trips:", err);
+        alert("Failed to load trips");
       }
     }
 
     loadTrips();
   }, []);
 
-  // TAKE TRIP
+  // ================= TAKE TRIP =================
   const handlePick = async (trip) => {
     const rider = JSON.parse(localStorage.getItem("user"));
     if (!rider) return alert("Please login first");
 
-    // FIXED — correct way to detect food vs clothes
     const isFood = !!trip.food_type;
 
     const API = isFood
-      ? "https://back-end-project-group.onrender.com/pick-trip"
-      : "https://back-end-project-group.onrender.com/pick-clothes-trip";
+      ? `${BASE_URL}/pick-trip`
+      : `${BASE_URL}/pick-clothes-trip`;
 
     try {
       const res = await fetch(API, {
@@ -46,62 +53,69 @@ export default function Trips({ setPage }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           trip_id: trip.id,
-          rider_id: rider.id,
+          rider_id: rider._id,
         }),
       });
 
+      if (!res.ok) throw new Error("Pick request failed");
+
       const data = await res.json();
-      console.log("Pick Trip Response:", data);
 
       if (data.status === "success") {
-        // redirect to verify pin page
         setPage(`verify-pin#${trip.id}`);
       } else {
-        alert(data.message || "Could not pick this trip.");
+        alert(data.message || "Could not pick this trip");
       }
     } catch (err) {
-      alert("Server error: " + err.message);
+      console.error(err);
+      alert("Server error while picking trip");
     }
   };
 
-  // REJECT TRIP
-  const handleReject = async (tripId) => {
+  // ================= REJECT TRIP (FOOD ONLY) =================
+  const handleReject = async (trip) => {
     const rider = JSON.parse(localStorage.getItem("user"));
     if (!rider) return alert("Please login first");
+
+    const isFood = !!trip.food_type;
+    if (!isFood) {
+      return alert("Reject option for clothes trips is not available");
+    }
 
     const reason = prompt("Enter reason for rejecting:");
     if (!reason) return;
 
     try {
-      const res = await fetch("https://back-end-project-group.onrender.com/reject-trip", {
+      const res = await fetch(`${BASE_URL}/reject-trip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          trip_id: tripId,
-          rider_id: rider.id,
+          trip_id: trip.id,
+          rider_id: rider._id,
           reason,
         }),
       });
 
+      if (!res.ok) throw new Error("Reject request failed");
+
       const data = await res.json();
 
       if (data.status === "success") {
-        alert("Trip Rejected");
-
-        // update in UI
-        setTrips((prev) =>
-          prev.map((trip) =>
-            trip.id === tripId ? { ...trip, status: "rejected" } : trip
+        setTrips(prev =>
+          prev.map(t =>
+            t.id === trip.id ? { ...t, status: "rejected" } : t
           )
         );
       } else {
-        alert(data.message);
+        alert(data.message || "Reject failed");
       }
     } catch (err) {
-      alert("Server error: " + err.message);
+      console.error(err);
+      alert("Server error while rejecting trip");
     }
   };
 
+  // ================= UI =================
   return (
     <div className="trips-container">
       <h1 className="page-title">Available Trips</h1>
@@ -117,17 +131,13 @@ export default function Trips({ setPage }) {
               </h2>
 
               <div className="trip-details">
-                {/* FOOD */}
-                {isFood && (
+                {isFood ? (
                   <>
                     <p><strong>Food:</strong> {trip.food_type}</p>
                     <p><strong>Quantity:</strong> {trip.quantity}</p>
-                    <p><strong>Price:</strong> {trip.price || "0"}</p>
+                    <p><strong>Price:</strong> {trip.price || 0}</p>
                   </>
-                )}
-
-                {/* CLOTHES */}
-                {!isFood && (
+                ) : (
                   <>
                     <p><strong>Clothes:</strong> {trip.cloth_type}</p>
                     <p><strong>Quantity:</strong> {trip.quantity}</p>
@@ -138,7 +148,10 @@ export default function Trips({ setPage }) {
                 <p><strong>Status:</strong> {trip.status}</p>
                 <hr />
                 <p><strong>Pickup Address:</strong> {trip.location}</p>
-                <p><strong>Created:</strong> {trip.created_at}</p>
+                <p>
+                  <strong>Created:</strong>{" "}
+                  {new Date(trip.createdAt).toLocaleString()}
+                </p>
               </div>
 
               <div className="trip-actions">
@@ -153,7 +166,7 @@ export default function Trips({ setPage }) {
 
                     <button
                       className="rejectBtn"
-                      onClick={() => handleReject(trip.id)}
+                      onClick={() => handleReject(trip)}
                     >
                       ✖ Not Taking
                     </button>
@@ -161,11 +174,15 @@ export default function Trips({ setPage }) {
                 )}
 
                 {trip.status === "picked" && (
-                  <button className="pickedBtn" disabled>Trip Picked</button>
+                  <button className="pickedBtn" disabled>
+                    Trip Picked
+                  </button>
                 )}
 
                 {trip.status === "rejected" && (
-                  <button className="rejectedBtn" disabled>Rejected</button>
+                  <button className="rejectedBtn" disabled>
+                    Rejected
+                  </button>
                 )}
               </div>
             </div>
