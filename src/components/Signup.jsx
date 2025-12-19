@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import "./styles/signup.css";
 
+const BASE_URL = "https://back-end-project-group.onrender.com";
+// for local testing:
+// const BASE_URL = "http://localhost:5000";
+
 export default function Signup({ onSignup }) {
   const [form, setForm] = useState({
     firstname: "",
@@ -10,23 +14,21 @@ export default function Signup({ onSignup }) {
     ph_no: "",
     user_name: "",
     password: "",
-    user_type: "",
+    user_type: "user" // ✅ DEFAULT
   });
 
   const [photoFile, setPhotoFile] = useState(null);
 
-  // Handle text inputs
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validation
     for (let key in form) {
-      if (form[key].trim() === "") {
+      if (!form[key] || form[key].trim() === "") {
         alert(`${key} cannot be empty`);
         return;
       }
@@ -37,18 +39,22 @@ export default function Signup({ onSignup }) {
       return;
     }
 
-    // Prepare formData
     const formData = new FormData();
-    Object.keys(form).forEach((key) => {
-      formData.append(key, form[key]);
+    Object.entries(form).forEach(([key, value]) => {
+      formData.append(key, value);
     });
     formData.append("profile_photo", photoFile);
 
     try {
-      const res = await fetch("https://back-end-project-group.onrender.com/signup", {
+      const res = await fetch(`${BASE_URL}/signup`, {
         method: "POST",
-        body: formData,
+        body: formData
       });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Signup failed");
+      }
 
       const data = await res.json();
 
@@ -58,20 +64,26 @@ export default function Signup({ onSignup }) {
       } else if (data.status === "exists") {
         alert("Username already exists!");
       } else {
-        alert("Signup failed: " + data.message);
+        alert("Signup failed!");
       }
     } catch (err) {
-      alert("Server error: " + err.message);
+      console.error("Signup error:", err);
+      alert(
+        "Signup failed.\n\n" +
+        "Possible reasons:\n" +
+        "- Backend sleeping (Render)\n" +
+        "- MongoDB connection issue\n" +
+        "- File upload error\n\n" +
+        "Check console & backend logs."
+      );
     }
   };
 
   return (
     <div className="signup-page">
       <form className="signup-card" onSubmit={handleSubmit}>
-
         <h2 className="signup-title">Create an Account</h2>
 
-        {/* Name Row */}
         <div style={{ display: "flex", gap: "12px" }}>
           <input
             name="firstname"
@@ -106,10 +118,8 @@ export default function Signup({ onSignup }) {
           placeholder="Phone Number"
           onChange={handleChange}
           className="signup-input"
-          type="number"
         />
 
-        {/* File Upload */}
         <input
           type="file"
           accept="image/*"
@@ -132,14 +142,14 @@ export default function Signup({ onSignup }) {
           className="signup-input"
         />
 
+        {/* Locked role */}
         <select
           name="user_type"
           className="signup-select"
+          value={form.user_type}
           onChange={handleChange}
         >
-          <option value="">Select Role</option>
           <option value="user">User</option>
-          {/* <option value="rider">Rider</option> */}
         </select>
 
         <button className="signup-btn">Signup</button>
