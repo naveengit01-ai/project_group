@@ -1,42 +1,61 @@
 import React, { useState } from "react";
 import "./styles/Login.css";
 
+const BASE_URL = "https://back-end-project-group.onrender.com";
+// for local testing:
+// const BASE_URL = "http://localhost:5000";
+
 export default function Login({ onLogin }) {
   const [user_name, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState("");
+  const [userType, setUserType] = useState("user"); // ✅ LOCKED
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!userType) {
-      alert("Select User or Rider");
+    if (!user_name.trim() || !password.trim()) {
+      alert("Username and password are required");
       return;
     }
 
-    const res = await fetch("https://back-end-project-group.onrender.com/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_name,
-        password,
-        user_type: userType,
-      }),
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_name,
+          password,
+          user_type: userType
+        })
+      });
 
-    const data = await res.json();
+      if (!res.ok) {
+        throw new Error("Server not responding");
+      }
 
-    if (data.status === "success") {
-      localStorage.setItem("user", JSON.stringify(data.user));
-      onLogin(data.user);
-    } else {
-      alert("Invalid login");
+      const data = await res.json();
+
+      if (data.status === "success") {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        onLogin(data.user);
+      } else {
+        alert("Invalid username or password");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert(
+        "Login failed.\n\n" +
+        "Possible reasons:\n" +
+        "- Backend sleeping (Render)\n" +
+        "- Server error\n\n" +
+        "Try again or refresh."
+      );
     }
   };
 
   return (
     <div className="loginWrapper">
-      {/* Background Glow Balls */}
+      {/* Glow Background */}
       <div className="glow glow1"></div>
       <div className="glow glow2"></div>
       <div className="glow glow3"></div>
@@ -61,14 +80,13 @@ export default function Login({ onLogin }) {
           className="loginInput"
         />
 
+        {/* Role locked until rider signup exists */}
         <select
           value={userType}
-          onChange={(e) => setUserType(e.target.value)}
           className="loginSelect"
+          disabled
         >
-          <option value="">Select Role</option>
           <option value="user">User</option>
-          <option value="rider">Rider</option>
         </select>
 
         <button className="loginBtn">Login</button>
