@@ -22,8 +22,7 @@ export default function Food() {
 
       const interval = setInterval(async () => {
         const res = await fetch(
-          `https://back-end-project-group.onrender.com
-/check-trip-status/${saved.trip_id}`
+          `https://back-end-project-group.onrender.com/check-trip-status/${saved.trip_id}`
         );
         const data = await res.json();
 
