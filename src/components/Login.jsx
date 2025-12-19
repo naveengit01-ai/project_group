@@ -1,18 +1,17 @@
 import React, { useState } from "react";
 import "./styles/Login.css";
 
-// 👉 change to http://localhost:5000 for local testing
+// change to http://localhost:5000 for local testing
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function Login({ onLogin }) {
   const [user_name, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [userType] = useState("user"); // 🔒 locked to user (backend compatible)
+  const userType = "user"; // locked to user (backend-compatible)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!user_name.trim() || !password.trim()) {
       alert("Username and password are required");
       return;
@@ -21,7 +20,10 @@ export default function Login({ onLogin }) {
     try {
       const res = await fetch(`${BASE_URL}/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include", // ✅ SEND / RECEIVE COOKIES
         body: JSON.stringify({
           user_name,
           password,
@@ -36,9 +38,9 @@ export default function Login({ onLogin }) {
       const data = await res.json();
 
       if (data.status === "success") {
-        // Save user session
-        localStorage.setItem("user", JSON.stringify(data.user));
-        onLogin(data.user);
+        // 🔥 NO localStorage
+        // backend cookie already set
+        onLogin(data.user); // optional (UI state only)
       } else {
         alert("Invalid username or password");
       }
@@ -48,15 +50,15 @@ export default function Login({ onLogin }) {
         "Login failed.\n\n" +
         "Possible reasons:\n" +
         "- Backend sleeping (Render)\n" +
-        "- Server error\n\n" +
-        "Try again."
+        "- Cookie not set correctly\n" +
+        "- Network issue"
       );
     }
   };
 
   return (
     <div className="loginWrapper">
-      {/* Background Glow Effects */}
+      {/* Glow background */}
       <div className="glow glow1"></div>
       <div className="glow glow2"></div>
       <div className="glow glow3"></div>
@@ -81,7 +83,7 @@ export default function Login({ onLogin }) {
           className="loginInput"
         />
 
-        {/* Role locked until rider signup is implemented */}
+        {/* Role locked */}
         <select className="loginSelect" disabled>
           <option value="user">User</option>
           <option value="rider">Rider</option>
