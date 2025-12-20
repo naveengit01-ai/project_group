@@ -2,36 +2,44 @@ import React, { useState } from "react";
 import "./styles/otp.css";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
+// local testing:
+// const BASE_URL = "http://localhost:10000";
 
 export default function VerifyPin({ tripId }) {
   const [pin, setPin] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleVerify = async () => {
     const rider = JSON.parse(localStorage.getItem("user"));
-    if (!rider) return alert("Please login first!");
 
-    if (pin.trim() === "") return alert("Enter PIN!");
+    if (!rider || !rider._id) {
+      alert("Please login again");
+      return;
+    }
+
+    if (!pin.trim()) {
+      alert("Enter PIN");
+      return;
+    }
 
     try {
+      setLoading(true);
+
       const res = await fetch(`${BASE_URL}/verify-pin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           trip_id: tripId,
-          rider_id: rider._id, // ✅ FIXED HERE
-          pin: pin,
-        }),
+          rider_id: rider._id,
+          pin: pin.trim()
+        })
       });
-
-      if (!res.ok) throw new Error("Verify failed");
 
       const data = await res.json();
 
       if (data.status === "success") {
-        setMessage("✔ PIN Verified! Trip Completed");
-
-        localStorage.setItem("rider_verified", "done");
+        setMessage("✔ PIN Verified. Trip Completed!");
 
         setTimeout(() => {
           window.location.href = "/home";
@@ -40,18 +48,21 @@ export default function VerifyPin({ tripId }) {
       } else if (data.status === "invalid") {
         setMessage("❌ Wrong PIN");
 
-      } else if (data.status === "expired") {
-        setMessage("⚠ PIN expired");
-
       } else if (data.status === "not_allowed") {
-        setMessage("❌ This trip was not assigned to you");
+        setMessage("❌ This trip is not assigned to you");
+
+      } else if (data.status === "not_found") {
+        setMessage("❌ Trip not found");
 
       } else {
-        setMessage("Error verifying PIN");
+        setMessage("⚠ Verification failed");
       }
+
     } catch (err) {
-      console.error(err);
-      setMessage("Server error while verifying PIN");
+      console.error("Verify PIN error:", err);
+      setMessage("⚠ Server error. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,12 +80,16 @@ export default function VerifyPin({ tripId }) {
           className="pin-input"
           placeholder="Enter PIN"
           value={pin}
-          onChange={(e) => setPin(e.target.value)}
+          onChange={(e) => setPin(e.target.value.toUpperCase())}
           maxLength={6}
         />
 
-        <button className="verify-btn" onClick={handleVerify}>
-          Verify PIN
+        <button
+          className="verify-btn"
+          onClick={handleVerify}
+          disabled={loading}
+        >
+          {loading ? "Verifying..." : "Verify PIN"}
         </button>
 
         {message && <p className="verify-message">{message}</p>}

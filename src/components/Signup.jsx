@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import "./styles/signup.css";
 
-// 👉 change to http://localhost:5000 for local testing
 const BASE_URL = "https://back-end-project-group.onrender.com";
+// for local testing:
+// const BASE_URL = "http://localhost:10000";
 
 export default function Signup({ onSignup }) {
   const [form, setForm] = useState({
@@ -13,10 +14,11 @@ export default function Signup({ onSignup }) {
     ph_no: "",
     user_name: "",
     password: "",
-    user_type: "" // 🔥 user | rider
+    user_type: "" // user | rider
   });
 
   const [photoFile, setPhotoFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -25,35 +27,31 @@ export default function Signup({ onSignup }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🔒 Validation
+    // 🔒 Basic validation (photo NOT required)
     for (let key in form) {
-      if (!form[key] || form[key].trim() === "") {
+      if (!form[key].trim()) {
         alert(`${key} cannot be empty`);
         return;
       }
-    }
-
-    if (!photoFile) {
-      alert("Profile photo is required!");
-      return;
     }
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => {
       formData.append(key, value);
     });
-    formData.append("profile_photo", photoFile);
+
+    // append photo ONLY if user selected one
+    if (photoFile) {
+      formData.append("profile_photo", photoFile);
+    }
 
     try {
+      setLoading(true);
+
       const res = await fetch(`${BASE_URL}/signup`, {
         method: "POST",
         body: formData
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Signup failed");
-      }
 
       const data = await res.json();
 
@@ -71,10 +69,11 @@ export default function Signup({ onSignup }) {
         "Signup failed.\n\n" +
         "Possible reasons:\n" +
         "- Backend sleeping (Render)\n" +
-        "- MongoDB connection issue\n" +
-        "- File upload error\n\n" +
-        "Check console & backend logs."
+        "- Network issue\n\n" +
+        "Try again."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,11 +118,26 @@ export default function Signup({ onSignup }) {
           className="signup-input"
         />
 
+        {/* OPTIONAL PHOTO */}
         <input
           type="file"
           accept="image/*"
-          onChange={(e) => setPhotoFile(e.target.files[0])}
           className="signup-file"
+          onChange={(e) => {
+            const file = e.target.files[0];
+            if (!file) {
+              setPhotoFile(null);
+              return;
+            }
+
+            if (file.size > 1024 * 1024) {
+              alert("Image must be less than 1MB");
+              e.target.value = "";
+              return;
+            }
+
+            setPhotoFile(file);
+          }}
         />
 
         <input
@@ -141,7 +155,6 @@ export default function Signup({ onSignup }) {
           className="signup-input"
         />
 
-        {/* 🔥 USER / RIDER SELECT */}
         <select
           name="user_type"
           className="signup-select"
@@ -153,7 +166,9 @@ export default function Signup({ onSignup }) {
           <option value="rider">Rider</option>
         </select>
 
-        <button className="signup-btn">Signup</button>
+        <button className="signup-btn" disabled={loading}>
+          {loading ? "Signing up..." : "Signup"}
+        </button>
       </form>
     </div>
   );
