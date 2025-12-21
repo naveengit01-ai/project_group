@@ -1,175 +1,133 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./styles/signup.css";
 
-const BASE_URL = "https://back-end-project-group.onrender.com";
-// for local testing:
 // const BASE_URL = "http://localhost:10000";
+const BASE_URL = "https://back-end-project-group.onrender.com";
 
-export default function Signup({ onSignup }) {
+export default function Signup() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [otp, setOtp] = useState("");
+  const [timer, setTimer] = useState(30);
+  const [canResend, setCanResend] = useState(false);
+
   const [form, setForm] = useState({
     firstname: "",
     lastname: "",
-    address: "",
     email: "",
     ph_no: "",
     user_name: "",
     password: "",
-    user_type: "" // user | rider
+    user_type: ""
   });
 
-  const [photoFile, setPhotoFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
+  const handleChange = e =>
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
-  const handleSubmit = async (e) => {
+  /* ================= TIMER ================= */
+  useEffect(() => {
+    if (step !== 2 || timer === 0) return;
+
+    const t = setTimeout(() => setTimer(timer - 1), 1000);
+    return () => clearTimeout(t);
+  }, [timer, step]);
+
+  /* ================= SIGNUP ================= */
+  const signup = async e => {
     e.preventDefault();
 
-    // 🔒 Basic validation (photo NOT required)
-    for (let key in form) {
-      if (!form[key].trim()) {
-        alert(`${key} cannot be empty`);
-        return;
-      }
-    }
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
 
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      formData.append(key, value);
+    const res = await fetch(`${BASE_URL}/signup`, {
+      method: "POST",
+      body: fd
     });
 
-    // append photo ONLY if user selected one
-    if (photoFile) {
-      formData.append("profile_photo", photoFile);
-    }
+    const data = await res.json();
 
-    try {
-      setLoading(true);
-
-      const res = await fetch(`${BASE_URL}/signup`, {
-        method: "POST",
-        body: formData
-      });
-
-      const data = await res.json();
-
-      if (data.status === "success") {
-        alert("Signup successful! Please login.");
-        onSignup("login");
-      } else if (data.status === "exists") {
-        alert("Username already exists!");
-      } else {
-        alert("Signup failed!");
-      }
-    } catch (err) {
-      console.error("Signup error:", err);
-      alert(
-        "Signup failed.\n\n" +
-        "Possible reasons:\n" +
-        "- Backend sleeping (Render)\n" +
-        "- Network issue\n\n" +
-        "Try again."
-      );
-    } finally {
-      setLoading(false);
+    if (data.status === "success") {
+      setStep(2);
+      setTimer(30);
+      setCanResend(false);
+    } else {
+      alert(data.status);
     }
   };
+
+  /* ================= VERIFY OTP ================= */
+  const verifyOtp = async () => {
+    const res = await fetch(`${BASE_URL}/verify-signup-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_name: form.user_name,
+        otp
+      })
+    });
+
+    const data = await res.json();
+    if (data.status === "verified") {
+      alert("Account verified");
+      navigate("/login");
+    } else {
+      alert(data.status);
+    }
+  };
+
+  /* ================= RESEND OTP ================= */
+  const resendOtp = async () => {
+    const res = await fetch(`${BASE_URL}/resend-signup-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_name: form.user_name })
+    });
+
+    const data = await res.json();
+    if (data.status === "resent") {
+      setTimer(30);
+      setCanResend(false);
+    }
+  };
+
+  useEffect(() => {
+    if (timer === 0) setCanResend(true);
+  }, [timer]);
 
   return (
     <div className="signup-page">
-      <form className="signup-card" onSubmit={handleSubmit}>
-        <h2 className="signup-title">Create an Account</h2>
+      {step === 1 && (
+        <form onSubmit={signup}>
+          <input name="firstname" placeholder="First Name" onChange={handleChange} required />
+          <input name="lastname" placeholder="Last Name" onChange={handleChange} required />
+          <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
+          <input name="ph_no" placeholder="Phone" onChange={handleChange} />
+          <input name="user_name" placeholder="Username" onChange={handleChange} required />
+          <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <input
-            name="firstname"
-            placeholder="First Name"
-            onChange={handleChange}
-            className="signup-input"
-          />
-          <input
-            name="lastname"
-            placeholder="Last Name"
-            onChange={handleChange}
-            className="signup-input"
-          />
+          <select name="user_type" onChange={handleChange} required>
+            <option value="">Select Role</option>
+            <option value="user">User</option>
+            <option value="rider">Rider</option>
+          </select>
+
+          <button>Signup</button>
+        </form>
+      )}
+
+      {step === 2 && (
+        <div>
+          <input placeholder="Enter OTP" onChange={e => setOtp(e.target.value)} />
+          <button onClick={verifyOtp}>Verify OTP</button>
+
+          {!canResend ? (
+            <p>Resend OTP in {timer}s</p>
+          ) : (
+            <button onClick={resendOtp}>Resend OTP</button>
+          )}
         </div>
-
-        <input
-          name="address"
-          placeholder="Address"
-          onChange={handleChange}
-          className="signup-input"
-        />
-
-        <input
-          name="email"
-          placeholder="Email"
-          onChange={handleChange}
-          className="signup-input"
-        />
-
-        <input
-          name="ph_no"
-          placeholder="Phone Number"
-          onChange={handleChange}
-          className="signup-input"
-        />
-
-        {/* OPTIONAL PHOTO */}
-        <input
-          type="file"
-          accept="image/*"
-          className="signup-file"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            if (!file) {
-              setPhotoFile(null);
-              return;
-            }
-
-            if (file.size > 1024 * 1024) {
-              alert("Image must be less than 1MB");
-              e.target.value = "";
-              return;
-            }
-
-            setPhotoFile(file);
-          }}
-        />
-
-        <input
-          name="user_name"
-          placeholder="Username"
-          onChange={handleChange}
-          className="signup-input"
-        />
-
-        <input
-          name="password"
-          placeholder="Password"
-          type="password"
-          onChange={handleChange}
-          className="signup-input"
-        />
-
-        <select
-          name="user_type"
-          className="signup-select"
-          value={form.user_type}
-          onChange={handleChange}
-        >
-          <option value="">Select Role</option>
-          <option value="user">User</option>
-          <option value="rider">Rider</option>
-        </select>
-
-        <button className="signup-btn" disabled={loading}>
-          {loading ? "Signing up..." : "Signup"}
-        </button>
-      </form>
+      )}
     </div>
   );
 }

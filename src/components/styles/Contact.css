@@ -1,0 +1,60 @@
+/* ===== PAGE WRAPPER ===== */
+.page {
+  min-height: calc(100vh - 64px);
+  padding: 90px 20px 40px;
+  background-color: #eaf6ff; /* light blue background */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* ===== TITLE ===== */
+.page h1 {
+  font-size: 36px;
+  font-weight: 900;
+  color: #0066ff;
+  margin-bottom: 18px;
+}
+
+/* ===== TEXT ===== */
+.page p {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* ===== CONTACT CARD ===== */
+.contact-box {
+  background-color: #ffffff;
+  padding: 26px 32px;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+}
+
+/* DETAILS */
+.contact-box p {
+  font-size: 16px;
+  margin: 10px 0;
+  color: #222;
+}
+
+.contact-box strong {
+  color: #0066ff;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .page {
+    padding-top: 80px;
+  }
+
+  .page h1 {
+    font-size: 28px;
+  }
+
+  .page p {
+    font-size: 16px;
+  }
+}

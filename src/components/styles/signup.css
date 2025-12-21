@@ -1,135 +1,105 @@
-/* MAIN PAGE BACKGROUND */
-.signup-page {
+/* ================= WRAPPER ================= */
+.signupWrapper {
   width: 100%;
   min-height: 100vh;
-  background: #0d0d0d;
+  background: linear-gradient(120deg, #1a1a1a, #0f0f0f);
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding-top: 140px; 
-  position: relative;
-  overflow-x: hidden;
-}
-option{
-  background-color:red;
-}
-/* GLOW ORBS (same as login) */
-.signup-page::before,
-.signup-page::after {
-  content: "";
-  position: absolute;
-  width: 480px;
-  height: 480px;
-  border-radius: 50%;
-  filter: blur(180px);
-  opacity: 0.55;
-  z-index: 0;
+  align-items: center;
+  font-family: "Poppins", sans-serif;
 }
 
-.signup-page::before {
-  background: #ff7b00;
-  top: -120px;
-  left: -120px;
-}
-
-.signup-page::after {
-  background: #0066ff;
-  bottom: -150px;
-  right: -120px;
-}
-
-/* SIGNUP CARD */
-.signup-card {
-  width: 450px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(14px);
-  border-radius: 18px;
+/* ================= CARD ================= */
+.signupCard {
+  width: 460px;
   padding: 40px;
-  border: 1px solid rgba(255,255,255,0.15);
-  box-shadow: 0 0 35px rgba(255,255,255,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  z-index: 10;
-  animation: fadeInUp 0.7s ease;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.12);
+  animation: fadeIn 0.6s ease;
 }
 
-/* TITLE */
-.signup-title {
+/* ================= TITLE ================= */
+.signupTitle {
   text-align: center;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 800;
   color: #fff;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
-/* INPUTS */
-.signup-input,
-.signup-select,
-.signup-file {
-  width: 100%;
+/* ================= FORM ================= */
+.signupForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.signupForm input,
+.signupForm select,
+.otpBox input {
   padding: 14px;
-  font-size: 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   color: #fff;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.18);
-  border-radius: 12px;
+  font-size: 15px;
   outline: none;
   transition: 0.3s ease;
 }
 
-/* Focus glow */
-.signup-input:focus,
-.signup-select:focus {
-  border-color: #ff7b00;
-  box-shadow: 0 0 12px rgba(255,123,0,0.7);
-}
-
-/* Placeholder */
-.signup-input::placeholder {
-  color: #cccccc;
-}
-
-/* FILE INPUT */
-.signup-file {
-  padding: 10px;
-  cursor: pointer;
+.signupForm input::placeholder,
+.otpBox input::placeholder {
   color: #ccc;
 }
 
-/* SELECT BOX */
-.signup-select {
-  background-color: rgba(255,255,255,0.08);
-  color: #fff;
+.signupForm select {
+  background-color: #1f2a2a;
 }
 
-/* BUTTON */
-.signup-btn {
-  padding: 15px;
-  font-size: 18px;
+/* Focus Glow */
+.signupForm input:focus,
+.signupForm select:focus,
+.otpBox input:focus {
+  border-color: #ff7b00;
+  box-shadow: 0 0 12px #ff7b00;
+}
+
+/* ================= BUTTON ================= */
+.signupForm button,
+.otpBox button {
+  padding: 14px;
+  font-size: 17px;
   font-weight: 800;
-  background: #ff7b00;
+  background: linear-gradient(135deg, #ff7b00, #ff9f43);
   color: #fff;
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  margin-top: 12px;
   transition: 0.3s ease;
-  box-shadow: 0 0 12px rgba(255,123,0,0.6);
 }
 
-.signup-btn:hover {
-  background: #ff8f28;
+.signupForm button:hover,
+.otpBox button:hover {
+  box-shadow: 0 0 16px #ff7b00;
   transform: translateY(-2px);
-  box-shadow: 0 0 18px rgba(255,140,40,0.9);
 }
 
-.signup-btn:active {
-  transform: scale(0.97);
+.signupForm button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* ANIMATION */
-@keyframes fadeInUp {
+/* ================= OTP BOX ================= */
+.otpBox {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ================= ANIMATION ================= */
+@keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(25px);
@@ -138,10 +108,4 @@ option{
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* BODY FIX – allow scrolling */
-body {
-  overflow-y: auto !important;
-  overflow-x: hidden;
 }

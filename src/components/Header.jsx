@@ -1,182 +1,147 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./styles/Hedder.css";
 
-export default function Header({
-  loggedIn,
-  user,
-  page,
-  setPage,
-  onSignupClick,
-  onHomeClick,
-  onProfileClick,
-  onDonationsClick,
-  onMyTripsClick,
-  onTripsClick,
-  onFoodClick,
-  onClothesClick,
-  onOthersClick,
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
+export default function Header({ user, onLogout }) {
+  const [profileOpen, setProfileOpen] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
-  const [userType, setUserType] = useState("");
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user) setUserType(user.user_type);
-  }, [user]);
+  // hide navbar before login
+  if (!user) return null;
 
-  // PROFILE toggle
-  const toggleMenu = () => setMenuOpen(!menuOpen);
-  const closeMenu = () => setMenuOpen(false);
-
-  // DONATE toggle
-  const toggleDonate = () => setDonateOpen(!donateOpen);
-  const closeDonate = () => setDonateOpen(false);
-
-  // LOGIN toggle
-  const toggleLogin = () => {
-    if (page === "login") setPage("home");
-    else setPage("login");
-  };
-
-  // Logout
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.location.reload();
-  };
+  const firstLetter =
+    user?.user_name && typeof user.user_name === "string"
+      ? user.user_name.charAt(0).toUpperCase()
+      : "U";
 
   return (
     <>
+      {/* ===== NAVBAR ===== */}
       <header className="header">
-        <h1 className="logo" onClick={onHomeClick}>DWJD</h1>
+        <h1
+          className="logo"
+          onClick={() => {
+            setProfileOpen(false);
+            setDonateOpen(false);
+            navigate("/");
+          }}
+        >
+          DWJD
+        </h1>
 
-        {!loggedIn ? (
-          <nav className="nav">
-            <button className="btn loginBtn" onClick={toggleLogin}>
-              Login
-            </button>
+        <nav className="nav">
+          {/* ===== NAV LINKS ===== */}
+          <span
+            className="navLink"
+            onClick={() => {
+              setProfileOpen(false);
+              setDonateOpen(false);
+              navigate("/");
+            }}
+          >
+            Home
+          </span>
 
-            <button className="btn signupBtn" onClick={onSignupClick}>
-              Signup
-            </button>
-          </nav>
-        ) : (
-          <nav className="nav">
+          <span
+            className="navLink"
+            onClick={() => {
+              setProfileOpen(false);
+              setDonateOpen(false);
+              navigate("/about");
+            }}
+          >
+            About
+          </span>
 
-            {/* STATIC LINKS */}
-            <a className="link" onClick={onHomeClick}>Home</a>
-            <a className="link">About</a>
-            <a className="link">Contact</a>
+          <span
+            className="navLink"
+            onClick={() => {
+              setProfileOpen(false);
+              setDonateOpen(false);
+              navigate("/contact");
+            }}
+          >
+            Contact
+          </span>
 
-            {/* USER DONATE BUTTON */}
-            {userType === "user" && (
-              <button className="donateBtn" onClick={toggleDonate}>
-                Donate
-              </button>
-            )}
+          {/* ☰ DONATE BUTTON (USER ONLY) */}
+          {user.user_type === "user" && (
+            <span
+              className="hamburger"
+              onClick={() => {
+                setDonateOpen(!donateOpen);
+                setProfileOpen(false);
+              }}
+            >
+              ☰
+            </span>
+          )}
 
-            {/* RIDER BUTTONS */}
-            {userType === "rider" && (
-              <>
-                <button className="donateBtn" onClick={onTripsClick}>Trips</button>
-                <div className="notifBell" onClick={onMyTripsClick}>🔔</div>
-              </>
-            )}
-
-            {/* PROFILE ICON */}
-            <div className="profileWrapper">
-              <div className="profileCircle" onClick={toggleMenu}>
-                {user?.firstname?.charAt(0)?.toUpperCase() || "U"}
-              </div>
-
-              {/* PROFILE DROPDOWN */}
-              {menuOpen && (
-                <div className="dropdown">
-
-                  <div
-                    className="dropdownItem"
-                    onClick={() => {
-                      closeMenu();
-                      onProfileClick();
-                    }}
-                  >
-                    My Profile
-                  </div>
-
-                  {userType === "user" && (
-                    <div
-                      className="dropdownItem"
-                      onClick={() => {
-                        closeMenu();
-                        onDonationsClick();
-                      }}
-                    >
-                      My Donations
-                    </div>
-                  )}
-
-                  {userType === "rider" && (
-                    <div
-                      className="dropdownItem"
-                      onClick={() => {
-                        closeMenu();
-                        onMyTripsClick();
-                      }}
-                    >
-                      My Trips
-                    </div>
-                  )}
-
-                  <div
-                    className="dropdownItem"
-                    onClick={() => {
-                      closeMenu();
-                      handleLogout();
-                    }}
-                  >
-                    Logout
-                  </div>
-
-                </div>
-              )}
+          {/* ===== PROFILE MENU ===== */}
+          <div className="menuWrapper">
+            <div
+              className="profileCircle"
+              onClick={() => {
+                setProfileOpen(!profileOpen);
+                setDonateOpen(false);
+              }}
+            >
+              {firstLetter}
             </div>
-          </nav>
-        )}
+
+            {profileOpen && (
+              <div className="popupMenu profileMenu">
+                <div className="popupUser">{user.user_name}</div>
+
+                <div className="popupItem">My Profile</div>
+
+                {user.user_type === "user" && (
+                  <div className="popupItem">My Donations</div>
+                )}
+
+                {user.user_type === "rider" && (
+                  <div className="popupItem">My Trips</div>
+                )}
+
+                <div
+                  className="popupItem logout"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    onLogout();
+                    navigate("/login");
+                  }}
+                >
+                  Logout
+                </div>
+              </div>
+            )}
+          </div>
+        </nav>
       </header>
 
-      {/* DONATION SIDEBAR */}
-      {userType === "user" && donateOpen && (
-        <div className="sidebar">
-          <h3 className="sidebarTitle">Choose Donation</h3>
-
-          <div
-            className="sidebarItem"
-            onClick={() => {
-              closeDonate();
-              onFoodClick();
-            }}
-          >
-            Food
+      {/* ===== DONATE SLIDER ===== */}
+      {donateOpen && (
+        <div className="donateSlider">
+          <div className="sliderHeader">
+            <h3>Donate</h3>
+            <span
+              className="closeBtn"
+              onClick={() => setDonateOpen(false)}
+            >
+              ✕
+            </span>
           </div>
 
-          <div
-            className="sidebarItem"
-            onClick={() => {
-              closeDonate();
-              onClothesClick();
-            }}
-          >
-            Clothes
+          <div className="sliderItem">🍱 Food</div>
+          <div className="sliderItem">👕 Clothes</div>
+          <div className="sliderItem">🥬 Vegetable Waste</div>
+
+          <div className="sliderHeader">
+            <h3>Other</h3>
           </div>
 
-          <div
-            className="sidebarItem"
-            onClick={() => {
-              closeDonate();
-              onOthersClick();
-            }}
-          >
-            Others
-          </div>
+          <div className="sliderItem">📍 Nearby Locations</div>
         </div>
       )}
     </>

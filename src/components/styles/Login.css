@@ -1,15 +1,15 @@
-/* GLOBAL FIX */
+
+/* ================= GLOBAL ================= */
 body {
   margin: 0;
   padding: 0;
   background: linear-gradient(120deg, #1a1a1a, #0f0f0f);
   min-height: 100vh;
   overflow-x: hidden;
-  overflow-y: auto;
   font-family: "Poppins", sans-serif;
 }
 
-/* PAGE WRAPPER */
+/* ================= WRAPPER ================= */
 .loginWrapper {
   width: 100%;
   min-height: 100vh;
@@ -17,45 +17,16 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
-  overflow: visible;
 }
 
-/* NEON GLOW ORBS */
-.glow {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  filter: blur(180px);
-  opacity: 0.6;
-}
-
-.glow1 {
-  background: #ff7b00;
-  top: -100px;
-  left: -100px;
-}
-
-.glow2 {
-  background: #00b894;
-  bottom: -150px;
-  right: -120px;
-}
-
-.glow3 {
-  background: #0066ff;
-  top: 40%;
-  left: 60%;
-}
-
-/* LOGIN CARD */
+/* ================= LOGIN CARD ================= */
 .loginCard {
   width: 420px;
   padding: 40px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 18px;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -63,7 +34,7 @@ body {
   animation: fadeIn 0.6s ease;
 }
 
-/* HEADINGS */
+/* ================= TITLE ================= */
 .loginTitle {
   text-align: center;
   font-size: 30px;
@@ -71,15 +42,9 @@ body {
   color: #fff;
 }
 
-.loginSubtitle {
-  text-align: center;
-  color: #ccc;
-  margin-bottom: 10px;
-}
-
-/* INPUTS */
-.loginInput,
-.loginSelect {
+/* ================= INPUTS ================= */
+.loginCard input,
+.loginCard select {
   padding: 14px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.1);
@@ -90,28 +55,28 @@ body {
   transition: 0.3s ease;
 }
 
-.loginSelect {
-  background-color: #344242;
+.loginCard input::placeholder {
+  color: #ccc;
+}
+
+.loginCard select {
+  background-color: #1f2a2a;
 }
 
 /* Focus Glow */
-.loginInput:focus,
-.loginSelect:focus {
+.loginCard input:focus,
+.loginCard select:focus {
   border-color: #ff7b00;
   box-shadow: 0 0 12px #ff7b00;
 }
 
-.loginInput::placeholder {
-  color: #cccccc;
-}
-
-/* BUTTON */
-.loginBtn {
+/* ================= BUTTON ================= */
+.loginCard button {
   padding: 14px;
   font-size: 18px;
   font-weight: 800;
-  background: #ff7b00;
-  color: white;
+  background: linear-gradient(135deg, #ff7b00, #ff9f43);
+  color: #fff;
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -119,21 +84,43 @@ body {
   transition: 0.3s ease;
 }
 
-.loginBtn:hover {
-  background: #ff8f28;
-  box-shadow: 0 0 14px #ff7b00;
+.loginCard button:hover {
+  box-shadow: 0 0 16px #ff7b00;
   transform: translateY(-2px);
 }
 
-.loginBtn:active {
+.loginCard button:active {
   transform: scale(0.97);
 }
 
-/* ANIMATION */
+.loginCard button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ================= SIGNUP LINK ================= */
+.signup-link {
+  text-align: center;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.signup-link span {
+  color: #ff7b00;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.signup-link span:hover {
+  text-shadow: 0 0 8px #ff7b00;
+}
+
+/* ================= ANIMATION ================= */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(25px);
   }
   to {
     opacity: 1;
