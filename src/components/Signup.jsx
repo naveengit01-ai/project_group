@@ -42,6 +42,7 @@ export default function Signup() {
 
     const res = await fetch(`${BASE_URL}/signup`, {
       method: "POST",
+      credentials: "include",
       body: fd
     });
 

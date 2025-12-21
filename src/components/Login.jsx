@@ -34,6 +34,7 @@ export default function Login({ onLogin }) {
       const res = await fetch(`${BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(form)
       });
 
