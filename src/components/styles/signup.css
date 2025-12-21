@@ -1,105 +1,135 @@
-/* ================= WRAPPER ================= */
-.signupWrapper {
-  width: 100%;
+/* ================= ROOT ================= */
+* {
+  box-sizing: border-box;
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top left, #0f172a, #020617);
+  color: #e5e7eb;
+}
+
+/* ================= PAGE ================= */
+.signup-page {
   min-height: 100vh;
-  background: linear-gradient(120deg, #1a1a1a, #0f0f0f);
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-family: "Poppins", sans-serif;
+  justify-content: center;
+  padding: 20px;
 }
 
 /* ================= CARD ================= */
-.signupCard {
-  width: 460px;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.06);
+.signup-page form,
+.signup-page > div {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(14px);
   border-radius: 18px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 0 25px rgba(255, 255, 255, 0.12);
-  animation: fadeIn 0.6s ease;
+  padding: 32px;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: slideUp 0.6s ease;
 }
 
-/* ================= TITLE ================= */
-.signupTitle {
+/* ================= TITLE FEEL ================= */
+.signup-page form::before {
+  content: "Create Account";
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 600;
   text-align: center;
-  font-size: 28px;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  letter-spacing: 0.5px;
 }
 
-/* ================= FORM ================= */
-.signupForm {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.signupForm input,
-.signupForm select,
-.otpBox input {
-  padding: 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  font-size: 15px;
+/* ================= INPUTS ================= */
+.signup-page input,
+.signup-page select {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: none;
   outline: none;
-  transition: 0.3s ease;
+  background: rgba(2, 6, 23, 0.85);
+  color: #f9fafb;
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
 }
 
-.signupForm input::placeholder,
-.otpBox input::placeholder {
-  color: #ccc;
+/* placeholder */
+.signup-page input::placeholder {
+  color: #9ca3af;
 }
 
-.signupForm select {
-  background-color: #1f2a2a;
+/* focus */
+.signup-page input:focus,
+.signup-page select:focus {
+  background: rgba(2, 6, 23, 1);
+  box-shadow: 0 0 0 2px #38bdf8;
 }
 
-/* Focus Glow */
-.signupForm input:focus,
-.signupForm select:focus,
-.otpBox input:focus {
-  border-color: #ff7b00;
-  box-shadow: 0 0 12px #ff7b00;
+/* select arrow fix */
+.signup-page select {
+  cursor: pointer;
 }
 
 /* ================= BUTTON ================= */
-.signupForm button,
-.otpBox button {
+.signup-page button {
+  width: 100%;
+  margin-top: 10px;
   padding: 14px;
-  font-size: 17px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #ff7b00, #ff9f43);
-  color: #fff;
+  border-radius: 14px;
   border: none;
-  border-radius: 12px;
   cursor: pointer;
-  transition: 0.3s ease;
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  color: #020617;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.signupForm button:hover,
-.otpBox button:hover {
-  box-shadow: 0 0 16px #ff7b00;
+/* hover */
+.signup-page button:hover {
   transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(56, 189, 248, 0.4);
 }
 
-.signupForm button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* active */
+.signup-page button:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
-/* ================= OTP BOX ================= */
-.otpBox {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* ================= OTP SECTION ================= */
+.signup-page > div {
+  text-align: center;
+}
+
+.signup-page > div input {
+  text-align: center;
+  letter-spacing: 4px;
+  font-size: 1.2rem;
+}
+
+.signup-page p {
+  margin-top: 14px;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+/* resend button */
+.signup-page > div button:last-child {
+  margin-top: 12px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
 /* ================= ANIMATION ================= */
-@keyframes fadeIn {
+@keyframes slideUp {
   from {
     opacity: 0;
     transform: translateY(25px);
@@ -107,5 +137,13 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 480px) {
+  .signup-page form,
+  .signup-page > div {
+    padding: 24px;
   }
 }

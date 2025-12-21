@@ -5,7 +5,7 @@ import Signup from "./components/Signup";
 import Login from "./components/Login";
 import Landing from "./components/Landing";
 import About from "./components/About";
-import Contact from "./components/contact";
+import Contact from "./components/Contact";
 export default function App() {
   const [user, setUser] = useState(null);
 
