@@ -1,50 +1,59 @@
 /* ===== PAGE WRAPPER ===== */
 .page {
   min-height: calc(100vh - 64px);
-  padding: 80px 20px 40px;
-  /* background: linear-gradient(135deg, #fff7f0, #ffe6cc); */
+  padding: 100px 20px 40px;
+  background-color: #0f0f0f; /* dark background */
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ===== CONTENT CARD ===== */
+.pageContent {
+  max-width: 900px;
+  background-color: #1b1b1b;
+  padding: 40px;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   text-align: center;
-  color: wheat;
 }
 
 /* ===== TITLE ===== */
-.page h1 {
-  font-size: 36px;
+.pageContent h1 {
+  font-size: 38px;
   font-weight: 900;
   color: #ff7b00;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-/* ===== PARAGRAPHS ===== */
-.page p {
-  color: red;
-  max-width: 800px;
+/* ===== TEXT ===== */
+.pageContent p {
   font-size: 18px;
   line-height: 1.7;
-  color: #333;
+  color: #e0e0e0;
   margin-bottom: 18px;
 }
 
-/* HIGHLIGHT TEXT */
-.page strong {
-  color: #ff7b00;
+/* HIGHLIGHTS */
+.pageContent strong {
+  color: #ff9b33;
 }
 
-.page b {
-  color: #222;
-  font-size: 19px;
+.pageContent b {
+  color: #ffffff;
 }
 
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
-  .page h1 {
+  .pageContent {
+    padding: 28px;
+  }
+
+  .pageContent h1 {
     font-size: 28px;
   }
 
-  .page p {
+  .pageContent p {
     font-size: 16px;
   }
 }

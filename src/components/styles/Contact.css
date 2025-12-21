@@ -1,60 +1,64 @@
 /* ===== PAGE WRAPPER ===== */
 .page {
   min-height: calc(100vh - 64px);
-  padding: 90px 20px 40px;
-  background-color: #eaf6ff; /* light blue background */
+  padding: 100px 20px 40px;
+  background-color: #0f0f0f;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ===== CONTENT CARD ===== */
+.pageContent {
+  max-width: 700px;
+  background-color: #1b1b1b;
+  padding: 40px;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   text-align: center;
 }
 
 /* ===== TITLE ===== */
-.page h1 {
+.pageContent h1 {
   font-size: 36px;
   font-weight: 900;
-  color: #0066ff;
+  color: #00b4ff;
+  margin-bottom: 22px;
+}
+
+/* TEXT */
+.pageContent p {
+  font-size: 17px;
+  color: #dddddd;
   margin-bottom: 18px;
 }
 
-/* ===== TEXT ===== */
-.page p {
-  font-size: 18px;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-/* ===== CONTACT CARD ===== */
+/* ===== CONTACT BOX ===== */
 .contact-box {
-  background-color: #ffffff;
-  padding: 26px 32px;
-  border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-  min-width: 280px;
+  margin-top: 20px;
+  background-color: #121212;
+  padding: 24px;
+  border-radius: 14px;
+  border: 1px solid #2a2a2a;
 }
 
-/* DETAILS */
 .contact-box p {
   font-size: 16px;
   margin: 10px 0;
-  color: #222;
+  color: #f0f0f0;
 }
 
 .contact-box strong {
-  color: #0066ff;
+  color: #00b4ff;
 }
 
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
-  .page {
-    padding-top: 80px;
+  .pageContent {
+    padding: 26px;
   }
 
-  .page h1 {
-    font-size: 28px;
-  }
-
-  .page p {
-    font-size: 16px;
+  .pageContent h1 {
+    font-size: 26px;
   }
 }

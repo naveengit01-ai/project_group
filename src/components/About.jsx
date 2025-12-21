@@ -4,6 +4,7 @@ import "./styles/About.css";
 export default function About() {
   return (
     <div className="page">
+      <div className="pageContent">
       <h1>About DWJD</h1>
 
       <p>
@@ -17,6 +18,7 @@ export default function About() {
         <br />
         <b>Save food · Help people · Protect the environment</b>
       </p>
+      </div>
     </div>
   );
 }
