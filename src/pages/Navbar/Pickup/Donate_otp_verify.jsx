@@ -8,19 +8,21 @@ export default function DonateOtpVerify() {
   const { state } = useLocation();
 
   const donationId = state?.donation_id;
+  const user = JSON.parse(localStorage.getItem("user")); // rider
 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /* SAFETY CHECK */
   if (!donationId) {
     return (
-      <p className="text-red-600">
+      <div className="p-6 text-center text-red-600 font-semibold">
         Donation ID missing. Please go back.
-      </p>
+      </div>
     );
   }
 
-  /* VERIFY OTP */
+  /* ================= VERIFY OTP ================= */
   const handleVerify = async () => {
     if (!otp || otp.length !== 6) {
       alert("Enter valid 6-digit OTP");
@@ -35,7 +37,8 @@ export default function DonateOtpVerify() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           donation_id: donationId,
-          otp
+          otp,
+          rider_email: user.email // 🔥 REQUIRED FOR MY_RIDES
         })
       });
 
@@ -43,7 +46,9 @@ export default function DonateOtpVerify() {
 
       if (data.status === "donation_verified_and_picked") {
         alert("Pickup verified successfully ✅");
-        navigate("/afterlogin/pickup/Deliveries");
+
+        // ✅ AFTER OTP → GO TO MY RIDES (AS YOU SAID)
+        navigate("/afterlogin/pickup/my-rides");
       } else {
         alert(data.status);
       }
@@ -54,7 +59,7 @@ export default function DonateOtpVerify() {
     setLoading(false);
   };
 
-  /* RESEND OTP */
+  /* ================= RESEND OTP ================= */
   const handleResend = async () => {
     try {
       const res = await fetch(`${BASE_URL}/resend-donate-otp`, {
@@ -105,7 +110,7 @@ export default function DonateOtpVerify() {
         <button
           disabled={loading}
           onClick={handleVerify}
-          className={`w-full py-4 rounded-2xl text-white font-bold
+          className={`w-full py-4 rounded-2xl text-white font-bold transition
             ${loading
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-green-600 hover:bg-green-700"
@@ -114,11 +119,11 @@ export default function DonateOtpVerify() {
           {loading ? "Verifying..." : "Verify & Pickup"}
         </button>
 
-        {/* RESEND OTP BUTTON (ALWAYS VISIBLE) */}
+        {/* RESEND OTP */}
         <button
+          disabled={loading}
           onClick={handleResend}
-          className="w-full py-3 rounded-xl border
-                     text-blue-600 font-semibold
+          className="w-full py-3 rounded-xl border text-blue-600 font-semibold
                      hover:bg-blue-50 transition"
         >
           Resend OTP

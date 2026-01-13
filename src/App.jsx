@@ -27,6 +27,7 @@ import UsersRequests from "./pages/Navbar/Pickup/Users_requests";
 import Direction from "./pages/Navbar/Pickup/Direction";
 import DonateOtpVerify from "./pages/Navbar/Pickup/Donate_otp_verify";
 import MyRides from "./pages/Navbar/Pickup/My_rides";
+import Delivery from "./pages/Navbar/Pickup/Delivery";
 export default function App() {
   const [email, setEmail] = useState(null);
 
@@ -58,7 +59,8 @@ export default function App() {
         <Route path="pickup/requests" element={<UsersRequests />} />
         <Route path="pickup/direction" element={<Direction />} />
         <Route path="pickup/verify" element={<DonateOtpVerify />} />
-        <Route path="pickup/Deliveries" element={<MyRides /> } />
+        <Route path="pickup/my-rides" element={<MyRides />} />
+        <Route path="pickup/delivery" element={<Delivery />} />
       </Route>
     </Routes>
   );

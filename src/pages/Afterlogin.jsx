@@ -99,7 +99,7 @@ export default function Afterlogin() {
                   <MenuItem
                     text="My Deliveries"
                     onClick={() => {setMenuOpen(false);
-                    navigate("/afterlogin/pickup/Deliveries")
+                    navigate("/afterlogin/pickup/my-rides");
                     }
                     }
                   />
