@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-const BASE_URL = "http://localhost:5000";
+// const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function MyRequests() {
   const user = JSON.parse(localStorage.getItem("user"));
