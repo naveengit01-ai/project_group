@@ -17,17 +17,24 @@ import Contact from "./pages/Navbar/Contact";
 import Myprofile from "./pages/Navbar/Profile/Myprofile";
 import Edit from "./pages/Navbar/Profile/Edit";
 
-// Donate pages
+// Donate
 import DonationsType from "./pages/Navbar/Donate/Donations_Type";
 import Food from "./pages/Navbar/Donate/Food";
-import Cloths from "./pages/Navbar/Donate/Cloths"; // spelling must match file
+import Cloths from "./pages/Navbar/Donate/Cloths";
 import Other from "./pages/Navbar/Donate/Other";
 import MyRequests from "./pages/Navbar/Donate/my_requests";
+
+// Pickup
 import UsersRequests from "./pages/Navbar/Pickup/Users_requests";
 import Direction from "./pages/Navbar/Pickup/Direction";
 import DonateOtpVerify from "./pages/Navbar/Pickup/Donate_otp_verify";
 import MyRides from "./pages/Navbar/Pickup/My_rides";
 import Delivery from "./pages/Navbar/Pickup/Delivery";
+
+// Admin
+import Over_All from "./advertisement/Over_All";
+import Add_Pramotions from "./advertisement/Add_Pramotion"; // promotions page
+
 export default function App() {
   const [email, setEmail] = useState(null);
 
@@ -39,11 +46,15 @@ export default function App() {
       <Route path="/verify-otp" element={<VerifyOtp email={email} />} />
       <Route path="/login" element={<Login />} />
 
-      {/* AFTER LOGIN LAYOUT */}
+      {/* AFTER LOGIN */}
       <Route path="/afterlogin" element={<Afterlogin />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
+
+        {/* ADMIN */}
+        <Route path="overall" element={<Over_All />} />
+        <Route path="promotions" element={<Add_Pramotions />} />
 
         {/* PROFILE */}
         <Route path="profile" element={<Myprofile />} />
@@ -55,7 +66,8 @@ export default function App() {
         <Route path="donate/clothes" element={<Cloths />} />
         <Route path="donate/other" element={<Other />} />
         <Route path="donate/request" element={<MyRequests />} />
-        {/* PICKUP*/}
+
+        {/* PICKUP */}
         <Route path="pickup/requests" element={<UsersRequests />} />
         <Route path="pickup/direction" element={<Direction />} />
         <Route path="pickup/verify" element={<DonateOtpVerify />} />
