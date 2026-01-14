@@ -120,6 +120,7 @@ export default function Signup({ setEmail }) {
         >
           <option value="user">User</option>
           <option value="rider">Rider</option>
+          {/* <option value="admin">Admin</option> */}
         </select>
 
         {/* Rider Location */}
