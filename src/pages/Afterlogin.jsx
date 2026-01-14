@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import Home from "./Navbar/Home"; // ✅ IMPORT HOME
 
 export default function Afterlogin() {
   const navigate = useNavigate();
@@ -7,7 +8,7 @@ export default function Afterlogin() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔐 SAFETY CHECK
+  /* 🔐 SAFETY CHECK */
   useEffect(() => {
     if (!user) navigate("/login");
   }, [user, navigate]);
@@ -24,9 +25,11 @@ export default function Afterlogin() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <div className="min-h-screen w-screen overflow-x-hidden
+                    bg-gradient-to-br from-slate-900 via-slate-800 to-black
+                    text-white">
 
-      {/* ================= ADMIN HOME (ONLY /afterlogin) ================= */}
+      {/* ================= ADMIN HOME ================= */}
       {isAdmin && isHome && (
         <div className="min-h-screen flex items-center justify-center">
           <div className="w-full max-w-xl bg-white/10 backdrop-blur-xl
@@ -67,7 +70,7 @@ export default function Afterlogin() {
         </div>
       )}
 
-      {/* ================= NAVBAR (USER / RIDER ONLY) ================= */}
+      {/* ================= NAVBAR (USER / RIDER) ================= */}
       {!isAdmin && (
         <nav
           className="fixed top-4 left-1/2 -translate-x-1/2 z-50
@@ -146,7 +149,13 @@ export default function Afterlogin() {
         </nav>
       )}
 
-      {/* ================= PAGE CONTENT ================= */}
+      {/* ================= MAIN CONTENT ================= */}
+      {!isAdmin && isHome && (
+        <div className="pt-32 px-4">
+          <Home /> {/* ✅ HOME CONTENT HERE */}
+        </div>
+      )}
+
       {!isHome && (
         <div className="pt-32 px-4">
           <Outlet />
