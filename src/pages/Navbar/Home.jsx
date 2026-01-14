@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -24,21 +24,28 @@ export default function Home() {
       : quotesRider[Math.floor(Math.random() * quotesRider.length)];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 animate-fadeUp">
+    <div className="max-w-6xl mx-auto space-y-10">
       {/* HEADER */}
       <div className="glass rounded-2xl p-8 border border-white/20">
         <h1 className="text-4xl font-extrabold tracking-tight text-white">
           Hello, {name}
         </h1>
+
         <p className="mt-3 text-gray-300 text-lg">
           {role === "user"
             ? "You’re helping reduce food waste and restore dignity."
             : "You’re helping deliver hope to people in need."}
         </p>
 
-        <p className="mt-6 text-xl font-semibold text-emerald-400">
+        {/* SAME MOTION AS “Loading your impact 🌱” */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="mt-6 text-xl font-semibold text-emerald-400"
+        >
           “{quote}”
-        </p>
+        </motion.p>
       </div>
 
       {/* STATS */}
@@ -106,9 +113,11 @@ export default function Home() {
 
 function DashboardCard({ title, value, description }) {
   return (
-    <div className="glass rounded-2xl p-6 border border-white/20
-                    hover:border-emerald-400/40 transition
-                    hover:-translate-y-1">
+    <div
+      className="glass rounded-2xl p-6 border border-white/20
+                 hover:border-emerald-400/40 transition
+                 hover:-translate-y-1"
+    >
       <h3 className="text-sm font-medium text-gray-400">
         {title}
       </h3>
