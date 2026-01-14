@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // const BASE_URL = "http://localhost:5000";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function Add_Pramotions() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -62,40 +65,34 @@ export default function Add_Pramotions() {
   };
 
   return (
-    /* FULL PAGE WRAPPER */
-    <div className="min-h-screen w-screen overflow-x-hidden
-                    bg-gradient-to-br from-slate-900 via-slate-800 to-black
-                    text-white">
+    <div className="px-1">
+      {/* TOP BAR */}
+      <div className="w-full px-1 py-0 border-b border-white/100 flex items-center gap-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="px-4 py-2 rounded-lg
+                     border border-white/20
+                     hover:bg-white/10 transition"
+        >
+          ← Back
+        </button>
 
-      {/* SOFT GLOW BACKGROUND */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute -top-40 -left-40 w-[520px] h-[520px]
-                        bg-emerald-500/25 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -right-40 w-[520px] h-[520px]
-                        bg-cyan-500/20 rounded-full blur-3xl" />
+        <h1 className="text-2xl font-extrabold">
+          Add Promotion
+        </h1>
       </div>
 
-      {/* CONTENT (TOP ALIGNED, NO GAP) */}
-      <div className="max-w-6xl mx-auto px-6 pt-16 pb-24 animate-fadeIn">
+      {/* CONTENT */}
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        <p className="text-gray-400 mb-6">
+          Create and publish sponsored promotions
+        </p>
 
-        {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold tracking-tight">
-            Add Promotion 📢
-          </h1>
-          <p className="text-gray-400 mt-2">
-            Create and publish sponsored promotions
-          </p>
-        </div>
-
-        {/* FORM CARD */}
         <form
           onSubmit={handleSubmit}
-          className="max-w-3xl bg-white/10 backdrop-blur-xl
-                     border border-white/20 rounded-3xl
-                     p-8 space-y-6 shadow-2xl
-                     transition-all duration-300
-                     hover:shadow-emerald-500/10"
+          className="bg-white/5
+                     border border-white/15 rounded-2xl
+                     p-6 space-y-5"
         >
           <Input
             name="title"
@@ -117,7 +114,7 @@ export default function Add_Pramotions() {
             onChange={handleChange}
             placeholder="Promotion description"
             rows={4}
-            className="w-full px-4 py-3 rounded-xl bg-black/40 text-white
+            className="w-full px-4 py-3 rounded-xl bg-black text-white
                        border border-white/20 focus:outline-none
                        focus:ring-2 focus:ring-emerald-500 resize-none"
           />
@@ -133,12 +130,11 @@ export default function Add_Pramotions() {
           <button
             disabled={loading}
             className={`w-full py-3 rounded-xl font-semibold text-black
-                        transition-all duration-200
-                        ${
-                          loading
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-emerald-400 hover:bg-emerald-300 active:scale-[0.97]"
-                        }`}
+              ${
+                loading
+                  ? "bg-gray-500 cursor-not-allowed"
+                  : "bg-emerald-400 hover:bg-emerald-300 active:scale-[0.98]"
+              }`}
           >
             {loading ? "Publishing..." : "Publish Promotion"}
           </button>
@@ -153,7 +149,7 @@ function Input(props) {
   return (
     <input
       {...props}
-      className="w-full px-4 py-3 rounded-xl bg-black/40 text-white
+      className="w-full px-4 py-3 rounded-xl bg-black text-white
                  border border-white/20 focus:outline-none
                  focus:ring-2 focus:ring-emerald-500 transition"
     />

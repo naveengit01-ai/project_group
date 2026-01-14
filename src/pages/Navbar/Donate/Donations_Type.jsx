@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import Home from "./../Home";
 
 export default function DonationsType() {
   const navigate = useNavigate();
@@ -57,6 +58,11 @@ export default function DonationsType() {
             onClick={() => navigate("/afterlogin/donate/other")}
           />
         </motion.div>
+
+        {/* 👇 1 inch gap + HOME (SPONSORSHIPS) */}
+        <div className="mt-8">
+          <Home />
+        </div>
       </motion.div>
     </div>
   );
