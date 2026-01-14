@@ -33,7 +33,7 @@ export default function Login() {
       if (data.status === "login_success") {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        alert("Login successful 🚀");
+        // alert("Login successful 🚀");
         navigate("/afterlogin");
       } else {
         alert(data.status);

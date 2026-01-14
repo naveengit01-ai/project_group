@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// const BASE_URL = "http://localhost:5000";
+import { motion } from "framer-motion";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
@@ -17,14 +16,13 @@ export default function Edit() {
     phone: ""
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
 
-  /* 🚨 Guard: no email → go back to login */
+  /* 🚨 Guard */
   useEffect(() => {
-    if (!email) {
-      navigate("/login");
-    }
+    if (!email) navigate("/login");
   }, [email, navigate]);
 
   /* Fetch user data */
@@ -48,8 +46,10 @@ export default function Edit() {
         } else {
           setError(data.status);
         }
-      } catch (err) {
+      } catch {
         setError("Failed to load profile");
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -62,7 +62,7 @@ export default function Edit() {
 
   const handleUpdate = async e => {
     e.preventDefault();
-    setLoading(true);
+    setUpdating(true);
     setError("");
 
     try {
@@ -75,82 +75,135 @@ export default function Edit() {
       const data = await res.json();
 
       if (data.status === "updated_successfully") {
-        alert("Profile updated successfully ✅");
-
-        /* 🔑 Merge updated fields into localStorage */
         localStorage.setItem(
           "user",
-          JSON.stringify({
-            ...storedUser,
-            ...data.user
-          })
+          JSON.stringify({ ...storedUser, ...data.user })
         );
-
         navigate("/afterlogin/profile");
       } else {
         setError(data.status);
       }
-    } catch (err) {
+    } catch {
       setError("Update failed");
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
 
-  return (
-    <div className="max-w-xl">
-      <h1 className="text-2xl font-bold">Edit Profile</h1>
+  /* ===== LOADING STATE ===== */
+  if (loading) {
+    return (
+      <div className="bg-black flex items-center justify-center px-4 py-20">
+        <BackgroundGlow />
 
-      <form
-        onSubmit={handleUpdate}
-        className="mt-6 bg-white rounded-xl shadow p-6 space-y-4"
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="relative z-10 text-green-700 font-semibold"
+        >
+          Loading your impact 🌱
+        </motion.p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-black overflow-hidden flex justify-center items-start px-4 py-12">
+      <BackgroundGlow />
+
+      {/* Edit Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 w-full max-w-xl
+                   bg-white/10 backdrop-blur-xl border border-white/20
+                   rounded-2xl shadow-2xl p-8 space-y-6"
       >
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white">
+            Edit Profile
+          </h1>
+          <p className="text-sm text-emerald-400 mt-1">
+            Keep your details up to date 💚
+          </p>
+        </div>
+
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-400 text-center">
+            {error}
+          </p>
         )}
 
-        <input
-          name="first_name"
-          value={form.first_name}
-          onChange={handleChange}
-          placeholder="First Name"
-          className="input"
-        />
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <input
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+            placeholder="First Name"
+            className="w-full px-4 py-3 rounded-xl
+                       bg-black/40 text-white
+                       border border-white/20
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
 
-        <input
-          name="last_name"
-          value={form.last_name}
-          onChange={handleChange}
-          placeholder="Last Name"
-          className="input"
-        />
+          <input
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+            placeholder="Last Name"
+            className="w-full px-4 py-3 rounded-xl
+                       bg-black/40 text-white
+                       border border-white/20
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
 
-        <input
-          name="phone"
-          value={form.phone}
-          onChange={handleChange}
-          placeholder="Phone"
-          className="input"
-        />
+          <input
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            placeholder="Phone"
+            className="w-full px-4 py-3 rounded-xl
+                       bg-black/40 text-white
+                       border border-white/20
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
 
-        {/* Read-only email */}
-        <input
-          value={email || ""}
-          disabled
-          className="input bg-gray-100 cursor-not-allowed"
-        />
+          <input
+            value={email || ""}
+            disabled
+            className="w-full px-4 py-3 rounded-xl
+                       bg-white/10 text-gray-400
+                       border border-white/20 cursor-not-allowed"
+          />
 
-        <button
-          disabled={loading}
-          className={`w-full py-2 rounded-xl text-white font-semibold
-            ${loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-black hover:bg-gray-800"
-            }`}
-        >
-          {loading ? "Updating..." : "Update Profile"}
-        </button>
-      </form>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={updating}
+            className={`w-full py-3 rounded-xl font-semibold text-black
+              ${updating
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-emerald-400 hover:bg-emerald-300"
+              }`}
+          >
+            {updating ? "Updating..." : "Update Profile"}
+          </motion.button>
+        </form>
+      </motion.div>
     </div>
+  );
+}
+
+/* ===== SAME BACKGROUND GLOW ===== */
+function BackgroundGlow() {
+  return (
+    <>
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 via-black to-black" />
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-emerald-500/30 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+    </>
   );
 }
