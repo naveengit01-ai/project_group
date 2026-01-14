@@ -1,142 +1,157 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import Home from "./Navbar/Home"; // 👈 ADD THIS
 
 export default function Afterlogin() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const user = JSON.parse(localStorage.getItem("user"));
-  const role = user?.user_type || "user";
-  const email = user?.email || "user@email.com";
+
+  // 🔐 SAFETY CHECK
+  useEffect(() => {
+    if (!user) navigate("/login");
+  }, [user, navigate]);
+
+  if (!user) return null;
+
+  const role = user.user_type; // admin | user | rider
+  const email = user.email;
   const firstLetter = email.charAt(0).toUpperCase();
 
-  const [menuOpen, setMenuOpen] = useState(false);
+  const isAdmin = role === "admin";
   const isHome = location.pathname === "/afterlogin";
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
-      {/* ================= NAVBAR ================= */}
-      <nav
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-50
-                   w-[96%] max-w-7xl
-                   bg-white/10 backdrop-blur-xl
-                   border border-white/25
-                   rounded-2xl px-8 py-4
-                   flex items-center justify-between
-                   shadow-2xl"
-      >
-        {/* LEFT : LOGO */}
-        <div
-          onClick={() => navigate("/afterlogin")}
-          className="text-2xl md:text-3xl font-extrabold tracking-wide
-                     cursor-pointer select-none flex items-center"
+
+      {/* ================= ADMIN HOME ================= */}
+      {isAdmin && isHome && (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-full max-w-xl bg-white/10 backdrop-blur-xl
+                          border border-white/20 rounded-3xl
+                          p-10 space-y-8 shadow-2xl">
+            <h1 className="text-3xl font-extrabold text-center">
+              Admin Dashboard
+            </h1>
+
+            <button
+              onClick={() => navigate("/afterlogin/overall")}
+              className="w-full py-5 rounded-2xl
+                         bg-emerald-400 text-black
+                         font-bold text-lg hover:bg-emerald-300 transition"
+            >
+              Overall Statistics
+            </button>
+
+            <button
+              onClick={() => navigate("/afterlogin/promotions")}
+              className="w-full py-5 rounded-2xl
+                         bg-cyan-400 text-black
+                         font-bold text-lg hover:bg-cyan-300 transition"
+            >
+              Promotions
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.clear();
+                navigate("/login");
+              }}
+              className="block mx-auto text-sm text-red-400 hover:underline"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ================= NAVBAR (USER / RIDER) ================= */}
+      {!isAdmin && (
+        <nav
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50
+                     w-[94%] sm:w-[96%] max-w-7xl
+                     bg-white/10 backdrop-blur-xl
+                     border border-white/25 rounded-2xl
+                     px-4 sm:px-8 py-4 flex justify-between shadow-2xl"
         >
-          DWJD
-        </div>
-
-        {/* CENTER : NAV BUTTONS */}
-        <div className="flex items-center gap-4">
-          <NavButton text="Home" onClick={() => navigate("/afterlogin")} />
-          <NavButton text="About" onClick={() => navigate("/afterlogin/about")} />
-          <NavButton text="Contact" onClick={() => navigate("/afterlogin/contact")} />
-        </div>
-
-        {/* RIGHT : PROFILE + MENU */}
-        <div className="flex items-center gap-3 relative">
           <div
-            title={email}
-            onClick={() => navigate("/afterlogin/profile")}
-            className={`w-11 h-11 rounded-full flex items-center justify-center
-              font-bold cursor-pointer border border-white/30 text-lg
-              ${role === "user" ? "bg-emerald-500/80" : "bg-cyan-500/80"}`}
+            onClick={() => navigate("/afterlogin")}
+            className="text-2xl sm:text-3xl font-extrabold cursor-pointer"
           >
-            {firstLetter}
+            DWJD
           </div>
 
-          <button
-            onClick={() => setMenuOpen(p => !p)}
-            className="w-11 h-11 rounded-xl border border-white/30
-                       flex items-center justify-center text-xl
-                       hover:bg-white/10 transition"
-          >
-            ☰
-          </button>
+          <div className="hidden md:flex gap-4">
+            <NavButton text="Home" onClick={() => navigate("/afterlogin")} />
+            <NavButton text="About" onClick={() => navigate("/afterlogin/about")} />
+            <NavButton text="Contact" onClick={() => navigate("/afterlogin/contact")} />
+          </div>
 
-          {menuOpen && (
+          <div className="flex items-center gap-3 relative">
             <div
-              className="absolute right-0 top-14 w-56
-                         bg-black/80 backdrop-blur-xl
-                         border border-white/20
-                         rounded-xl p-2 text-sm shadow-2xl"
+              title={email}
+              onClick={() => navigate("/afterlogin/profile")}
+              className={`w-10 h-10 rounded-full flex items-center justify-center
+                          font-bold cursor-pointer border border-white/30
+                          ${role === "user" ? "bg-emerald-500/80" : "bg-cyan-500/80"}`}
             >
-              {role === "user" ? (
-                <>
-                  <MenuItem
-                    text="My Requests"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("donate/request");
-                    }}
-                  />
-                  <MenuItem
-                    text="Donate Food"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/afterlogin/donate");
-                    }}
-                  />
-                </>
-              ) : (
-                <>
-                  <MenuItem
-                    text="Available Pickups"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/afterlogin/pickup/requests");
-                    }}
-                  />
-                  <MenuItem
-                    text="My Deliveries"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/afterlogin/pickup/my-rides");
-                    }}
-                  />
-                </>
-              )}
-
-              <MenuItem
-                text="My Profile"
-                onClick={() => {
-                  setMenuOpen(false);
-                  navigate("/afterlogin/profile");
-                }}
-              />
-
-              <hr className="my-1 border-white/20" />
-
-              <MenuItem
-                danger
-                text="Logout"
-                onClick={() => {
-                  localStorage.clear();
-                  navigate("/login");
-                }}
-              />
+              {firstLetter}
             </div>
-          )}
-        </div>
-      </nav>
+
+            <button
+              onClick={() => setMenuOpen(p => !p)}
+              className="w-10 h-10 rounded-xl border border-white/30 hover:bg-white/10"
+            >
+              ☰
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-14 w-60 bg-black/90
+                              border border-white/20 rounded-xl p-2 text-sm">
+                <MenuItem text="Home" onClick={() => go(navigate, setMenuOpen, "/afterlogin")} />
+                <MenuItem text="About" onClick={() => go(navigate, setMenuOpen, "/afterlogin/about")} />
+                <MenuItem text="Contact" onClick={() => go(navigate, setMenuOpen, "/afterlogin/contact")} />
+
+                <hr className="my-2 border-white/20" />
+
+                {role === "user" ? (
+                  <>
+                    <MenuItem text="My Requests" onClick={() => go(navigate, setMenuOpen, "/afterlogin/donate/request")} />
+                    <MenuItem text="Donate" onClick={() => go(navigate, setMenuOpen, "/afterlogin/donate")} />
+                  </>
+                ) : (
+                  <>
+                    <MenuItem text="Available Pickups" onClick={() => go(navigate, setMenuOpen, "/afterlogin/pickup/requests")} />
+                    <MenuItem text="My Deliveries" onClick={() => go(navigate, setMenuOpen, "/afterlogin/pickup/my-rides")} />
+                  </>
+                )}
+
+                <MenuItem text="My Profile" onClick={() => go(navigate, setMenuOpen, "/afterlogin/profile")} />
+
+                <hr className="my-2 border-white/20" />
+
+                <MenuItem
+                  danger
+                  text="Logout"
+                  onClick={() => {
+                    localStorage.clear();
+                    navigate("/login");
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </nav>
+      )}
+
+      {/* ================= HOME HERO (IMAGES FITTED) ================= */}
+      {!isAdmin && isHome && <HomeHero />}
 
       {/* ================= PAGE CONTENT ================= */}
-      {isHome ? (
-        <>
-          <HomeHero />
-          <Home /> {/* 👈 ADD SPONSORSHIP SECTION HERE */}
-        </>
-      ) : (
-        <div className="pt-32 p-6">
+      {!isHome && (
+        <div className="pt-32 px-4">
           <Outlet />
         </div>
       )}
@@ -185,15 +200,15 @@ function HomeHero() {
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6">
+        <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
           Don’t Waste.<br />Just Donate.
         </h1>
 
-        <p className="max-w-3xl text-xl md:text-2xl font-medium text-gray-200">
+        <p className="max-w-3xl text-xl md:text-2xl text-gray-200">
           “{quotes[index]}”
         </p>
 
-        <p className="absolute bottom-6 text-sm text-gray-400 tracking-wide">
+        <p className="absolute bottom-6 text-sm text-gray-400">
           DWJD • Community-driven food donation platform
         </p>
       </div>
@@ -201,35 +216,33 @@ function HomeHero() {
   );
 }
 
-/* ================= NAV BUTTON ================= */
+/* ================= HELPERS ================= */
 
 function NavButton({ text, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="px-5 py-2 rounded-xl
-                 border border-white/30
-                 bg-white/10 backdrop-blur-md
-                 hover:bg-white/20 transition
-                 text-sm md:text-base font-medium"
+      className="px-5 py-2 rounded-xl border border-white/30
+                 bg-white/10 hover:bg-white/20 transition"
     >
       {text}
     </button>
   );
 }
 
-/* ================= MENU ITEM ================= */
-
 function MenuItem({ text, onClick, danger }) {
   return (
     <div
       onClick={onClick}
       className={`px-3 py-2 rounded-lg cursor-pointer transition
-        ${danger
-          ? "text-red-400 hover:bg-red-500/10"
-          : "hover:bg-white/10"}`}
+        ${danger ? "text-red-400 hover:bg-red-500/10" : "hover:bg-white/10"}`}
     >
       {text}
     </div>
   );
+}
+
+function go(navigate, setMenuOpen, path) {
+  setMenuOpen(false);
+  navigate(path);
 }
