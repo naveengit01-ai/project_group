@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 // const BASE_URL = "http://localhost:5000";
 const BASE_URL = "https://back-end-project-group.onrender.com";
@@ -7,6 +7,7 @@ const BASE_URL = "https://back-end-project-group.onrender.com";
 export default function Home() {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     fetchAds();
@@ -26,6 +27,34 @@ export default function Home() {
     }
   };
 
+  // 🔁 AUTO SCROLL LEFT → RIGHT
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    let scrollAmount = 0;
+    const speed = 0.3; // control speed here
+
+    const scroll = () => {
+      if (!containerRef.current) return;
+
+      scrollAmount += speed;
+      containerRef.current.scrollLeft = scrollAmount;
+
+      // reset when reached end
+      if (
+        scrollAmount >=
+        containerRef.current.scrollWidth -
+          containerRef.current.clientWidth
+      ) {
+        scrollAmount = 0;
+      }
+
+      requestAnimationFrame(scroll);
+    };
+
+    scroll();
+  }, [ads]);
+
   return (
     <div className="relative px-6 pb-24 pt-20">
       <h2 className="text-3xl font-extrabold mb-8 text-white">
@@ -38,14 +67,14 @@ export default function Home() {
         <p className="text-gray-300">No promotions available</p>
       ) : (
         <div
-          className="flex gap-6 overflow-x-auto pb-4
-                     snap-x snap-mandatory scrollbar-hide"
+          ref={containerRef}
+          className="flex gap-6 overflow-x-hidden pb-4"
         >
           {ads.map((ad) => (
             <motion.div
               key={ad._id}
-              whileHover={{ scale: 1.06 }}
-              className="snap-start shrink-0
+              whileHover={{ scale: 1.08 }}
+              className="shrink-0
                          w-64 h-64 rounded-full
                          bg-white/15 backdrop-blur-xl
                          border border-white/30
