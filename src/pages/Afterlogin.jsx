@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import Home from "./Navbar/Home"; // ✅ ADD THIS
 
 export default function Afterlogin() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function Afterlogin() {
 
   if (!user) return null;
 
-  const role = user.user_type; // admin | user | rider
+  const role = user.user_type;
   const email = user.email;
   const firstLetter = email.charAt(0).toUpperCase();
 
@@ -146,10 +147,19 @@ export default function Afterlogin() {
         </nav>
       )}
 
-      {/* ================= HOME HERO (IMAGES FITTED) ================= */}
-      {!isAdmin && isHome && <HomeHero />}
+      {/* ================= HOME CONTENT ================= */}
+      {!isAdmin && isHome && (
+        <>
+          <HomeHero />
 
-      {/* ================= PAGE CONTENT ================= */}
+          {/* 👇 2-inch gap before sponsorships */}
+          <div className="mt-16">
+            <Home />
+          </div>
+        </>
+      )}
+
+      {/* ================= OTHER PAGES ================= */}
       {!isHome && (
         <div className="pt-32 px-4">
           <Outlet />
@@ -159,7 +169,7 @@ export default function Afterlogin() {
   );
 }
 
-/* ================= FULL SCREEN HERO ================= */
+/* ================= HERO ================= */
 
 function HomeHero() {
   const images = [
@@ -194,9 +204,8 @@ function HomeHero() {
       <img
         src={images[index]}
         alt="Donation"
-        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
+        className="absolute inset-0 w-full h-full object-cover"
       />
-
       <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
