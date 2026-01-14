@@ -1,134 +1,68 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+
+// const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function Home() {
-  const user = JSON.parse(localStorage.getItem("user"));
-  const role = user?.user_type || "user";
-  const email = user?.email || "";
-  const name = email ? email.split("@")[0] : "Friend";
+  const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const quotesUser = [
-    "What you save today feeds someone tomorrow.",
-    "Food shared is dignity preserved.",
-    "A small act of kindness can fill an empty stomach."
-  ];
+  useEffect(() => {
+    fetchAds();
+  }, []);
 
-  const quotesRider = [
-    "You are the bridge between surplus and survival.",
-    "Every delivery is a story of hope.",
-    "Miles traveled for meals that matter."
-  ];
-
-  const quote =
-    role === "user"
-      ? quotesUser[Math.floor(Math.random() * quotesUser.length)]
-      : quotesRider[Math.floor(Math.random() * quotesRider.length)];
+  const fetchAds = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/advertisements`);
+      const data = await res.json();
+      if (data.status === "success") {
+        setAds(data.ads || []);
+      }
+    } catch (err) {
+      console.error("Failed to load ads");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10">
-      {/* HEADER */}
-      <div className="glass rounded-2xl p-8 border border-white/20">
-        <h1 className="text-4xl font-extrabold tracking-tight text-white">
-          Hello, {name}
-        </h1>
+    <div className="relative px-6 pb-24 pt-20">
+      <h2 className="text-3xl font-extrabold mb-8 text-white">
+        Sponsored Promotions
+      </h2>
 
-        <p className="mt-3 text-gray-300 text-lg">
-          {role === "user"
-            ? "You’re helping reduce food waste and restore dignity."
-            : "You’re helping deliver hope to people in need."}
-        </p>
-
-        {/* SAME MOTION AS “Loading your impact 🌱” */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="mt-6 text-xl font-semibold text-emerald-400"
+      {loading ? (
+        <p className="text-gray-300">Loading promotions...</p>
+      ) : ads.length === 0 ? (
+        <p className="text-gray-300">No promotions available</p>
+      ) : (
+        <div
+          className="flex gap-6 overflow-x-auto pb-4
+                     snap-x snap-mandatory scrollbar-hide"
         >
-          “{quote}”
-        </motion.p>
-      </div>
+          {ads.map((ad) => (
+            <motion.div
+              key={ad._id}
+              whileHover={{ scale: 1.06 }}
+              className="snap-start shrink-0
+                         w-64 h-64 rounded-full
+                         bg-white/15 backdrop-blur-xl
+                         border border-white/30
+                         flex flex-col items-center justify-center
+                         text-center p-6 text-white"
+            >
+              <h3 className="text-lg font-bold">
+                {ad.title}
+              </h3>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {role === "user" ? (
-          <>
-            <DashboardCard
-              title="Donations Made"
-              value="0"
-              description="Times you chose sharing over wasting"
-            />
-            <DashboardCard
-              title="Active Requests"
-              value="0"
-              description="Donations currently awaiting pickup"
-            />
-            <DashboardCard
-              title="Meals Saved"
-              value="0"
-              description="Meals rescued from going to waste"
-            />
-          </>
-        ) : (
-          <>
-            <DashboardCard
-              title="Pickups Completed"
-              value="0"
-              description="Deliveries successfully completed"
-            />
-            <DashboardCard
-              title="Active Deliveries"
-              value="0"
-              description="Pickups currently in progress"
-            />
-            <DashboardCard
-              title="People Helped"
-              value="0"
-              description="Lives impacted through your rides"
-            />
-          </>
-        )}
-      </div>
-
-      {/* MOTIVATION PANEL */}
-      <div className="glass rounded-2xl p-8 border border-white/20 text-center">
-        <h2 className="text-2xl font-bold text-white">
-          Why This Matters
-        </h2>
-
-        <p className="mt-4 text-gray-300 max-w-3xl mx-auto leading-relaxed">
-          Millions of meals are wasted every day while people sleep hungry.
-          This platform exists to close that gap — not with noise,
-          but with consistent human action.
-        </p>
-
-        <p className="mt-6 text-sm uppercase tracking-widest text-gray-400">
-          DWJD · Don’t Waste, Just Donate
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ================= DASHBOARD CARD ================= */
-
-function DashboardCard({ title, value, description }) {
-  return (
-    <div
-      className="glass rounded-2xl p-6 border border-white/20
-                 hover:border-emerald-400/40 transition
-                 hover:-translate-y-1"
-    >
-      <h3 className="text-sm font-medium text-gray-400">
-        {title}
-      </h3>
-
-      <p className="text-4xl font-extrabold text-white mt-2">
-        {value}
-      </p>
-
-      <p className="text-sm text-gray-400 mt-3">
-        {description}
-      </p>
+              <p className="text-sm mt-3 line-clamp-4">
+                {ad.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
