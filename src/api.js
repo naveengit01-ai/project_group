@@ -1,5 +1,5 @@
-const BASE_URL = "http://localhost:5000";
-// const BASE_URL = "https://back-end-project-group.onrender.com";
+// const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export async function signup(data) {
   const res = await fetch(`${BASE_URL}/signup`, {
