@@ -21,7 +21,7 @@ export default function Signup({ setEmail }) {
   const [loading, setLoading] = useState(false);
 
   const handleChange = e => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   /* 📍 GET LOCATION FOR RIDER */
@@ -70,15 +70,29 @@ export default function Signup({ setEmail }) {
     try {
       const res = await signup(form);
 
-      if (res.status === "signup_success_otp_sent") {
+      /* ✅ BOTH CASES SHOULD GO TO OTP PAGE */
+      if (
+        res.status === "signup_success_otp_sent" ||
+        res.status === "otp_resent"
+      ) {
         alert("OTP sent to your email 📩");
         setEmail(form.email);
         navigate("/verify-otp");
-      } else {
+      }
+
+      /* ❌ USER ALREADY VERIFIED */
+      else if (res.status === "user_exists") {
+        alert("Email already registered. Please login.");
+        navigate("/login");
+      }
+
+      /* ⚠ OTHER CASES */
+      else {
         alert(res.status);
       }
-    } catch {
-      alert("Server error");
+
+    } catch (err) {
+      alert("Server error. Try again.");
     }
 
     setLoading(false);
@@ -96,9 +110,8 @@ export default function Signup({ setEmail }) {
         onSubmit={handleSubmit}
         className="relative z-10 w-full max-w-md p-8 rounded-2xl
                    bg-white/10 backdrop-blur-xl border border-white/20
-                   shadow-2xl space-y-4 animate-fadeIn"
+                   shadow-2xl space-y-4"
       >
-        {/* Header */}
         <div className="text-center mb-2">
           <h2 className="text-3xl font-bold text-white">
             Create Account ✨
@@ -108,67 +121,25 @@ export default function Signup({ setEmail }) {
           </p>
         </div>
 
-        {/* Inputs */}
-        <input
-          className="glass-input"
-          name="username"
-          placeholder="Username"
-          onChange={handleChange}
-        />
+        <input className="glass-input" name="username" placeholder="Username" onChange={handleChange} />
 
         <div className="grid grid-cols-2 gap-3">
-          <input
-            className="glass-input"
-            name="first_name"
-            placeholder="First name"
-            onChange={handleChange}
-          />
-          <input
-            className="glass-input"
-            name="last_name"
-            placeholder="Last name"
-            onChange={handleChange}
-          />
+          <input className="glass-input" name="first_name" placeholder="First name" onChange={handleChange} />
+          <input className="glass-input" name="last_name" placeholder="Last name" onChange={handleChange} />
         </div>
 
-        <input
-          className="glass-input"
-          name="phone"
-          placeholder="Phone number"
-          onChange={handleChange}
-        />
+        <input className="glass-input" name="phone" placeholder="Phone number" onChange={handleChange} />
+        <input className="glass-input" name="email" placeholder="Email address" onChange={handleChange} />
 
-        <input
-          className="glass-input"
-          name="email"
-          placeholder="Email address"
-          onChange={handleChange}
-        />
-
-        <select
-          name="user_type"
-          className="glass-input"
-          onChange={handleChange}
-        >
-          <option value="user" >User</option>
+        <select name="user_type" className="glass-input" onChange={handleChange}>
+          <option value="user">User</option>
           <option value="rider">Rider</option>
         </select>
 
-        {/* Rider Location */}
         {form.user_type === "rider" && (
           <div className="space-y-2">
-            <input
-              className="glass-input"
-              placeholder="Latitude"
-              value={form.latitude}
-              disabled
-            />
-            <input
-              className="glass-input"
-              placeholder="Longitude"
-              value={form.longitude}
-              disabled
-            />
+            <input className="glass-input" placeholder="Latitude" value={form.latitude} disabled />
+            <input className="glass-input" placeholder="Longitude" value={form.longitude} disabled />
 
             <button
               type="button"
@@ -182,36 +153,17 @@ export default function Signup({ setEmail }) {
           </div>
         )}
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          className="glass-input"
-          onChange={handleChange}
-        />
+        <input type="password" name="password" placeholder="Password" className="glass-input" onChange={handleChange} />
+        <input type="password" name="confirm_password" placeholder="Confirm password" className="glass-input" onChange={handleChange} />
 
-        <input
-          type="password"
-          name="confirm_password"
-          placeholder="Confirm password"
-          className="glass-input"
-          onChange={handleChange}
-        />
-
-        {/* Button */}
         <button
           disabled={loading}
           className={`w-full py-3 rounded-xl font-semibold text-black transition-all
-            ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-emerald-400 hover:bg-emerald-300 active:scale-[0.97]"
-            }`}
+            ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-emerald-400 hover:bg-emerald-300 active:scale-[0.97]"}`}
         >
           {loading ? "Sending OTP..." : "Create Account"}
         </button>
 
-        {/* Login */}
         <p className="text-sm text-center text-gray-300">
           Already verified?{" "}
           <span
