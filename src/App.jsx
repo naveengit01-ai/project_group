@@ -34,6 +34,8 @@ import Delivery from "./pages/Navbar/Pickup/Delivery";
 // Admin
 import Over_All from "./advertisement/Over_All";
 import Add_Pramotions from "./advertisement/Add_Pramotion"; // promotions page
+import Foo from "./pages/Navbar/Donate/Near_orphanages";
+import NearbyOrphanages from "./pages/Navbar/Donate/Near_orphanages";
 
 export default function App() {
   const [email, setEmail] = useState(null);
@@ -66,6 +68,7 @@ export default function App() {
         <Route path="donate/clothes" element={<Cloths />} />
         <Route path="donate/other" element={<Other />} />
         <Route path="donate/request" element={<MyRequests />} />
+        <Route path="donate/nearorphanages" element={<NearbyOrphanages />} />
 
         {/* PICKUP */}
         <Route path="pickup/requests" element={<UsersRequests />} />

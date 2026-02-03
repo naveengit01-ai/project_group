@@ -57,6 +57,12 @@ export default function DonationsType() {
             accent="purple"
             onClick={() => navigate("/afterlogin/donate/other")}
           />
+          <DonateCard
+            title="Near orphanages"
+            desc="Donate essentials like books, utensils, etc."
+            accent="purple"
+            onClick={() => navigate("/afterlogin/donate/nearorphanages")}
+          />
         </motion.div>
 
         {/* 👇 1 inch gap + HOME (SPONSORSHIPS) */}

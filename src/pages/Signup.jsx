@@ -133,7 +133,7 @@ export default function Signup({ setEmail }) {
 
         <select name="user_type" className="glass-input" onChange={handleChange}>
           <option value="user">User</option>
-          <option value="rider">Rider</option>
+          {/* <option value="rider">Rider</option> */}
         </select>
 
         {form.user_type === "rider" && (
