@@ -1,11 +1,10 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 
 import OpeningPage from "./Opening_page";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import Login from "./pages/Login";
-
 import Afterlogin from "./pages/Afterlogin";
 
 // Navbar pages
@@ -23,6 +22,7 @@ import Food from "./pages/Navbar/Donate/Food";
 import Cloths from "./pages/Navbar/Donate/Cloths";
 import Other from "./pages/Navbar/Donate/Other";
 import MyRequests from "./pages/Navbar/Donate/my_requests";
+import NearbyOrphanages from "./pages/Navbar/Donate/Near_orphanages";
 
 // Pickup
 import UsersRequests from "./pages/Navbar/Pickup/Users_requests";
@@ -33,23 +33,52 @@ import Delivery from "./pages/Navbar/Pickup/Delivery";
 
 // Admin
 import Over_All from "./advertisement/Over_All";
-import Add_Pramotions from "./advertisement/Add_Pramotion"; // promotions page
-import Foo from "./pages/Navbar/Donate/Near_orphanages";
-import NearbyOrphanages from "./pages/Navbar/Donate/Near_orphanages";
+import Add_Pramotions from "./advertisement/Add_Pramotion";
+
+// Auth helpers
+import ProtectedRoute from "./hooks/ProtectedRoute";
+import { isLoggedIn } from "./hooks/useAuth";
 
 export default function App() {
   const [email, setEmail] = useState(null);
 
   return (
     <Routes>
-      {/* PUBLIC */}
-      <Route path="/" element={<OpeningPage />} />
+      {/* ================= ROOT ================= */}
+      <Route
+        path="/"
+        element={
+          isLoggedIn() ? (
+            <Navigate to="/afterlogin" replace />
+          ) : (
+            <OpeningPage />
+          )
+        }
+      />
+
+      {/* ================= PUBLIC ================= */}
       <Route path="/signup" element={<Signup setEmail={setEmail} />} />
       <Route path="/verify-otp" element={<VerifyOtp email={email} />} />
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/login"
+        element={
+          isLoggedIn() ? (
+            <Navigate to="/afterlogin" replace />
+          ) : (
+            <Login />
+          )
+        }
+      />
 
-      {/* AFTER LOGIN */}
-      <Route path="/afterlogin" element={<Afterlogin />}>
+      {/* ================= PROTECTED ================= */}
+      <Route
+        path="/afterlogin"
+        element={
+          <ProtectedRoute>
+            <Afterlogin />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
