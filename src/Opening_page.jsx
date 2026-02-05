@@ -110,7 +110,6 @@ export default function OpeningPage() {
     window.speechSynthesis.speak(u);
   };
 
-  /* 🔄 SYNC VOICE WITH CAPTIONS */
   useEffect(() => {
     if (voiceOn) {
       speak(captions[language][captionIndex]);
@@ -123,12 +122,11 @@ export default function OpeningPage() {
       {/* 🎵 AUDIO */}
       <audio ref={audioRef} src={bgMusic} />
 
-      {/* 🔊 CONTROLS */}
+      {/* CONTROLS */}
       <div className="fixed top-5 right-5 z-50 flex flex-col gap-2">
         <button
           onClick={() => setMusicOn(!musicOn)}
-          className="bg-black/60 border border-white/20
-                     text-xs px-3 py-2 rounded-full backdrop-blur"
+          className="bg-black/60 border border-white/20 text-xs px-3 py-2 rounded-full backdrop-blur"
         >
           {musicOn ? "🔊 Music On" : "🔇 Music Off"}
         </button>
@@ -143,22 +141,20 @@ export default function OpeningPage() {
               speak(captions[language][captionIndex]);
             }
           }}
-          className="bg-black/60 border border-white/20
-                     text-xs px-3 py-2 rounded-full backdrop-blur"
+          className="bg-black/60 border border-white/20 text-xs px-3 py-2 rounded-full backdrop-blur"
         >
           {voiceOn ? "🎙️ Voice On" : "🔇 Voice"}
         </button>
 
         <button
           onClick={() => setLanguage(l => (l === "en" ? "te" : "en"))}
-          className="bg-black/60 border border-white/20
-                     text-xs px-3 py-2 rounded-full backdrop-blur"
+          className="bg-black/60 border border-white/20 text-xs px-3 py-2 rounded-full backdrop-blur"
         >
           🌍 {language === "en" ? "English" : "తెలుగు"}
         </button>
       </div>
 
-      {/* ================= HERO ================= */}
+      {/* HERO */}
       <div className="relative min-h-screen overflow-hidden">
         <AnimatePresence>
           <motion.img
@@ -207,18 +203,32 @@ export default function OpeningPage() {
               </motion.p>
             </AnimatePresence>
 
-            <div className="mt-8 flex gap-4">
+            {/* 🔘 BUTTONS */}
+            <div className="mt-8 flex flex-wrap gap-4 justify-center">
               <button
                 onClick={() => navigate("/login")}
                 className="px-6 py-3 rounded-lg border border-white/60"
               >
                 Login
               </button>
+
               <button
                 onClick={() => navigate("/signup")}
                 className="px-6 py-3 rounded-lg bg-emerald-500 text-black"
               >
                 Get Started
+              </button>
+
+              {/* 🌍 CAREER BUTTON */}
+              <button
+                onClick={() => navigate("/Career")}
+                className="px-6 py-3 rounded-lg
+                           border border-cyan-400
+                           text-cyan-300
+                           hover:bg-cyan-400 hover:text-black
+                           transition"
+              >
+                💼 Careers / Employment
               </button>
             </div>
           </div>

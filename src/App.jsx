@@ -34,11 +34,16 @@ import Delivery from "./pages/Navbar/Pickup/Delivery";
 // Admin
 import Over_All from "./advertisement/Over_All";
 import Add_Pramotions from "./advertisement/Add_Pramotion";
+import AddRider from "./advertisement/Add_rider";
+import AddJob from "./advertisement/Add_job";
+import Notifications from "./advertisement/Notifications";
+
+// Career (Public)
+import Career from ".//Career";
 
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
-import AddRider from "./advertisement/Add_rider";
 
 export default function App() {
   const [email, setEmail] = useState(null);
@@ -60,6 +65,7 @@ export default function App() {
       {/* ================= PUBLIC ================= */}
       <Route path="/signup" element={<Signup setEmail={setEmail} />} />
       <Route path="/verify-otp" element={<VerifyOtp email={email} />} />
+
       <Route
         path="/login"
         element={
@@ -71,6 +77,9 @@ export default function App() {
         }
       />
 
+      {/* 🌍 CAREER / EMPLOYMENT */}
+      <Route path="/career" element={<Career />} />
+
       {/* ================= PROTECTED ================= */}
       <Route
         path="/afterlogin"
@@ -80,19 +89,23 @@ export default function App() {
           </ProtectedRoute>
         }
       >
+        {/* USER / RIDER HOME */}
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
 
-        {/* ADMIN */}
+        {/* ================= ADMIN ================= */}
         <Route path="overall" element={<Over_All />} />
         <Route path="promotions" element={<Add_Pramotions />} />
         <Route path="add-rider" element={<AddRider />} />
-        {/* PROFILE */}
+        <Route path="add-job" element={<AddJob />} />
+        <Route path="notifications" element={<Notifications />} />
+
+        {/* ================= PROFILE ================= */}
         <Route path="profile" element={<Myprofile />} />
         <Route path="profile/edit" element={<Edit />} />
 
-        {/* DONATE */}
+        {/* ================= DONATE ================= */}
         <Route path="donate" element={<DonationsType />} />
         <Route path="donate/food" element={<Food />} />
         <Route path="donate/clothes" element={<Cloths />} />
@@ -100,7 +113,7 @@ export default function App() {
         <Route path="donate/request" element={<MyRequests />} />
         <Route path="donate/nearorphanages" element={<NearbyOrphanages />} />
 
-        {/* PICKUP */}
+        {/* ================= PICKUP ================= */}
         <Route path="pickup/requests" element={<UsersRequests />} />
         <Route path="pickup/direction" element={<Direction />} />
         <Route path="pickup/verify" element={<DonateOtpVerify />} />

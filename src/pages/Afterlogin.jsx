@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import Home from "./Navbar/Home"; // ✅ ADD THIS
+import Home from "./Navbar/Home";
 
 export default function Afterlogin() {
   const navigate = useNavigate();
@@ -8,7 +8,7 @@ export default function Afterlogin() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔐 SAFETY CHECK
+  /* 🔐 SAFETY CHECK */
   useEffect(() => {
     if (!user) navigate("/login");
   }, [user, navigate]);
@@ -30,13 +30,16 @@ export default function Afterlogin() {
       {/* ================= ADMIN HOME ================= */}
       {isAdmin && isHome && (
         <div className="min-h-screen flex items-center justify-center">
-          <div className="w-full max-w-xl bg-white/10 backdrop-blur-xl
-                          border border-white/20 rounded-3xl
-                          p-10 space-y-8 shadow-2xl">
+          <div
+            className="w-full max-w-xl bg-white/10 backdrop-blur-xl
+                       border border-white/20 rounded-3xl
+                       p-10 space-y-6 shadow-2xl"
+          >
             <h1 className="text-3xl font-extrabold text-center">
               Admin Dashboard
             </h1>
 
+            {/* 📊 OVERALL */}
             <button
               onClick={() => navigate("/afterlogin/overall")}
               className="w-full py-5 rounded-2xl
@@ -46,6 +49,7 @@ export default function Afterlogin() {
               Overall Statistics
             </button>
 
+            {/* 📢 PROMOTIONS */}
             <button
               onClick={() => navigate("/afterlogin/promotions")}
               className="w-full py-5 rounded-2xl
@@ -55,14 +59,37 @@ export default function Afterlogin() {
               Promotions
             </button>
 
+            {/* 🚴 ADD RIDER */}
             <button
-  onClick={() => navigate("/afterlogin/add-rider")}
-  className="w-full py-5 rounded-2xl
-             bg-purple-400 text-black
-             font-bold text-lg hover:bg-purple-300 transition"
->
-  Add Rider
-</button>
+              onClick={() => navigate("/afterlogin/add-rider")}
+              className="w-full py-5 rounded-2xl
+                         bg-purple-400 text-black
+                         font-bold text-lg hover:bg-purple-300 transition"
+            >
+              Add Rider
+            </button>
+
+            {/* 💼 ADD JOB */}
+            <button
+              onClick={() => navigate("/afterlogin/add-job")}
+              className="w-full py-5 rounded-2xl
+                         bg-yellow-400 text-black
+                         font-bold text-lg hover:bg-yellow-300 transition"
+            >
+              Add Job Opportunity
+            </button>
+
+            {/* 🔔 NOTIFICATIONS */}
+            <button
+              onClick={() => navigate("/afterlogin/notifications")}
+              className="w-full py-5 rounded-2xl
+                         bg-pink-400 text-black
+                         font-bold text-lg hover:bg-pink-300 transition"
+            >
+              Notifications
+            </button>
+
+            {/* 🚪 LOGOUT */}
             <button
               onClick={() => {
                 localStorage.clear();
@@ -72,7 +99,6 @@ export default function Afterlogin() {
             >
               Logout
             </button>
-
           </div>
         </div>
       )}
@@ -118,8 +144,10 @@ export default function Afterlogin() {
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-14 w-60 bg-black/90
-                              border border-white/20 rounded-xl p-2 text-sm">
+              <div
+                className="absolute right-0 top-14 w-60 bg-black/90
+                           border border-white/20 rounded-xl p-2 text-sm"
+              >
                 <MenuItem text="Home" onClick={() => go(navigate, setMenuOpen, "/afterlogin")} />
                 <MenuItem text="About" onClick={() => go(navigate, setMenuOpen, "/afterlogin/about")} />
                 <MenuItem text="Contact" onClick={() => go(navigate, setMenuOpen, "/afterlogin/contact")} />
@@ -160,8 +188,6 @@ export default function Afterlogin() {
       {!isAdmin && isHome && (
         <>
           <HomeHero />
-
-          {/* 👇 2-inch gap before sponsorships */}
           <div className="mt-16">
             <Home />
           </div>
