@@ -2,20 +2,28 @@ import { useState, useEffect } from "react";
 import { verifyOtp, resendOtp } from "../api";
 import { useNavigate } from "react-router-dom";
 
-export default function VerifyOtp({ email }) {
+export default function VerifyOtp({ email: propEmail }) {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [email, setEmail] = useState(""); // ✅ resolved email
 
   const navigate = useNavigate();
 
-  /* 🔐 SAFETY CHECK */
+  /* 🔐 RESOLVE EMAIL (PROP OR LOCALSTORAGE) */
   useEffect(() => {
-    if (!email) {
+    const storedEmail = localStorage.getItem("verifyEmail");
+
+    if (propEmail) {
+      setEmail(propEmail);
+      localStorage.setItem("verifyEmail", propEmail); // backup
+    } else if (storedEmail) {
+      setEmail(storedEmail);
+    } else {
       alert("Email missing. Please sign up again.");
       navigate("/signup");
     }
-  }, [email, navigate]);
+  }, [propEmail, navigate]);
 
   /* ⏱️ RESEND TIMER */
   useEffect(() => {
@@ -45,6 +53,7 @@ export default function VerifyOtp({ email }) {
         res.status === "already_verified"
       ) {
         alert("Email verified successfully ✅");
+        localStorage.removeItem("verifyEmail");
         navigate("/login");
       } else {
         alert(res.status);

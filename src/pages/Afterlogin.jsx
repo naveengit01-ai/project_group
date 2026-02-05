@@ -56,6 +56,14 @@ export default function Afterlogin() {
             </button>
 
             <button
+  onClick={() => navigate("/afterlogin/add-rider")}
+  className="w-full py-5 rounded-2xl
+             bg-purple-400 text-black
+             font-bold text-lg hover:bg-purple-300 transition"
+>
+  Add Rider
+</button>
+            <button
               onClick={() => {
                 localStorage.clear();
                 navigate("/login");
@@ -64,6 +72,7 @@ export default function Afterlogin() {
             >
               Logout
             </button>
+
           </div>
         </div>
       )}

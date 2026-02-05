@@ -38,6 +38,7 @@ import Add_Pramotions from "./advertisement/Add_Pramotion";
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
+import AddRider from "./advertisement/Add_rider";
 
 export default function App() {
   const [email, setEmail] = useState(null);
@@ -86,7 +87,7 @@ export default function App() {
         {/* ADMIN */}
         <Route path="overall" element={<Over_All />} />
         <Route path="promotions" element={<Add_Pramotions />} />
-
+        <Route path="add-rider" element={<AddRider />} />
         {/* PROFILE */}
         <Route path="profile" element={<Myprofile />} />
         <Route path="profile/edit" element={<Edit />} />

@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from "react"; // 🎵 useRef added
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Home from "./pages/Navbar/Home";
-import bgMusic from "./assets/inspiration.mp3"; // 🎵 music import
+import bgMusic from "./assets/inspiration.mp3";
 
-/* BACKGROUND IMAGES – REALISTIC, CALM */
+/* BACKGROUND IMAGES */
 const images = [
   "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0",
   "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe",
@@ -12,7 +12,7 @@ const images = [
   "https://images.unsplash.com/photo-1600891964599-f61ba0e24092"
 ];
 
-/* SHORT, HUMAN QUOTES */
+/* QUOTES */
 const quotes = [
   "Some people waste food without knowing its value.",
   "Some people wait all day for a single meal.",
@@ -20,23 +20,37 @@ const quotes = [
   "DWJD exists to reduce that gap."
 ];
 
-/* VOICE-STYLE CAPTIONS (VERY HUMAN) */
-const captions = [
-  "Every day, usable food is thrown away.",
-  "At the same time, people go hungry.",
-  "This is not a food problem.",
-  "It is a distribution problem."
-];
+/* CAPTIONS + NARRATION (EN + TE) */
+const captions = {
+  en: [
+    "Every day, usable food is thrown away.",
+    "At the same time, people go hungry.",
+    "This is not a food problem.",
+    "It is a distribution problem."
+  ],
+  te: [
+    "ప్రతి రోజు తినదగిన ఆహారం వృథా అవుతుంది.",
+    "అదే సమయంలో చాలా మంది ఆకలితో ఉంటారు.",
+    "ఇది ఆహార సమస్య కాదు.",
+    "ఇది పంపిణీ సమస్య."
+  ]
+};
 
 export default function OpeningPage() {
   const navigate = useNavigate();
-  const audioRef = useRef(null); // 🎵 audio reference
+
+  const audioRef = useRef(null);
+  const speechRef = useRef(null);
 
   const [index, setIndex] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [captionIndex, setCaptionIndex] = useState(0);
-  const [musicOn, setMusicOn] = useState(true); // 🎵 toggle
 
+  const [musicOn, setMusicOn] = useState(true);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [language, setLanguage] = useState("en");
+
+  /* SLIDESHOW */
   useEffect(() => {
     const t = setInterval(() => {
       setIndex(i => (i + 1) % images.length);
@@ -44,6 +58,7 @@ export default function OpeningPage() {
     return () => clearInterval(t);
   }, []);
 
+  /* QUOTES */
   useEffect(() => {
     const t = setInterval(() => {
       setQuoteIndex(i => (i + 1) % quotes.length);
@@ -51,52 +66,100 @@ export default function OpeningPage() {
     return () => clearInterval(t);
   }, []);
 
+  /* CAPTIONS */
   useEffect(() => {
     const t = setInterval(() => {
-      setCaptionIndex(i => (i + 1) % captions.length);
+      setCaptionIndex(i => (i + 1) % captions.en.length);
     }, 3500);
     return () => clearInterval(t);
   }, []);
 
-  /* 🎵 MUSIC CONTROL */
+  /* MUSIC */
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.volume = 0.25; // soft volume
+    audio.volume = 0.25;
     audio.loop = true;
 
-    if (musicOn) {
-      audio.play().catch(() => {}); // browser safe
-    } else {
-      audio.pause();
-    }
+    if (musicOn) audio.play().catch(() => {});
+    else audio.pause();
 
-    return () => {
-      audio.pause(); // stop when leaving page
-    };
+    return () => audio.pause();
   }, [musicOn]);
+
+  /* 🎙️ SPEAK FUNCTION */
+  const speak = (text) => {
+    if (!("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.9;
+    u.pitch = 1;
+    u.volume = 1;
+    u.lang = language === "en" ? "en-US" : "te-IN";
+
+    if (audioRef.current) audioRef.current.volume = 0.1;
+
+    u.onend = () => {
+      if (audioRef.current) audioRef.current.volume = 0.25;
+    };
+
+    speechRef.current = u;
+    window.speechSynthesis.speak(u);
+  };
+
+  /* 🔄 SYNC VOICE WITH CAPTIONS */
+  useEffect(() => {
+    if (voiceOn) {
+      speak(captions[language][captionIndex]);
+    }
+  }, [captionIndex, voiceOn, language]);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
 
-      {/* 🎵 AUDIO ELEMENT */}
+      {/* 🎵 AUDIO */}
       <audio ref={audioRef} src={bgMusic} />
 
-      {/* 🎵 MUSIC TOGGLE */}
-      <button
-        onClick={() => setMusicOn(!musicOn)}
-        className="fixed top-5 right-5 z-50
-                   bg-black/60 border border-white/20
-                   text-xs px-3 py-2 rounded-full
-                   backdrop-blur hover:bg-black"
-      >
-        {musicOn ? "🔊 Music On" : "🔇 Music Off"}
-      </button>
+      {/* 🔊 CONTROLS */}
+      <div className="fixed top-5 right-5 z-50 flex flex-col gap-2">
+        <button
+          onClick={() => setMusicOn(!musicOn)}
+          className="bg-black/60 border border-white/20
+                     text-xs px-3 py-2 rounded-full backdrop-blur"
+        >
+          {musicOn ? "🔊 Music On" : "🔇 Music Off"}
+        </button>
+
+        <button
+          onClick={() => {
+            if (voiceOn) {
+              window.speechSynthesis.cancel();
+              setVoiceOn(false);
+            } else {
+              setVoiceOn(true);
+              speak(captions[language][captionIndex]);
+            }
+          }}
+          className="bg-black/60 border border-white/20
+                     text-xs px-3 py-2 rounded-full backdrop-blur"
+        >
+          {voiceOn ? "🎙️ Voice On" : "🔇 Voice"}
+        </button>
+
+        <button
+          onClick={() => setLanguage(l => (l === "en" ? "te" : "en"))}
+          className="bg-black/60 border border-white/20
+                     text-xs px-3 py-2 rounded-full backdrop-blur"
+        >
+          🌍 {language === "en" ? "English" : "తెలుగు"}
+        </button>
+      </div>
 
       {/* ================= HERO ================= */}
       <div className="relative min-h-screen overflow-hidden">
-
         <AnimatePresence>
           <motion.img
             key={index}
@@ -111,41 +174,33 @@ export default function OpeningPage() {
         <div className="absolute inset-0 bg-black/70" />
 
         <div className="relative z-10 min-h-screen flex flex-col justify-between px-6 py-12">
-
           <div className="flex flex-col items-center justify-center text-center flex-1">
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight"
-            >
+            <h1 className="text-3xl md:text-5xl font-semibold">
               Don’t Waste.
               <br />
               <span className="text-emerald-400">Just Donate.</span>
-            </motion.h1>
+            </h1>
 
-            <p className="mt-4 max-w-xl text-gray-300 text-sm sm:text-base">
-              DWJD connects surplus food and essential items with people who need them,
-              in a simple and secure way.
+            <p className="mt-4 max-w-xl text-gray-300">
+              DWJD connects surplus food and essentials with people who need them.
             </p>
 
             <AnimatePresence mode="wait">
               <motion.p
-                key={captionIndex}
+                key={captionIndex + language}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="mt-4 text-emerald-300 text-sm italic"
+                className="mt-4 text-emerald-300 italic"
               >
-                {captions[captionIndex]}
+                {captions[language][captionIndex]}
               </motion.p>
             </AnimatePresence>
 
             <AnimatePresence mode="wait">
               <motion.p
                 key={quoteIndex}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 className="mt-6 text-gray-400 italic text-sm"
               >
                 “ {quotes[quoteIndex]} ”
@@ -155,98 +210,25 @@ export default function OpeningPage() {
             <div className="mt-8 flex gap-4">
               <button
                 onClick={() => navigate("/login")}
-                className="px-6 py-3 rounded-lg border border-white/60
-                           hover:bg-white hover:text-black transition"
+                className="px-6 py-3 rounded-lg border border-white/60"
               >
                 Login
               </button>
-
               <button
                 onClick={() => navigate("/signup")}
-                className="px-6 py-3 rounded-lg bg-emerald-500
-                           text-black font-medium hover:bg-emerald-400 transition"
+                className="px-6 py-3 rounded-lg bg-emerald-500 text-black"
               >
                 Get Started
               </button>
             </div>
           </div>
-
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 1.8 }}
-            className="text-center text-gray-400 text-xs"
-          >
-            ↓ Scroll to understand how it works ↓
-          </motion.div>
         </div>
       </div>
 
-      {/* ================= PROMOTIONS ================= */}
+      {/* PROMOTIONS */}
       <section className="bg-black">
         <Home />
       </section>
-
-      {/* ================= REAL PROBLEM ================= */}
-      <div className="px-6 py-20 bg-black text-center">
-        <h2 className="text-3xl md:text-4xl font-semibold mb-6">
-          Why DWJD Is Needed
-        </h2>
-
-        <p className="max-w-3xl mx-auto text-gray-300 mb-12 text-sm sm:text-base">
-          Restaurants, events, and households often have extra food.
-          At the same time, shelters and individuals struggle to access meals.
-          DWJD helps bridge this gap responsibly.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          <img src="https://images.unsplash.com/photo-1593113598332-cd288d649433"
-               className="rounded-xl h-52 w-full object-cover" />
-          <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1"
-               className="rounded-xl h-52 w-full object-cover" />
-          <img src="https://images.unsplash.com/photo-1542810634-71277d95dcbb"
-               className="rounded-xl h-52 w-full object-cover" />
-        </div>
-      </div>
-
-      {/* ================= SIMPLE STEPS ================= */}
-      <div className="px-6 py-20 bg-gradient-to-b from-black to-gray-900">
-        <h2 className="text-3xl md:text-4xl font-semibold text-center mb-14">
-          How DWJD Works
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {[
-            "User donates food or items",
-            "OTP ensures secure pickup",
-            "Verified rider collects",
-            "Donation is delivered safely"
-          ].map((text, i) => (
-            <div
-              key={i}
-              className="bg-white/5 border border-white/10
-                         rounded-xl p-6 text-center"
-            >
-              <p className="text-sm text-gray-300">
-                <span className="font-semibold text-white">
-                  Step {i + 1}:
-                </span>{" "}
-                {text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ================= CLOSING ================= */}
-      <div className="px-6 py-20 bg-black text-center">
-        <h2 className="text-3xl md:text-4xl font-semibold mb-4">
-          Small Actions Matter
-        </h2>
-        <p className="max-w-3xl mx-auto text-gray-400 text-sm sm:text-base">
-          What is excess for one person can be meaningful support for another.
-          DWJD is built to make that connection simple and respectful.
-        </p>
-      </div>
     </div>
   );
 }

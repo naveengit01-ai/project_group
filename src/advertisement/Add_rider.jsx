@@ -40,25 +40,15 @@ export default function Login() {
 
       const data = await res.json();
 
-      /* ✅ LOGIN SUCCESS */
       if (data.status === "login_success") {
+        // 🔐 STORE SESSION
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
+
         navigate("/afterlogin");
-      }
-
-      /* ⚠️ EMAIL NOT VERIFIED → OTP PAGE */
-      else if (data.status === "email_not_verified") {
-        alert("Please verify your email with OTP 📩");
-        localStorage.setItem("verifyEmail", form.email);
-        navigate("/verify-otp");
-      }
-
-      /* ❌ OTHER CASES */
-      else {
+      } else {
         alert(data.status);
       }
-
     } catch (err) {
       alert("Server error. Please try again.");
     } finally {
