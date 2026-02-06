@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+// 🔁 switch when needed
+// const BASE_URL = "http://localhost:5000";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function AddEmploye() {
@@ -14,14 +16,18 @@ export default function AddEmploye() {
     last_name: "",
     email: "",
     phone: "",
-    user_type: "rider"
+    applied_role: ""
   });
 
-  /* 🔄 Fetch applicant details */
+  const [loading, setLoading] = useState(true);
+
+  /* 🔄 FETCH APPLICATION DETAILS */
   useEffect(() => {
-    fetch(`${BASE_URL}/admin/application/${id}`)
-      .then(res => res.json())
-      .then(data => {
+    async function fetchApplication() {
+      try {
+        const res = await fetch(`${BASE_URL}/admin/application/${id}`);
+        const data = await res.json();
+
         if (data.status === "success") {
           const a = data.application;
           setForm(f => ({
@@ -31,10 +37,19 @@ export default function AddEmploye() {
             email: a.email,
             phone: a.phone,
             username: a.first_name,
-            user_type: "rider"
+            applied_role: a.job_title // ✅ THIS IS THE ROLE
           }));
+        } else {
+          alert(data.status);
         }
-      });
+      } catch {
+        alert("Failed to load applicant");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchApplication();
   }, [id]);
 
   const handleChange = e =>
@@ -42,31 +57,51 @@ export default function AddEmploye() {
 
   const handleCreate = async () => {
     if (!form.password) {
-      alert("Password required");
+      alert("Password is required");
       return;
     }
 
-    const res = await fetch(`${BASE_URL}/admin/create-employee`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ application_id: id, ...form })
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/admin/create-employee`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: id,
+          username: form.username,
+          password: form.password
+          // ❌ NO user_type sent
+        })
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.status === "employee_created_otp_sent") {
-      alert("Employee created & OTP sent 📩");
-      navigate(-2);
-    } else {
-      alert(data.status);
+      if (data.status === "employee_created_otp_sent") {
+        alert("Employee created & and mail sended sucessfully");
+        navigate("/afterlogin/notifications");
+      } else {
+        alert(data.status);
+      }
+    } catch {
+      alert("Server error");
     }
   };
 
+  if (loading) {
+    return (
+      <div className="text-white text-center py-20">
+        Loading applicant…
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-xl mx-auto p-8 bg-white/10 rounded-2xl text-white">
-      <h2 className="text-2xl font-bold mb-6">Add Employee</h2>
+      <h2 className="text-2xl font-bold mb-6">
+        Create Employee Account
+      </h2>
 
-      {["first_name","last_name","email","phone","username"].map(k => (
+      {/* READ-ONLY DETAILS */}
+      {["first_name", "last_name", "email", "phone"].map(k => (
         <input
           key={k}
           value={form[k]}
@@ -75,6 +110,23 @@ export default function AddEmploye() {
         />
       ))}
 
+      {/* APPLIED ROLE (READ ONLY) */}
+      <input
+        value={form.applied_role}
+        disabled
+        className="glass-input mb-3 opacity-70 capitalize"
+      />
+
+      {/* USERNAME */}
+      <input
+        name="username"
+        value={form.username}
+        onChange={handleChange}
+        placeholder="Username"
+        className="glass-input mb-3"
+      />
+
+      {/* PASSWORD */}
       <input
         type="password"
         name="password"
