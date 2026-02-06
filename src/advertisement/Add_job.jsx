@@ -1,17 +1,18 @@
 import { useState } from "react";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
+// const BASE_URL = "http://localhost:5000";
 
 export default function AddJob() {
   const [form, setForm] = useState({
-    role: "",
+    title: "",
     description: ""
   });
 
   const handleSubmit = async e => {
     e.preventDefault();
 
-    if (!form.role || !form.description) {
+    if (!form.title || !form.description) {
       alert("All fields required");
       return;
     }
@@ -26,21 +27,25 @@ export default function AddJob() {
 
     if (data.status === "job_added") {
       alert("Job added successfully ✅");
-      setForm({ role: "", description: "" });
+      setForm({ title: "", description: "" });
+    } else {
+      alert(data.status);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto p-8 bg-white/10 rounded-2xl">
+    <div className="max-w-xl mx-auto p-8 bg-white/10 rounded-2xl text-white">
       <h2 className="text-3xl font-bold mb-6 text-center">
         Add Job Opportunity
       </h2>
 
       <input
         className="glass-input mb-4"
-        placeholder="Role (e.g. Field Volunteer)"
-        value={form.role}
-        onChange={e => setForm({ ...form, role: e.target.value })}
+        placeholder="Job Title (e.g. Field Volunteer)"
+        value={form.title}
+        onChange={e =>
+          setForm({ ...form, title: e.target.value })
+        }
       />
 
       <textarea
