@@ -48,7 +48,7 @@ export default function Login() {
       }
 
       /* ⚠️ EMAIL NOT VERIFIED → OTP PAGE */
-      else if (data.status === "email_not_verified") {
+      else if (data.status === "otp_required") {
         alert("Please verify your email with OTP 📩");
         localStorage.setItem("verifyEmail", form.email);
         navigate("/verify-otp");
