@@ -48,6 +48,7 @@ import Career from "./Career";
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
+import AddEmploye from "./advertisement/Interview_result/Add_Employe";
 
 export default function App() {
   const [email, setEmail] = useState(null);
@@ -109,7 +110,7 @@ export default function App() {
         <Route path="notifications/accept/:id" element={<Accept />} />
         <Route path="notifications/reject/:id" element={<Reject />} />
         <Route path="notifications/result/:id" element={<InterviewResult />} />
-
+        <Route path="notifications/add-employee/:id" element={<AddEmploye />} />
         {/* ================= PROFILE ================= */}
         <Route path="profile" element={<Myprofile />} />
         <Route path="profile/edit" element={<Edit />} />
