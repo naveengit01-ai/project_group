@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
+// 🔁 switch when needed
+// const BASE_URL = "http://localhost:5000";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function Notifications() {
   const [apps, setApps] = useState([]);
-  const [loadingId, setLoadingId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`${BASE_URL}/admin/job-applications`)
@@ -12,39 +15,8 @@ export default function Notifications() {
       .then(data => setApps(data.applications || []));
   }, []);
 
-  const handleAction = async (id, action) => {
-    setLoadingId(id);
-
-    try {
-      const res = await fetch(
-        `${BASE_URL}/admin/job-application/${action}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ application_id: id })
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.status === "success") {
-        alert(
-          action === "accept"
-            ? "Interview email sent 📧"
-            : "Rejection email sent"
-        );
-
-        // remove handled application from UI
-        setApps(prev => prev.filter(a => a._id !== id));
-      } else {
-        alert(data.status);
-      }
-    } catch {
-      alert("Server error");
-    } finally {
-      setLoadingId(null);
-    }
-  };
+  const removeFromUI = id =>
+    setApps(prev => prev.filter(a => a._id !== id));
 
   return (
     <div className="px-6 py-16 text-white">
@@ -60,55 +32,81 @@ export default function Notifications() {
         {apps.map(app => (
           <div
             key={app._id}
-            className="bg-white/10 border border-white/20
-                       rounded-xl p-5 space-y-3"
+            className="bg-white/10 border border-white/20 rounded-xl p-5 space-y-3"
           >
-            <h2 className="font-bold text-lg">
-              {app.role}
-            </h2>
+            {/* ROLE */}
+            <h2 className="font-bold text-lg">{app.job_title}</h2>
 
+            {/* CANDIDATE */}
             <p className="text-sm text-gray-300">
-              {app.name} • {app.email} • {app.phone}
+              {app.first_name} {app.last_name} • {app.email} • {app.phone}
             </p>
 
             <p className="text-xs text-gray-400">
               Location: {app.location}
             </p>
 
-            {/* 📄 RESUME */}
-            {app.resume_url && (
+            {/* RESUME */}
+            {app.resume_link && (
               <a
-                href={app.resume_url}
+                href={app.resume_link}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-block text-sm text-cyan-400
-                           hover:underline"
+                className="text-sm text-cyan-400 hover:underline"
               >
                 📄 View Resume
               </a>
             )}
 
-            {/* ACTION BUTTONS */}
-            <div className="flex gap-3 pt-2">
-              <button
-                disabled={loadingId === app._id}
-                onClick={() => handleAction(app._id, "accept")}
-                className="px-4 py-2 rounded-lg
-                           bg-emerald-400 text-black font-semibold
-                           hover:bg-emerald-300 transition"
-              >
-                ✅ Accept
-              </button>
+            {/* ================= ACTIONS ================= */}
+            <div className="flex gap-3 pt-3 flex-wrap">
 
-              <button
-                disabled={loadingId === app._id}
-                onClick={() => handleAction(app._id, "reject")}
-                className="px-4 py-2 rounded-lg
-                           bg-red-400 text-black font-semibold
-                           hover:bg-red-300 transition"
-              >
-                ❌ Reject
-              </button>
+              {/* 🟢 PENDING → ACCEPT */}
+              {app.status === "pending" && (
+                <>
+                  <button
+                    onClick={() =>
+                      navigate(`/afterlogin/notifications/accept/${app._id}`)
+                    }
+                    className="px-4 py-2 rounded-lg bg-emerald-400 text-black font-semibold"
+                  >
+                    ✅ Accept
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      navigate(`/afterlogin/notifications/reject/${app._id}`)
+                    }
+                    className="px-4 py-2 rounded-lg bg-red-400 text-black font-semibold"
+                  >
+                    ❌ Reject
+                  </button>
+                </>
+              )}
+
+              {/* 🟡 INTERVIEW SCHEDULED */}
+              {app.status === "interview_scheduled" && (
+                <>
+                  <span className="px-4 py-2 rounded-lg bg-yellow-400 text-black font-semibold">
+                    📧 Interview Mail Sent
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      navigate(`/afterlogin/notifications/result/${app._id}`)
+                    }
+                    className="px-4 py-2 rounded-lg bg-emerald-500 text-black font-semibold"
+                  >
+                    🧾 Interview Result
+                  </button>
+                </>
+              )}
+
+              {/* ❌ REJECTED (auto remove) */}
+              {app.status === "rejected" && removeFromUI(app._id)}
+
+              {/* ✅ SELECTED (auto remove) */}
+              {app.status === "selected" && removeFromUI(app._id)}
             </div>
           </div>
         ))}

@@ -38,8 +38,13 @@ import AddRider from "./advertisement/Add_rider";
 import AddJob from "./advertisement/Add_job";
 import Notifications from "./advertisement/Notifications";
 
+// 🔔 Notification sub-pages (FIXED)
+import Accept from "./advertisement/Notifications_Mange/Accept";
+import Reject from "./advertisement/Notifications_Mange/Reject";
+import InterviewResult from "./advertisement/Notifications_Mange/Interview_result";
+
 // Career (Public)
-import Career from ".//Career";
+import Career from "./Career";
 
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
@@ -50,6 +55,7 @@ export default function App() {
 
   return (
     <Routes>
+
       {/* ================= ROOT ================= */}
       <Route
         path="/"
@@ -77,7 +83,7 @@ export default function App() {
         }
       />
 
-      {/* 🌍 CAREER / EMPLOYMENT */}
+      {/* 🌍 CAREER */}
       <Route path="/career" element={<Career />} />
 
       {/* ================= PROTECTED ================= */}
@@ -89,7 +95,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        {/* USER / RIDER HOME */}
+        {/* HOME */}
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
@@ -99,7 +105,12 @@ export default function App() {
         <Route path="promotions" element={<Add_Pramotions />} />
         <Route path="add-rider" element={<AddRider />} />
         <Route path="add-job" element={<AddJob />} />
+
+        {/* 🔔 NOTIFICATIONS (FIXED ROUTES) */}
         <Route path="notifications" element={<Notifications />} />
+        <Route path="notifications/accept/:id" element={<Accept />} />
+        <Route path="notifications/reject/:id" element={<Reject />} />
+        <Route path="notifications/result/:id" element={<InterviewResult />} />
 
         {/* ================= PROFILE ================= */}
         <Route path="profile" element={<Myprofile />} />
@@ -120,6 +131,7 @@ export default function App() {
         <Route path="pickup/my-rides" element={<MyRides />} />
         <Route path="pickup/delivery" element={<Delivery />} />
       </Route>
+
     </Routes>
   );
 }

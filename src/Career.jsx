@@ -4,11 +4,15 @@ const BASE_URL = "https://back-end-project-group.onrender.com";
 export default function Career() {
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+
   const [form, setForm] = useState({
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
-    location: ""
+    location: "",
+    resume_link: "",
+    message: ""
   });
 
   useEffect(() => {
@@ -18,24 +22,51 @@ export default function Career() {
   }, []);
 
   const handleApply = async () => {
-    if (!form.name || !form.email || !form.phone || !form.location) {
-      alert("All fields required");
+    const {
+      first_name,
+      last_name,
+      email,
+      phone,
+      location
+    } = form;
+
+    if (!first_name || !last_name || !email || !phone || !location) {
+      alert("All required fields must be filled");
       return;
     }
 
-    await fetch(`${BASE_URL}/apply-job`, {
+    const res = await fetch(`${BASE_URL}/apply-job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
         job_id: selectedJob._id,
-        role: selectedJob.role
+        first_name,
+        last_name,
+        email,
+        phone,
+        location,
+        resume_link: form.resume_link,
+        message: form.message
       })
     });
 
-    alert("Application submitted ✅");
-    setSelectedJob(null);
-    setForm({ name: "", email: "", phone: "", location: "" });
+    const data = await res.json();
+
+    if (data.status === "application_submitted") {
+      alert("Application submitted ✅");
+      setSelectedJob(null);
+      setForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        location: "",
+        resume_link: "",
+        message: ""
+      });
+    } else {
+      alert(data.status);
+    }
   };
 
   return (
@@ -50,7 +81,7 @@ export default function Career() {
             key={job._id}
             className="bg-white/10 border border-white/20 rounded-xl p-6"
           >
-            <h2 className="text-xl font-bold">{job.role}</h2>
+            <h2 className="text-xl font-bold">{job.title}</h2>
             <p className="text-gray-300 mt-2">{job.description}</p>
 
             <button
@@ -68,17 +99,25 @@ export default function Career() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
           <div className="bg-white/10 p-8 rounded-2xl w-full max-w-md">
             <h2 className="text-2xl font-bold mb-4">
-              Apply for {selectedJob.role}
+              Apply for {selectedJob.title}
             </h2>
 
-            {["name", "email", "phone", "location"].map(field => (
+            {[
+              ["first_name", "First Name"],
+              ["last_name", "Last Name"],
+              ["email", "Email"],
+              ["phone", "Phone"],
+              ["location", "Location"],
+              ["resume_link", "Resume Link (optional)"],
+              ["message", "Message (optional)"]
+            ].map(([key, label]) => (
               <input
-                key={field}
-                placeholder={field}
+                key={key}
+                placeholder={label}
                 className="glass-input mb-3"
-                value={form[field]}
+                value={form[key]}
                 onChange={e =>
-                  setForm({ ...form, [field]: e.target.value })
+                  setForm({ ...form, [key]: e.target.value })
                 }
               />
             ))}
