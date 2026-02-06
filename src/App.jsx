@@ -34,7 +34,6 @@ import Delivery from "./pages/Navbar/Pickup/Delivery";
 // Admin
 import Over_All from "./advertisement/Over_All";
 import Add_Pramotions from "./advertisement/Add_Pramotion";
-import AddRider from "./advertisement/Add_rider";
 import AddJob from "./advertisement/Add_job";
 import Notifications from "./advertisement/Notifications";
 
@@ -103,7 +102,6 @@ export default function App() {
         {/* ================= ADMIN ================= */}
         <Route path="overall" element={<Over_All />} />
         <Route path="promotions" element={<Add_Pramotions />} />
-        <Route path="add-rider" element={<AddRider />} />
         <Route path="add-job" element={<AddJob />} />
 
         {/* 🔔 NOTIFICATIONS (FIXED ROUTES) */}

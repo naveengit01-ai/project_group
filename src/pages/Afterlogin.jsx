@@ -58,17 +58,6 @@ export default function Afterlogin() {
             >
               Promotions
             </button>
-
-            {/* 🚴 ADD RIDER */}
-            <button
-              onClick={() => navigate("/afterlogin/add-rider")}
-              className="w-full py-5 rounded-2xl
-                         bg-purple-400 text-black
-                         font-bold text-lg hover:bg-purple-300 transition"
-            >
-              Add Rider
-            </button>
-
             {/* 💼 ADD JOB */}
             <button
               onClick={() => navigate("/afterlogin/add-job")}
