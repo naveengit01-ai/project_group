@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
-// 🔁 switch when needed
 // const BASE_URL = "http://localhost:5000";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
@@ -30,15 +29,15 @@ export default function AddEmploye() {
 
         if (data.status === "success") {
           const a = data.application;
-          setForm(f => ({
-            ...f,
+          setForm({
+            username: a.first_name,
+            password: "",
             first_name: a.first_name,
             last_name: a.last_name,
             email: a.email,
             phone: a.phone,
-            username: a.first_name,
-            applied_role: a.job_title // ✅ THIS IS THE ROLE
-          }));
+            applied_role: a.job_title
+          });
         } else {
           alert(data.status);
         }
@@ -69,16 +68,19 @@ export default function AddEmploye() {
           application_id: id,
           username: form.username,
           password: form.password
-          // ❌ NO user_type sent
         })
       });
 
       const data = await res.json();
 
-      if (data.status === "employee_created_otp_sent") {
-        alert("Employee created & and mail sended sucessfully");
+      if (data.status === "employee_created_and_mail_sent") {
+        alert("Employee created & credentials sent via email 📧");
         navigate("/afterlogin/notifications");
-      } else {
+      } 
+      else if (data.status === "employee_created_but_mail_failed") {
+        alert("Account created, but email failed. Check server logs.");
+      } 
+      else {
         alert(data.status);
       }
     } catch {
@@ -100,7 +102,7 @@ export default function AddEmploye() {
         Create Employee Account
       </h2>
 
-      {/* READ-ONLY DETAILS */}
+      {/* READ ONLY DETAILS */}
       {["first_name", "last_name", "email", "phone"].map(k => (
         <input
           key={k}
@@ -110,7 +112,7 @@ export default function AddEmploye() {
         />
       ))}
 
-      {/* APPLIED ROLE (READ ONLY) */}
+      {/* APPLIED ROLE */}
       <input
         value={form.applied_role}
         disabled
