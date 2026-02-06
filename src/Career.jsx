@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 const BASE_URL = "https://back-end-project-group.onrender.com";
+// const BASE_URL = "http://localhost:5000";
 
 export default function Career() {
   const [jobs, setJobs] = useState([]);
