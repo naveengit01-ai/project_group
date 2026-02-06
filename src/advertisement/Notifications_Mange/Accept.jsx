@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-// const BASE_URL = "https://back-end-project-group.onrender.com";
+const BASE_URL = "https://back-end-project-group.onrender.com";
 // for local testing:
-const BASE_URL = "http://localhost:5000";
+// const BASE_URL = "http://localhost:5000";
 
 export default function Accept() {
   const { id } = useParams(); // application_id
