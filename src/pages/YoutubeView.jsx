@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 
-const API = "https://dwjd-backend.onrender.com";
+const API = "https://back-end-project-group.onrender.com";
 // const API = "http://localhost:5000";
 
 export default function YoutubeView() {
