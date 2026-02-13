@@ -1,85 +1,80 @@
 import { useState } from "react";
-import axios from "axios";
+
+const BASE_URL = "https://back-end-project-group.onrender.com";
+// const BASE_URL = "http://localhost:5000";
 
 export default function Youtube_Content() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [embedCode, setEmbedCode] = useState("");
-  const [showCode, setShowCode] = useState(false);
-  const [url, setUrl] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    embedCode: ""
+  });
 
-  const postContent = async () => {
-    if (!title || !description || !embedCode) {
-      alert("Fill everything 😤");
+  const handleSubmit = async e => {
+    e.preventDefault();
+
+    if (!form.title || !form.description || !form.embedCode) {
+      alert("All fields required");
       return;
     }
 
-    const res = await axios.post(
-      "http://localhost:5000/admin/youtube-content",
-      { title, description, embedCode }
-    );
+    const res = await fetch(`${BASE_URL}/admin/youtube-content`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    });
 
-    if (res.data.status === "success") {
-      setUrl(res.data.url);
-      navigator.clipboard.writeText(res.data.url);
-      alert("URL copied to clipboard ✅");
+    const data = await res.json();
 
-      setTitle("");
-      setDescription("");
-      setEmbedCode("");
-      setShowCode(false);
+    if (data.status === "content_added") {
+      alert("YouTube content added successfully ✅");
+      setForm({ title: "", description: "", embedCode: "" });
+    } else {
+      alert(data.status);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="w-full max-w-xl bg-white/10 p-8 rounded-2xl space-y-4">
+    <div className="max-w-xl mx-auto p-8 bg-white/10 rounded-2xl text-white">
+      <h2 className="text-3xl font-bold mb-6 text-center">
+        Add YouTube Content
+      </h2>
 
-        <h1 className="text-2xl font-bold text-center">📺 YouTube Content</h1>
+      <input
+        className="glass-input mb-4"
+        placeholder="Title"
+        value={form.title}
+        onChange={e =>
+          setForm({ ...form, title: e.target.value })
+        }
+      />
 
-        <input
-          placeholder="Title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          className="w-full p-3 bg-black/70 rounded"
-        />
+      <textarea
+        className="glass-input mb-4"
+        rows={3}
+        placeholder="Description"
+        value={form.description}
+        onChange={e =>
+          setForm({ ...form, description: e.target.value })
+        }
+      />
 
-        <textarea
-          placeholder="Description"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          className="w-full p-3 bg-black/70 rounded"
-        />
+      <textarea
+        className="glass-input mb-4 font-mono"
+        rows={4}
+        placeholder="Paste YouTube iframe embed code"
+        value={form.embedCode}
+        onChange={e =>
+          setForm({ ...form, embedCode: e.target.value })
+        }
+      />
 
-        <button
-          onClick={() => setShowCode(!showCode)}
-          className="bg-cyan-400 text-black px-4 py-2 rounded"
-        >
-          {showCode ? "Close Code" : "Add Code"}
-        </button>
-
-        {showCode && (
-          <textarea
-            placeholder="Paste iframe code"
-            value={embedCode}
-            onChange={e => setEmbedCode(e.target.value)}
-            className="w-full p-3 bg-black/80 rounded font-mono"
-          />
-        )}
-
-        <button
-          onClick={postContent}
-          className="w-full bg-emerald-400 text-black py-3 rounded font-bold"
-        >
-          POST
-        </button>
-
-        {url && (
-          <p className="text-sm text-emerald-400 break-all">
-            {url}
-          </p>
-        )}
-      </div>
+      <button
+        onClick={handleSubmit}
+        className="w-full bg-emerald-400 text-black py-3 rounded-xl font-bold"
+      >
+        Add Content
+      </button>
     </div>
   );
 }
