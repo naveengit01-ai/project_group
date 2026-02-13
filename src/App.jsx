@@ -45,8 +45,7 @@ import AddEmploye from "./advertisement/Interview_result/Add_Employe";
 
 // YouTube Content
 import Youtube_Content from "./advertisement/Youtube_Content";
-import YoutubeList from "./pages/YoutubeList";
-import YoutubeView from "./pages/YoutubeView";
+
 
 // Career (Public)
 import Career from "./Career";
@@ -54,6 +53,8 @@ import Career from "./Career";
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
+import YoutubeView from "./pages/YoutubeView";
+import YoutubeList from "./pages/YoutubeList";
 
 export default function App() {
   const [email, setEmail] = useState(null);
@@ -92,7 +93,7 @@ export default function App() {
       <Route path="/career" element={<Career />} />
 
       {/* 📺 YOUTUBE (PUBLIC) */}
-      <Route path="/youtube" element={<YoutubeList />} />
+      <Route path="/youtube" element={<YoutubeList/>} />
       <Route path="/youtube/:id" element={<YoutubeView />} />
 
       {/* ================= PROTECTED ================= */}
