@@ -37,10 +37,16 @@ import Add_Pramotions from "./advertisement/Add_Pramotion";
 import AddJob from "./advertisement/Add_job";
 import Notifications from "./advertisement/Notifications";
 
-// 🔔 Notification sub-pages (FIXED)
+// 🔔 Notification sub-pages
 import Accept from "./advertisement/Notifications_Mange/Accept";
 import Reject from "./advertisement/Notifications_Mange/Reject";
 import InterviewResult from "./advertisement/Notifications_Mange/Interview_result";
+import AddEmploye from "./advertisement/Interview_result/Add_Employe";
+
+// YouTube Content
+import Youtube_Content from "./advertisement/Youtube_Content";
+import YoutubeList from "./pages/YoutubeList";
+import YoutubeView from "./pages/YoutubeView";
 
 // Career (Public)
 import Career from "./Career";
@@ -48,7 +54,6 @@ import Career from "./Career";
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
-import AddEmploye from "./advertisement/Interview_result/Add_Employe";
 
 export default function App() {
   const [email, setEmail] = useState(null);
@@ -86,6 +91,10 @@ export default function App() {
       {/* 🌍 CAREER */}
       <Route path="/career" element={<Career />} />
 
+      {/* 📺 YOUTUBE (PUBLIC) */}
+      <Route path="/youtube" element={<YoutubeList />} />
+      <Route path="/youtube/:id" element={<YoutubeView />} />
+
       {/* ================= PROTECTED ================= */}
       <Route
         path="/afterlogin"
@@ -104,13 +113,15 @@ export default function App() {
         <Route path="overall" element={<Over_All />} />
         <Route path="promotions" element={<Add_Pramotions />} />
         <Route path="add-job" element={<AddJob />} />
+        <Route path="youtube-content" element={<Youtube_Content />} />
 
-        {/* 🔔 NOTIFICATIONS (FIXED ROUTES) */}
+        {/* 🔔 NOTIFICATIONS */}
         <Route path="notifications" element={<Notifications />} />
         <Route path="notifications/accept/:id" element={<Accept />} />
         <Route path="notifications/reject/:id" element={<Reject />} />
         <Route path="notifications/result/:id" element={<InterviewResult />} />
         <Route path="notifications/add-employee/:id" element={<AddEmploye />} />
+
         {/* ================= PROFILE ================= */}
         <Route path="profile" element={<Myprofile />} />
         <Route path="profile/edit" element={<Edit />} />

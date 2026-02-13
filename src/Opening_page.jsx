@@ -230,6 +230,16 @@ export default function OpeningPage() {
               >
                 💼 Careers / Employment
               </button>
+              <button
+  onClick={() => navigate("/youtube")}
+  className="px-6 py-3 rounded-lg
+             border border-red-400
+             text-red-300
+             hover:bg-red-400 hover:text-black transition"
+>
+  ▶️ YouTube Content
+</button>
+
             </div>
           </div>
         </div>

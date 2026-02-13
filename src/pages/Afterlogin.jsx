@@ -58,6 +58,7 @@ export default function Afterlogin() {
             >
               Promotions
             </button>
+
             {/* 💼 ADD JOB */}
             <button
               onClick={() => navigate("/afterlogin/add-job")}
@@ -66,6 +67,16 @@ export default function Afterlogin() {
                          font-bold text-lg hover:bg-yellow-300 transition"
             >
               Add Job Opportunity
+            </button>
+
+            {/* 📺 YOUTUBE CONTENT (NEW) */}
+            <button
+              onClick={() => navigate("/afterlogin/youtube-content")}
+              className="w-full py-5 rounded-2xl
+                         bg-red-500 text-black
+                         font-bold text-lg hover:bg-red-400 transition"
+            >
+              📺 YouTube Content
             </button>
 
             {/* 🔔 NOTIFICATIONS */}
