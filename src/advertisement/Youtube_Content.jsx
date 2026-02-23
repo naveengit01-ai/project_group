@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
 // const BASE_URL = "http://localhost:5000";
 
 export default function Youtube_Content() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     title: "",
     embedCode: "",
@@ -110,81 +113,73 @@ export default function Youtube_Content() {
   /* ================= UI ================= */
 
   return (
-    <div className="max-w-5xl mx-auto p-8 bg-white/10 rounded-2xl text-white space-y-6">
-      <h2 className="text-3xl font-bold text-center">
-        Add YouTube Course Content
-      </h2>
+    <div className="min-h-screen bg-black text-white">
 
-      <input
-        className="glass-input"
-        placeholder="Course / Video Title"
-        value={form.title}
-        onChange={e => setForm({ ...form, title: e.target.value })}
-      />
+      {/* ===== HEADER ===== */}
+      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/10"
+          >
+            ⬅ Back
+          </button>
 
-      <textarea
-        className="glass-input font-mono"
-        rows={3}
-        placeholder="YouTube iframe embed code"
-        value={form.embedCode}
-        onChange={e => setForm({ ...form, embedCode: e.target.value })}
-      />
+          <h2 className="text-2xl font-bold">
+            📺 Add YouTube Course Content
+          </h2>
 
-      <button
-        onClick={addMainTopic}
-        className="px-4 py-2 bg-cyan-400 text-black rounded font-semibold"
-      >
-        + Add Main Topic
-      </button>
+          <div className="w-20" /> {/* spacer */}
+        </div>
+      </div>
 
-      {/* ================= MAIN TOPICS ================= */}
-      {form.mainTopics.map((main, m) => (
-        <div key={m} className="border border-white/20 rounded-xl p-5 space-y-4">
-          <div className="flex justify-between">
-            <h3 className="text-xl font-semibold">Main Topic {m + 1}</h3>
-            <button onClick={() => removeMainTopic(m)} className="text-red-400">
-              Remove
-            </button>
-          </div>
+      {/* ===== CONTENT ===== */}
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
+
+        {/* BASIC INFO */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+          <h3 className="text-xl font-semibold">Basic Details</h3>
 
           <input
             className="glass-input"
-            placeholder="Main Topic Title"
-            value={main.title}
-            onChange={e => updateMainTopic(m, "title", e.target.value)}
-          />
-
-          <textarea
-            className="glass-input"
-            rows={2}
-            placeholder="Main Topic Notes"
-            value={main.notes}
-            onChange={e => updateMainTopic(m, "notes", e.target.value)}
+            placeholder="Course / Video Title"
+            value={form.title}
+            onChange={e => setForm({ ...form, title: e.target.value })}
           />
 
           <textarea
             className="glass-input font-mono"
-            rows={2}
-            placeholder="Code (optional)"
-            value={main.code}
-            onChange={e => updateMainTopic(m, "code", e.target.value)}
+            rows={3}
+            placeholder="YouTube iframe embed code"
+            value={form.embedCode}
+            onChange={e => setForm({ ...form, embedCode: e.target.value })}
           />
+        </div>
 
-          <button
-            onClick={() => addSubTopic(m)}
-            className="text-sm px-3 py-1 bg-emerald-400 text-black rounded"
-          >
-            + Add Sub Topic
-          </button>
+        {/* MAIN TOPICS */}
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Main Topics</h3>
+            <button
+              onClick={addMainTopic}
+              className="px-4 py-2 bg-cyan-400 text-black rounded-lg font-semibold"
+            >
+              + Add Main Topic
+            </button>
+          </div>
 
-          {/* ================= SUB TOPICS ================= */}
-          {main.subTopics.map((sub, s) => (
-            <div key={s} className="border border-white/10 rounded-lg p-4">
-              <div className="flex justify-between">
-                <h4>Sub Topic {s + 1}</h4>
+          {form.mainTopics.map((main, m) => (
+            <div
+              key={m}
+              className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4"
+            >
+              <div className="flex justify-between items-center">
+                <h4 className="text-lg font-semibold">
+                  Main Topic {m + 1}
+                </h4>
                 <button
-                  onClick={() => removeSubTopic(m, s)}
-                  className="text-red-400 text-sm"
+                  onClick={() => removeMainTopic(m)}
+                  className="text-red-400 hover:underline"
                 >
                   Remove
                 </button>
@@ -192,78 +187,132 @@ export default function Youtube_Content() {
 
               <input
                 className="glass-input"
-                placeholder="Sub Topic Title"
-                value={sub.title}
-                onChange={e => updateSubTopic(m, s, "title", e.target.value)}
+                placeholder="Main Topic Title"
+                value={main.title}
+                onChange={e => updateMainTopic(m, "title", e.target.value)}
               />
 
               <textarea
                 className="glass-input"
                 rows={2}
-                placeholder="Notes"
-                value={sub.notes}
-                onChange={e => updateSubTopic(m, s, "notes", e.target.value)}
+                placeholder="Main Topic Notes"
+                value={main.notes}
+                onChange={e => updateMainTopic(m, "notes", e.target.value)}
               />
 
               <textarea
                 className="glass-input font-mono"
                 rows={2}
                 placeholder="Code (optional)"
-                value={sub.code}
-                onChange={e => updateSubTopic(m, s, "code", e.target.value)}
+                value={main.code}
+                onChange={e => updateMainTopic(m, "code", e.target.value)}
               />
 
               <button
-                onClick={() => addSubHeading(m, s)}
-                className="text-xs px-2 py-1 bg-cyan-400 text-black rounded"
+                onClick={() => addSubTopic(m)}
+                className="px-3 py-1 bg-emerald-400 text-black rounded text-sm font-semibold"
               >
-                + Add Sub Heading
+                + Add Sub Topic
               </button>
 
-              {/* ================= SUB HEADINGS ================= */}
-              {sub.subHeadings.map((h, i) => (
-                <div key={i} className="border border-white/10 p-3 mt-2 rounded">
+              {/* SUB TOPICS */}
+              {main.subTopics.map((sub, s) => (
+                <div
+                  key={s}
+                  className="border border-white/10 rounded-xl p-4 space-y-3"
+                >
+                  <div className="flex justify-between">
+                    <h5 className="font-semibold">
+                      Sub Topic {s + 1}
+                    </h5>
+                    <button
+                      onClick={() => removeSubTopic(m, s)}
+                      className="text-red-400 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
                   <input
                     className="glass-input"
-                    placeholder="Sub Heading Title"
-                    value={h.title}
-                    onChange={e =>
-                      updateSubHeading(m, s, i, "title", e.target.value)
-                    }
+                    placeholder="Sub Topic Title"
+                    value={sub.title}
+                    onChange={e => updateSubTopic(m, s, "title", e.target.value)}
                   />
 
                   <textarea
                     className="glass-input"
                     rows={2}
                     placeholder="Notes"
-                    value={h.notes}
-                    onChange={e =>
-                      updateSubHeading(m, s, i, "notes", e.target.value)
-                    }
+                    value={sub.notes}
+                    onChange={e => updateSubTopic(m, s, "notes", e.target.value)}
                   />
 
                   <textarea
                     className="glass-input font-mono"
                     rows={2}
                     placeholder="Code (optional)"
-                    value={h.code}
-                    onChange={e =>
-                      updateSubHeading(m, s, i, "code", e.target.value)
-                    }
+                    value={sub.code}
+                    onChange={e => updateSubTopic(m, s, "code", e.target.value)}
                   />
+
+                  <button
+                    onClick={() => addSubHeading(m, s)}
+                    className="px-2 py-1 bg-cyan-400 text-black rounded text-xs font-semibold"
+                  >
+                    + Add Sub Heading
+                  </button>
+
+                  {/* SUB HEADINGS */}
+                  {sub.subHeadings.map((h, i) => (
+                    <div
+                      key={i}
+                      className="border border-white/10 rounded-lg p-3 space-y-2"
+                    >
+                      <input
+                        className="glass-input"
+                        placeholder="Sub Heading Title"
+                        value={h.title}
+                        onChange={e =>
+                          updateSubHeading(m, s, i, "title", e.target.value)
+                        }
+                      />
+
+                      <textarea
+                        className="glass-input"
+                        rows={2}
+                        placeholder="Notes"
+                        value={h.notes}
+                        onChange={e =>
+                          updateSubHeading(m, s, i, "notes", e.target.value)
+                        }
+                      />
+
+                      <textarea
+                        className="glass-input font-mono"
+                        rows={2}
+                        placeholder="Code (optional)"
+                        value={h.code}
+                        onChange={e =>
+                          updateSubHeading(m, s, i, "code", e.target.value)
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
           ))}
         </div>
-      ))}
 
-      <button
-        onClick={handleSubmit}
-        className="w-full bg-emerald-400 text-black py-3 rounded-xl font-bold"
-      >
-        Add Content
-      </button>
+        {/* SUBMIT */}
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-emerald-400 text-black py-4 rounded-2xl font-bold text-lg"
+        >
+          🚀 Publish Content
+        </button>
+      </div>
     </div>
   );
 }

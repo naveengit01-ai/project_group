@@ -219,7 +219,6 @@ export default function OpeningPage() {
                 Get Started
               </button>
 
-              {/* 🌍 CAREER BUTTON */}
               <button
                 onClick={() => navigate("/Career")}
                 className="px-6 py-3 rounded-lg
@@ -230,16 +229,28 @@ export default function OpeningPage() {
               >
                 💼 Careers / Employment
               </button>
-              <button
-  onClick={() => navigate("/youtube")}
-  className="px-6 py-3 rounded-lg
-             border border-red-400
-             text-red-300
-             hover:bg-red-400 hover:text-black transition"
->
-  ▶️ YouTube Content
-</button>
 
+              <button
+                onClick={() => navigate("/youtube")}
+                className="px-6 py-3 rounded-lg
+                           border border-red-400
+                           text-red-300
+                           hover:bg-red-400 hover:text-black transition"
+              >
+                ▶️ YouTube Content
+              </button>
+
+              {/* 🧠 CODE EDITOR (ONLY ADDITION) */}
+              <button
+                onClick={() => navigate("/code-editor")}
+                className="px-6 py-3 rounded-lg
+                           border border-purple-400
+                           text-purple-300
+                           hover:bg-purple-400 hover:text-black
+                           transition"
+              >
+                🧠 Code Editor
+              </button>
             </div>
           </div>
         </div>

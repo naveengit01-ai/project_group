@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
@@ -9,6 +9,7 @@ const API = "https://back-end-project-group.onrender.com";
 
 export default function YoutubeView() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const codeRefs = useRef([]);
 
   const [data, setData] = useState(null);
@@ -53,7 +54,7 @@ export default function YoutubeView() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        Loading...
+        ⏳ Loading...
       </div>
     );
   }
@@ -69,132 +70,141 @@ export default function YoutubeView() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-10">
-      <div className="max-w-5xl mx-auto space-y-10">
+    <div className="min-h-screen bg-black text-white">
 
-        {/* HEADER */}
-        <div className="border-b border-white/20 pb-4">
-          <h1 className="text-3xl font-bold">{data.title}</h1>
-          <div className="flex gap-4 mt-2 text-sm text-gray-400">
-            <span>👀 {data.views} views</span>
-            <span>{new Date(data.createdAt).toLocaleDateString()}</span>
-          </div>
+      {/* ===== HEADER ===== */}
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur border-b border-white/10">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/10 transition"
+          >
+            ⬅ Back
+          </button>
+
+          <h1 className="text-lg font-semibold text-gray-300">
+            Learning Content
+          </h1>
+
+          <div className="w-20" />
         </div>
+      </div>
 
-        {/* EMBED CODE (OPTIONAL) */}
-        {data.embedCode && (
-          <div className="border border-white/20 rounded-xl bg-black/60">
-            <div className="flex justify-between items-center px-5 py-3 border-b border-white/10">
-              <span className="text-sm text-gray-400">
-                Embed Code
-              </span>
-              <button
-                onClick={() => copyCode(data.embedCode, "embed")}
-                className="text-xs px-3 py-1 border border-white/20 rounded hover:bg-white/20"
-              >
-                {copiedIndex === "embed" ? "Copied!" : "Copy"}
-              </button>
+      {/* ===== CONTENT ===== */}
+      <div className="px-6 py-10">
+        <div className="max-w-5xl mx-auto space-y-10">
+
+          {/* TITLE */}
+          <div className="border-b border-white/20 pb-4">
+            <h1 className="text-3xl font-bold">{data.title}</h1>
+            <div className="flex gap-4 mt-2 text-sm text-gray-400">
+              <span>👀 {data.views} views</span>
+              <span>{new Date(data.createdAt).toLocaleDateString()}</span>
             </div>
-
-            <pre className="overflow-x-auto p-5 text-sm">
-              <code className="language-html">
-                {data.embedCode}
-              </code>
-            </pre>
           </div>
-        )}
 
-        {/* ================= MAIN TOPICS ================= */}
-        {data.mainTopics?.map((main, m) => (
-          <div key={m} className="space-y-6">
-
-            {/* MAIN TOPIC */}
-            <div>
-              <h2 className="text-2xl font-semibold text-cyan-400">
-                {main.title}
-              </h2>
-              {main.notes && (
-                <p className="text-gray-400 mt-2">
-                  {main.notes}
-                </p>
-              )}
-            </div>
-
-            {/* MAIN TOPIC CODE */}
-            {main.code && (
-              <div className="border border-white/20 rounded-xl bg-black/60">
-                <div className="flex justify-between items-center px-4 py-2 border-b border-white/10">
-                  <span className="text-xs text-gray-400">
-                    Code
-                  </span>
-                  <button
-                    onClick={() => copyCode(main.code, `main-${m}`)}
-                    className="text-xs px-2 py-1 border border-white/20 rounded"
-                  >
-                    {copiedIndex === `main-${m}` ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-
-                <pre className="p-4 overflow-x-auto text-sm">
-                  <code
-                    ref={el => (codeRefs.current[m] = el)}
-                    className="language-javascript"
-                  >
-                    {main.code}
-                  </code>
-                </pre>
+          {/* EMBED CODE */}
+          {data.embedCode && (
+            <div className="border border-white/20 rounded-xl bg-black/60">
+              <div className="flex justify-between items-center px-5 py-3 border-b border-white/10">
+                <span className="text-sm text-gray-400">
+                  Embed Code
+                </span>
+                <button
+                  onClick={() => copyCode(data.embedCode, "embed")}
+                  className="text-xs px-3 py-1 border border-white/20 rounded hover:bg-white/20"
+                >
+                  {copiedIndex === "embed" ? "Copied!" : "Copy"}
+                </button>
               </div>
-            )}
 
-            {/* SUB TOPICS */}
-            {main.subTopics?.map((sub, s) => (
-              <div key={s} className="pl-6 border-l border-white/10 space-y-4">
+              <pre className="overflow-x-auto p-5 text-sm">
+                <code className="language-html">
+                  {data.embedCode}
+                </code>
+              </pre>
+            </div>
+          )}
 
-                <h3 className="text-lg font-semibold text-emerald-400">
-                  {sub.title}
-                </h3>
+          {/* MAIN TOPICS */}
+          {data.mainTopics?.map((main, m) => (
+            <div key={m} className="space-y-6">
 
-                {sub.notes && (
-                  <p className="text-gray-400">
-                    {sub.notes}
+              <div>
+                <h2 className="text-2xl font-semibold text-cyan-400">
+                  {main.title}
+                </h2>
+                {main.notes && (
+                  <p className="text-gray-400 mt-2">
+                    {main.notes}
                   </p>
                 )}
-
-                {sub.code && (
-                  <div className="border border-white/20 rounded-lg bg-black/60">
-                    <div className="flex justify-between items-center px-4 py-2 border-b border-white/10">
-                      <span className="text-xs text-gray-400">
-                        Code
-                      </span>
-                      <button
-                        onClick={() =>
-                          copyCode(sub.code, `sub-${m}-${s}`)
-                        }
-                        className="text-xs px-2 py-1 border border-white/20 rounded"
-                      >
-                        {copiedIndex === `sub-${m}-${s}`
-                          ? "Copied!"
-                          : "Copy"}
-                      </button>
-                    </div>
-
-                    <pre className="p-4 overflow-x-auto text-sm">
-                      <code
-                        ref={el =>
-                          codeRefs.current[`sub-${m}-${s}`] = el
-                        }
-                        className="language-javascript"
-                      >
-                        {sub.code}
-                      </code>
-                    </pre>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        ))}
 
+              {main.code && (
+                <div className="border border-white/20 rounded-xl bg-black/60">
+                  <div className="flex justify-between items-center px-4 py-2 border-b border-white/10">
+                    <span className="text-xs text-gray-400">Code</span>
+                    <button
+                      onClick={() => copyCode(main.code, `main-${m}`)}
+                      className="text-xs px-2 py-1 border border-white/20 rounded"
+                    >
+                      {copiedIndex === `main-${m}` ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+
+                  <pre className="p-4 overflow-x-auto text-sm">
+                    <code
+                      ref={el => (codeRefs.current[m] = el)}
+                      className="language-javascript"
+                    >
+                      {main.code}
+                    </code>
+                  </pre>
+                </div>
+              )}
+
+              {main.subTopics?.map((sub, s) => (
+                <div key={s} className="pl-6 border-l border-white/10 space-y-4">
+                  <h3 className="text-lg font-semibold text-emerald-400">
+                    {sub.title}
+                  </h3>
+
+                  {sub.notes && (
+                    <p className="text-gray-400">
+                      {sub.notes}
+                    </p>
+                  )}
+
+                  {sub.code && (
+                    <div className="border border-white/20 rounded-lg bg-black/60">
+                      <div className="flex justify-between items-center px-4 py-2 border-b border-white/10">
+                        <span className="text-xs text-gray-400">Code</span>
+                        <button
+                          onClick={() => copyCode(sub.code, `sub-${m}-${s}`)}
+                          className="text-xs px-2 py-1 border border-white/20 rounded"
+                        >
+                          {copiedIndex === `sub-${m}-${s}` ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+
+                      <pre className="p-4 overflow-x-auto text-sm">
+                        <code
+                          ref={el =>
+                            (codeRefs.current[`sub-${m}-${s}`] = el)
+                          }
+                          className="language-javascript"
+                        >
+                          {sub.code}
+                        </code>
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

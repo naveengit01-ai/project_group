@@ -46,13 +46,18 @@ import AddEmploye from "./advertisement/Interview_result/Add_Employe";
 // YouTube Content
 import Youtube_Content from "./advertisement/Youtube_Content";
 
-
 // Career (Public)
 import Career from "./Career";
+
+// 🧠 Code Editor (FIXED PATHS)
+import CodeEditor from "./pages/Navbar/CodeEditor/Code_Editor";
+// import MyCodes from "./pages/Navbar/CodeEditor/My_Codes";
 
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
+
+// YouTube (Public)
 import YoutubeView from "./pages/YoutubeView";
 import YoutubeList from "./pages/YoutubeList";
 
@@ -93,8 +98,11 @@ export default function App() {
       <Route path="/career" element={<Career />} />
 
       {/* 📺 YOUTUBE (PUBLIC) */}
-      <Route path="/youtube" element={<YoutubeList/>} />
+      <Route path="/youtube" element={<YoutubeList />} />
       <Route path="/youtube/:id" element={<YoutubeView />} />
+
+      {/* 🧠 CODE EDITOR (PUBLIC – GUEST) */}
+      <Route path="/code-editor" element={<CodeEditor />} />
 
       {/* ================= PROTECTED ================= */}
       <Route
@@ -141,6 +149,10 @@ export default function App() {
         <Route path="pickup/verify" element={<DonateOtpVerify />} />
         <Route path="pickup/my-rides" element={<MyRides />} />
         <Route path="pickup/delivery" element={<Delivery />} />
+
+        {/* 🧠 CODE EDITOR (LOGGED-IN USER) */}
+        <Route path="code-editor" element={<CodeEditor />} />
+        {/* <Route path="my-codes" element={<MyCodes />} /> */}
       </Route>
 
     </Routes>
