@@ -7,6 +7,9 @@ import VerifyOtp from "./pages/VerifyOtp";
 import Login from "./pages/Login";
 import Afterlogin from "./pages/Afterlogin";
 
+// 🤖 AI BOT
+import AI_Bot from "./pages/Ai_Bot";
+
 // Navbar pages
 import Home from "./pages/Navbar/Home";
 import About from "./pages/Navbar/About";
@@ -49,9 +52,8 @@ import Youtube_Content from "./advertisement/Youtube_Content";
 // Career (Public)
 import Career from "./Career";
 
-// 🧠 Code Editor (FIXED PATHS)
+// 🧠 Code Editor
 import CodeEditor from "./pages/Navbar/CodeEditor/Code_Editor";
-// import MyCodes from "./pages/Navbar/CodeEditor/My_Codes";
 
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
@@ -101,8 +103,11 @@ export default function App() {
       <Route path="/youtube" element={<YoutubeList />} />
       <Route path="/youtube/:id" element={<YoutubeView />} />
 
-      {/* 🧠 CODE EDITOR (PUBLIC – GUEST) */}
+      {/* 🧠 CODE EDITOR (PUBLIC) */}
       <Route path="/code-editor" element={<CodeEditor />} />
+
+      {/* 🤖 AI BOT (PUBLIC ROUTE) */}
+      <Route path="/ai-bot" element={<AI_Bot />} />
 
       {/* ================= PROTECTED ================= */}
       <Route
@@ -117,6 +122,9 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
+
+        {/* 🤖 AI BOT (LOGGED-IN ROUTE) */}
+        <Route path="ai-bot" element={<AI_Bot />} />
 
         {/* ================= ADMIN ================= */}
         <Route path="overall" element={<Over_All />} />
@@ -152,7 +160,6 @@ export default function App() {
 
         {/* 🧠 CODE EDITOR (LOGGED-IN USER) */}
         <Route path="code-editor" element={<CodeEditor />} />
-        {/* <Route path="my-codes" element={<MyCodes />} /> */}
       </Route>
 
     </Routes>

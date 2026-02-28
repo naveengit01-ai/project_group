@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Home from "./pages/Navbar/Home";
+import AI_Bot from "./pages/Ai_Bot"; // 🤖 AI BOT (ADDED)
 import bgMusic from "./assets/inspiration.mp3";
 
 /* BACKGROUND IMAGES */
@@ -240,7 +241,6 @@ export default function OpeningPage() {
                 ▶️ YouTube Content
               </button>
 
-              {/* 🧠 CODE EDITOR (ONLY ADDITION) */}
               <button
                 onClick={() => navigate("/code-editor")}
                 className="px-6 py-3 rounded-lg
@@ -260,6 +260,12 @@ export default function OpeningPage() {
       <section className="bg-black">
         <Home />
       </section>
+
+      {/* 🤖 AI BOT (FIXED RIGHT SIDE) */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <AI_Bot />
+      </div>
+
     </div>
   );
 }

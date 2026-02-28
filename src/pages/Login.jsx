@@ -19,7 +19,7 @@ export default function Login() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/afterlogin");
+      navigate("/afterlogin", { replace: true });
     }
   }, [navigate]);
 
@@ -30,6 +30,10 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    // ✅ CLEAR OLD AUTH (IMPORTANT)
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
     try {
       const res = await fetch(`${BASE_URL}/login`, {
@@ -42,9 +46,13 @@ export default function Login() {
 
       /* ✅ LOGIN SUCCESS */
       if (data.status === "login_success") {
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.token); // 🔑 REQUIRED FOR AI
         localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/afterlogin");
+
+        // 🔍 DEBUG (you can remove later)
+        console.log("JWT TOKEN SAVED:", data.token);
+
+        navigate("/afterlogin", { replace: true });
       }
 
       /* ⚠️ EMAIL NOT VERIFIED → OTP PAGE */
