@@ -7,7 +7,10 @@ export default function AI_Bot() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([
-    { from: "bot", text: "Hey there! 👋 I'm your DWJD Assistant. How can I help you today?" }
+    {
+      from: "bot",
+      text: "Hey there! 👋 I'm your DWJD Assistant. How can I help you today?"
+    }
   ]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
@@ -16,53 +19,62 @@ export default function AI_Bot() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat, loading]);
 
-const sendMessage = async () => {
-  if (!message.trim()) return;
+  const sendMessage = async () => {
+    if (!message.trim()) return;
 
-  setChat(prev => [...prev, { from: "user", text: message }]);
-  setLoading(true);
+    const userMessage = message.toLowerCase();
 
-  const token = localStorage.getItem("token");
-  console.log("TOKEN:", token); // DEBUG
-
-  try {
-    const res = await fetch("http://localhost:5000/ai/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: JSON.stringify({ message }),
-    });
-
-    const data = await res.json();
-    console.log("STATUS:", res.status, data);
-
-    if (!res.ok) {
+    // 🟢 CLIENT-SIDE GREETINGS (NO API CALL)
+    const greetings = ["hi", "hello", "hey", "good morning", "good evening"];
+    if (greetings.some(g => userMessage.includes(g))) {
       setChat(prev => [
         ...prev,
-        { from: "bot", text: data.error || "Unauthorized. Please login." },
+        { from: "user", text: message },
+        { from: "bot", text: "Hey 👋 How can I help you today?" }
       ]);
+      setMessage("");
       return;
     }
 
-    setChat(prev => [
-      ...prev,
-      { from: "bot", text: data.reply },
-    ]);
+    setChat(prev => [...prev, { from: "user", text: message }]);
+    setLoading(true);
 
-  } catch (err) {
-    console.error("NETWORK ERROR:", err);
-    setChat(prev => [
-      ...prev,
-      { from: "bot", text: "Server not reachable" },
-    ]);
-  } finally {
-    setLoading(false);
-    setMessage("");
-  }
-};
+    const token = localStorage.getItem("token");
 
+    try {
+      const res = await fetch(`${BASE_URL}/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setChat(prev => [
+          ...prev,
+          { from: "bot", text: data.error || "Please login to continue." }
+        ]);
+        return;
+      }
+
+      setChat(prev => [
+        ...prev,
+        { from: "bot", text: data.reply }
+      ]);
+    } catch (err) {
+      setChat(prev => [
+        ...prev,
+        { from: "bot", text: "⚠️ Server not reachable right now." }
+      ]);
+    } finally {
+      setLoading(false);
+      setMessage("");
+    }
+  };
   return (
     <>
       <style>{`
