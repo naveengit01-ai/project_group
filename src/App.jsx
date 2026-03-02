@@ -62,7 +62,7 @@ import { isLoggedIn } from "./hooks/useAuth";
 // YouTube (Public)
 import YoutubeView from "./pages/YoutubeView";
 import YoutubeList from "./pages/YoutubeList";
-
+import To_Do_LIST from "./advertisement/To_Do_LIST";
 export default function App() {
   const [email, setEmail] = useState(null);
 
@@ -118,6 +118,14 @@ export default function App() {
           </ProtectedRoute>
         }
       >
+        <Route path="/afterlogin" element={<Afterlogin />}>
+  {/* existing routes */}
+
+  <Route
+    path="todo"
+    element={<To_Do_LIST />}
+  />
+</Route>
         {/* HOME */}
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />

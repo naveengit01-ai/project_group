@@ -20,61 +20,73 @@ export default function AI_Bot() {
   }, [chat, loading]);
 
   const sendMessage = async () => {
-    if (!message.trim()) return;
+  if (!message.trim()) return;
 
-    const userMessage = message.toLowerCase();
+  const cleanMessage = message.trim();
+  const lowerMessage = cleanMessage.toLowerCase();
 
-    // 🟢 CLIENT-SIDE GREETINGS (NO API CALL)
-    const greetings = ["hi", "hello", "hey", "good morning", "good evening"];
-    if (greetings.some(g => userMessage.includes(g))) {
-      setChat(prev => [
-        ...prev,
-        { from: "user", text: message },
-        { from: "bot", text: "Hey 👋 How can I help you today?" }
-      ]);
-      setMessage("");
-      return;
-    }
+  /* ===============================
+     CLIENT-SIDE GREETINGS
+  =============================== */
+  const greetings = [
+    "hi",
+    "hello",
+    "hey",
+    "good morning",
+    "good evening"
+  ];
 
-    setChat(prev => [...prev, { from: "user", text: message }]);
-    setLoading(true);
+  if (greetings.includes(lowerMessage)) {
+    setChat(prev => [
+      ...prev,
+      { from: "user", text: cleanMessage },
+      { from: "bot", text: "Hey 👋 How can I help you today?" }
+    ]);
+    setMessage("");
+    return;
+  }
 
-    const token = localStorage.getItem("token");
+  /* ===============================
+     SEND TO BACKEND
+  =============================== */
+  setChat(prev => [...prev, { from: "user", text: cleanMessage }]);
+  setMessage("");           // clear immediately
+  setLoading(true);
 
-    try {
-      const res = await fetch(`${BASE_URL}/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: JSON.stringify({ message })
-      });
+  const token = localStorage.getItem("token");
 
-      const data = await res.json();
+  try {
+    const res = await fetch(`${BASE_URL}/ai/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      body: JSON.stringify({ message: cleanMessage })
+    });
 
-      if (!res.ok) {
-        setChat(prev => [
-          ...prev,
-          { from: "bot", text: data.error || "Please login to continue." }
-        ]);
-        return;
+    const data = await res.json();
+
+    setChat(prev => [
+      ...prev,
+      {
+        from: "bot",
+        text: data.reply || "I’m here 🙂 How can I help you?"
       }
+    ]);
 
-      setChat(prev => [
-        ...prev,
-        { from: "bot", text: data.reply }
-      ]);
-    } catch (err) {
-      setChat(prev => [
-        ...prev,
-        { from: "bot", text: "⚠️ Server not reachable right now." }
-      ]);
-    } finally {
-      setLoading(false);
-      setMessage("");
-    }
-  };
+  } catch (err) {
+    setChat(prev => [
+      ...prev,
+      {
+        from: "bot",
+        text: "⚠️ Server not reachable right now."
+      }
+    ]);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <>
       <style>{`

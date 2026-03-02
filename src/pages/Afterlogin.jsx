@@ -72,7 +72,12 @@ export default function Afterlogin() {
             >
               Notifications
             </button>
-
+            <button
+  onClick={() => navigate("/afterlogin/todo")}
+  className="w-full py-5 rounded-2xl bg-violet-500 text-black font-bold text-lg hover:bg-violet-400 transition"
+>
+  📝 My To-Do List
+</button>
             <button
               onClick={() => {
                 localStorage.clear();
