@@ -5,7 +5,7 @@ import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 
 const API = "https://back-end-project-group.onrender.com";
-// const API = "http://localhost:5000";
+// const API = "https://back-end-project-group.onrender.com";
 
 export default function YoutubeView() {
   const { id } = useParams();

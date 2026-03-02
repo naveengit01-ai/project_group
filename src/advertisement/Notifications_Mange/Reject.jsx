@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
 // 🔁 SWITCH BASE URL WHEN NEEDED
-// const BASE_URL = "http://localhost:5000";
+// const BASE_URL = "https://back-end-project-group.onrender.com";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function Reject() {

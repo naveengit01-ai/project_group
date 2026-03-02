@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 
-// const BASE_URL = "http://localhost:5000";
+// const BASE_URL = "https://back-end-project-group.onrender.com";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 /* 🎨 PROFESSIONAL GRADIENTS */
