@@ -1,15 +1,13 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.css";
 
 const API = "https://back-end-project-group.onrender.com";
-// const API = "https://back-end-project-group.onrender.com";
 
 export default function YoutubeView() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const codeRefs = useRef([]);
 
   const [data, setData] = useState(null);
@@ -33,15 +31,12 @@ export default function YoutubeView() {
         setLoading(false);
       }
     };
-
     fetchContent();
   }, [id]);
 
   /* ================= HIGHLIGHT ================= */
   useEffect(() => {
-    codeRefs.current.forEach(el => {
-      if (el) hljs.highlightElement(el);
-    });
+    codeRefs.current.forEach(el => el && hljs.highlightElement(el));
   }, [data]);
 
   const copyCode = async (code, index) => {
@@ -51,109 +46,288 @@ export default function YoutubeView() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        ⏳ Loading...
+/* ================= LOADING ================= */
+if (loading) {
+  return (
+    <>
+      <style>{`
+        /* FORCE DARK BACKGROUND */
+        html, body {
+          background: #07080f;
+          margin: 0;
+        }
+
+        .cr-root {
+          min-height: 100vh;
+          background: #07080f;
+          color: #eeeaf4;
+          font-family: 'Syne', sans-serif;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .cr-root::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,0.07), transparent 60%),
+            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,0.06), transparent 60%);
+          pointer-events: none;
+        }
+
+        .cr-grid-bg {
+          position: fixed;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(52,211,153,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52,211,153,0.03) 1px, transparent 1px);
+          background-size: 56px 56px;
+          pointer-events: none;
+        }
+
+        /* FOOD LOADER */
+        .food-loader {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          position: relative;
+          z-index: 1;
+        }
+
+        .food-plate {
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          border: 2px dashed rgba(52,211,153,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: plateSpin 6s linear infinite;
+          margin-bottom: 22px;
+        }
+
+        .food-icon {
+          font-size: 36px;
+          animation: foodPop 1.6s ease-in-out infinite;
+        }
+
+        @keyframes plateSpin {
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes foodPop {
+          0%,100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.15); opacity: 1; }
+        }
+
+        .food-text {
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+
+        .food-sub {
+          font-size: 12px;
+          font-family: 'DM Mono', monospace;
+          color: rgba(238,234,244,0.45);
+        }
+      `}</style>
+
+      <div className="cr-root">
+        <div className="cr-grid-bg" />
+
+        <div className="food-loader">
+          <div className="food-plate">
+            <div className="food-icon">🥗</div>
+          </div>
+
+          <div className="food-text">
+            Preparing fresh learning content
+          </div>
+          <div className="food-sub">
+            Reducing waste, one lesson at a time 🌱
+          </div>
+        </div>
       </div>
-    );
-  }
+    </>
+  );
+}
 
   /* ================= ERROR ================= */
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-red-400 flex items-center justify-center">
-        {error}
+      <div className="cr-root">
+        <div className="cr-empty">{error}</div>
       </div>
     );
   }
 
-  /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-black text-white">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap');
 
-      {/* ===== HEADER ===== */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur border-b border-white/10">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/10 transition"
-          >
-            ⬅ Back
-          </button>
+        .cr-root {
+          min-height: 100vh;
+          background: #07080f;
+          color: #eeeaf4;
+          font-family: 'Syne', sans-serif;
+          position: relative;
+        }
 
-          <h1 className="text-lg font-semibold text-gray-300">
-            Learning Content
-          </h1>
+        .cr-root::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,0.07), transparent 60%),
+            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,0.06), transparent 60%);
+          pointer-events: none;
+        }
 
-          <div className="w-20" />
-        </div>
-      </div>
+        .cr-grid-bg {
+          position: fixed;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(52,211,153,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52,211,153,0.03) 1px, transparent 1px);
+          background-size: 56px 56px;
+          pointer-events: none;
+        }
 
-      {/* ===== CONTENT ===== */}
-      <div className="px-6 py-10">
-        <div className="max-w-5xl mx-auto space-y-10">
+        .cr-wrap {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 90px 24px 120px;
+          position: relative;
+          z-index: 1;
+        }
 
+        .cr-section {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 22px;
+          padding: 28px;
+          margin-bottom: 28px;
+          animation: crCardIn .5s ease both;
+        }
+
+        @keyframes crCardIn {
+          from { opacity:0; transform:translateY(18px); }
+          to { opacity:1; transform:translateY(0); }
+        }
+
+        .cr-title {
+          font-size: 28px;
+          font-weight: 800;
+          margin-bottom: 8px;
+        }
+
+        .cr-meta {
+          font-family: 'DM Mono';
+          font-size: 12px;
+          color: rgba(238,234,244,0.4);
+        }
+
+        .cr-code {
+          margin-top: 16px;
+          border-radius: 14px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cr-code-head {
+          display:flex;
+          justify-content:space-between;
+          padding:10px 14px;
+          background: rgba(255,255,255,0.05);
+          font-size:11px;
+          font-family:'DM Mono';
+        }
+
+        .cr-copy {
+          cursor:pointer;
+          padding:4px 10px;
+          border-radius:8px;
+          border:1px solid rgba(255,255,255,0.2);
+        }
+
+        .cr-copy:hover {
+          background:#34d399;
+          color:#07080f;
+        }
+
+        .cr-empty {
+          text-align:center;
+          padding:120px 0;
+          color: rgba(238,234,244,0.4);
+          font-family:'DM Mono';
+        }
+
+        .cr-spinner {
+          width:32px;height:32px;
+          border:2px solid rgba(52,211,153,.2);
+          border-top-color:#34d399;
+          border-radius:50%;
+          animation:spin .8s linear infinite;
+          margin:0 auto 14px;
+        }
+
+        @keyframes spin { to{transform:rotate(360deg)} }
+      `}</style>
+
+      <div className="cr-root">
+        <div className="cr-grid-bg" />
+
+        <div className="cr-wrap">
           {/* TITLE */}
-          <div className="border-b border-white/20 pb-4">
-            <h1 className="text-3xl font-bold">{data.title}</h1>
-            <div className="flex gap-4 mt-2 text-sm text-gray-400">
-              <span>👀 {data.views} views</span>
-              <span>{new Date(data.createdAt).toLocaleDateString()}</span>
+          <div className="cr-section">
+            <div className="cr-title">{data.title}</div>
+            <div className="cr-meta">
+              👀 {data.views} views · {new Date(data.createdAt).toLocaleDateString()}
             </div>
           </div>
 
-          {/* EMBED CODE */}
+          {/* EMBED */}
           {data.embedCode && (
-            <div className="border border-white/20 rounded-xl bg-black/60">
-              <div className="flex justify-between items-center px-5 py-3 border-b border-white/10">
-                <span className="text-sm text-gray-400">
+            <div className="cr-section">
+              <div className="cr-code">
+                <div className="cr-code-head">
                   Embed Code
-                </span>
-                <button
-                  onClick={() => copyCode(data.embedCode, "embed")}
-                  className="text-xs px-3 py-1 border border-white/20 rounded hover:bg-white/20"
-                >
-                  {copiedIndex === "embed" ? "Copied!" : "Copy"}
-                </button>
+                  <span
+                    className="cr-copy"
+                    onClick={() => copyCode(data.embedCode, "embed")}
+                  >
+                    {copiedIndex === "embed" ? "Copied" : "Copy"}
+                  </span>
+                </div>
+                <pre><code className="language-html">{data.embedCode}</code></pre>
               </div>
-
-              <pre className="overflow-x-auto p-5 text-sm">
-                <code className="language-html">
-                  {data.embedCode}
-                </code>
-              </pre>
             </div>
           )}
 
-          {/* MAIN TOPICS */}
+          {/* TOPICS */}
           {data.mainTopics?.map((main, m) => (
-            <div key={m} className="space-y-6">
-
-              <div>
-                <h2 className="text-2xl font-semibold text-cyan-400">
-                  {main.title}
-                </h2>
-                {main.notes && (
-                  <p className="text-gray-400 mt-2">
-                    {main.notes}
-                  </p>
-                )}
-              </div>
+            <div key={m} className="cr-section">
+              <h2 style={{ color: "#34d399" }}>{main.title}</h2>
+              {main.notes && <p className="cr-meta">{main.notes}</p>}
 
               {main.code && (
-                <div className="border border-white/20 rounded-xl bg-black/60">
-                  <div className="flex justify-between items-center px-4 py-2 border-b border-white/10">
-                    <span className="text-xs text-gray-400">Code</span>
-                    <button
-                      onClick={() => copyCode(main.code, `main-${m}`)}
-                      className="text-xs px-2 py-1 border border-white/20 rounded"
+                <div className="cr-code">
+                  <div className="cr-code-head">
+                    Code
+                    <span
+                      className="cr-copy"
+                      onClick={() => copyCode(main.code, `m-${m}`)}
                     >
-                      {copiedIndex === `main-${m}` ? "Copied!" : "Copy"}
-                    </button>
+                      {copiedIndex === `m-${m}` ? "Copied" : "Copy"}
+                    </span>
                   </div>
-
-                  <pre className="p-4 overflow-x-auto text-sm">
+                  <pre>
                     <code
                       ref={el => (codeRefs.current[m] = el)}
                       className="language-javascript"
@@ -163,49 +337,10 @@ export default function YoutubeView() {
                   </pre>
                 </div>
               )}
-
-              {main.subTopics?.map((sub, s) => (
-                <div key={s} className="pl-6 border-l border-white/10 space-y-4">
-                  <h3 className="text-lg font-semibold text-emerald-400">
-                    {sub.title}
-                  </h3>
-
-                  {sub.notes && (
-                    <p className="text-gray-400">
-                      {sub.notes}
-                    </p>
-                  )}
-
-                  {sub.code && (
-                    <div className="border border-white/20 rounded-lg bg-black/60">
-                      <div className="flex justify-between items-center px-4 py-2 border-b border-white/10">
-                        <span className="text-xs text-gray-400">Code</span>
-                        <button
-                          onClick={() => copyCode(sub.code, `sub-${m}-${s}`)}
-                          className="text-xs px-2 py-1 border border-white/20 rounded"
-                        >
-                          {copiedIndex === `sub-${m}-${s}` ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
-
-                      <pre className="p-4 overflow-x-auto text-sm">
-                        <code
-                          ref={el =>
-                            (codeRefs.current[`sub-${m}-${s}`] = el)
-                          }
-                          className="language-javascript"
-                        >
-                          {sub.code}
-                        </code>
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              ))}
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }

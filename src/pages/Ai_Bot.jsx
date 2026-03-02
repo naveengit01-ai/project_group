@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 
-// const BASE_URL = "https://back-end-project-group.onrender.com";
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 export default function AI_Bot() {
@@ -9,7 +8,7 @@ export default function AI_Bot() {
   const [chat, setChat] = useState([
     {
       from: "bot",
-      text: "Hey there! 👋 I'm your DWJD Assistant. How can I help you today?"
+      text: "Hey there! 👋 I'm your DWJD Assistant. Ask me anything about food donation, pickups, or how the platform works."
     }
   ]);
   const [loading, setLoading] = useState(false);
@@ -20,444 +19,471 @@ export default function AI_Bot() {
   }, [chat, loading]);
 
   const sendMessage = async () => {
-  if (!message.trim()) return;
+    if (!message.trim()) return;
+    const cleanMessage = message.trim();
+    const lowerMessage = cleanMessage.toLowerCase();
 
-  const cleanMessage = message.trim();
-  const lowerMessage = cleanMessage.toLowerCase();
+    const greetings = ["hi", "hello", "hey", "good morning", "good evening"];
+    if (greetings.includes(lowerMessage)) {
+      setChat(prev => [
+        ...prev,
+        { from: "user", text: cleanMessage },
+        { from: "bot", text: "Hey 👋 How can I help you today?" }
+      ]);
+      setMessage("");
+      return;
+    }
 
-  /* ===============================
-     CLIENT-SIDE GREETINGS
-  =============================== */
-  const greetings = [
-    "hi",
-    "hello",
-    "hey",
-    "good morning",
-    "good evening"
-  ];
-
-  if (greetings.includes(lowerMessage)) {
-    setChat(prev => [
-      ...prev,
-      { from: "user", text: cleanMessage },
-      { from: "bot", text: "Hey 👋 How can I help you today?" }
-    ]);
+    setChat(prev => [...prev, { from: "user", text: cleanMessage }]);
     setMessage("");
-    return;
-  }
+    setLoading(true);
+    const token = localStorage.getItem("token");
 
-  /* ===============================
-     SEND TO BACKEND
-  =============================== */
-  setChat(prev => [...prev, { from: "user", text: cleanMessage }]);
-  setMessage("");           // clear immediately
-  setLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ message: cleanMessage })
+      });
+      const data = await res.json();
+      setChat(prev => [...prev, { from: "bot", text: data.reply || "I'm here 🙂 How can I help you?" }]);
+    } catch {
+      setChat(prev => [...prev, { from: "bot", text: "⚠️ Server not reachable right now." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const token = localStorage.getItem("token");
-
-  try {
-    const res = await fetch(`${BASE_URL}/ai/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` })
-      },
-      body: JSON.stringify({ message: cleanMessage })
-    });
-
-    const data = await res.json();
-
-    setChat(prev => [
-      ...prev,
-      {
-        from: "bot",
-        text: data.reply || "I’m here 🙂 How can I help you?"
-      }
-    ]);
-
-  } catch (err) {
-    setChat(prev => [
-      ...prev,
-      {
-        from: "bot",
-        text: "⚠️ Server not reachable right now."
-      }
-    ]);
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap');
 
-        .ai-bot-wrap * {
-          font-family: 'Sora', sans-serif;
-          box-sizing: border-box;
-        }
-
-        /* Toggle Button */
-        .ai-toggle-btn {
+        /* ── TOGGLE BUTTON ── */
+        .ab-toggle {
           position: fixed;
           bottom: 28px;
           left: 28px;
           z-index: 9999;
-          width: 58px;
-          height: 58px;
+          width: 56px;
+          height: 56px;
           border-radius: 18px;
-          border: none;
+          border: 1px solid rgba(52,211,153,0.35);
           cursor: pointer;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-          color: white;
-          font-size: 24px;
+          background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.1));
+          backdrop-filter: blur(12px);
+          color: #34d399;
+          font-size: 22px;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 8px 32px rgba(99, 102, 241, 0.45), 0 2px 8px rgba(0,0,0,0.2);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .ai-toggle-btn:hover {
-          transform: translateY(-2px) scale(1.05);
-          box-shadow: 0 12px 40px rgba(99, 102, 241, 0.55), 0 4px 12px rgba(0,0,0,0.2);
-        }
-        .ai-toggle-btn:active {
-          transform: scale(0.96);
+          box-shadow:
+            0 8px 32px rgba(0,0,0,0.4),
+            0 0 0 1px rgba(52,211,153,0.08) inset,
+            0 0 24px rgba(52,211,153,0.12);
+          transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
         }
 
-        /* Chat Window */
-        .ai-chat-window {
+        .ab-toggle:hover {
+          transform: translateY(-3px) scale(1.05);
+          box-shadow:
+            0 12px 40px rgba(0,0,0,0.5),
+            0 0 0 1px rgba(52,211,153,0.15) inset,
+            0 0 32px rgba(52,211,153,0.2);
+          border-color: rgba(52,211,153,0.55);
+        }
+
+        .ab-toggle:active { transform: scale(0.96); }
+
+        .ab-toggle-ring {
+          position: fixed;
+          bottom: 24px;
+          left: 24px;
+          z-index: 9998;
+          width: 64px;
+          height: 64px;
+          border-radius: 22px;
+          border: 1px solid rgba(52,211,153,0.12);
+          pointer-events: none;
+          animation: abRingPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes abRingPulse {
+          0%,100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 0; transform: scale(1.15); }
+        }
+
+        /* ── WINDOW ── */
+        .ab-window {
           position: fixed;
           bottom: 100px;
           left: 28px;
           z-index: 9998;
-          width: 340px;
-          height: 480px;
+          width: 348px;
+          height: 500px;
           border-radius: 24px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          background: rgba(15, 12, 30, 0.92);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          border: 1px solid rgba(139, 92, 246, 0.25);
+          background: #0d0e1a;
+          border: 1px solid rgba(255,255,255,0.07);
           box-shadow:
-            0 32px 64px rgba(0, 0, 0, 0.5),
-            0 0 0 1px rgba(255,255,255,0.04),
-            inset 0 1px 0 rgba(255,255,255,0.08);
-          animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            0 32px 64px rgba(0,0,0,0.6),
+            0 0 0 1px rgba(52,211,153,0.04) inset;
+          animation: abSlideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
         }
 
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        @keyframes abSlideUp {
+          from { opacity: 0; transform: translateY(24px) scale(0.94); transform-origin: bottom left; }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Header */
-        .ai-header {
-          padding: 16px 20px;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #a855f7 100%);
+        .ab-window::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(52,211,153,0.4), transparent);
+          z-index: 2;
+        }
+
+        /* ── HEADER ── */
+        .ab-header {
+          padding: 16px 18px;
+          background: rgba(255,255,255,0.02);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
           display: flex;
           align-items: center;
           gap: 12px;
           flex-shrink: 0;
           position: relative;
-          overflow: hidden;
+          z-index: 1;
         }
-        .ai-header::before {
-          content: '';
-          position: absolute;
-          top: -30px; right: -30px;
-          width: 100px; height: 100px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.08);
-        }
-        .ai-header-avatar {
-          width: 36px;
-          height: 36px;
+
+        .ab-header-icon {
+          width: 38px; height: 38px;
           border-radius: 12px;
-          background: rgba(255,255,255,0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          background: rgba(52,211,153,0.1);
+          border: 1px solid rgba(52,211,153,0.2);
+          display: flex; align-items: center; justify-content: center;
           font-size: 18px;
           flex-shrink: 0;
         }
-        .ai-header-info {
-          flex: 1;
-        }
-        .ai-header-title {
-          color: white;
-          font-weight: 600;
+
+        .ab-header-info { flex: 1; }
+
+        .ab-header-name {
+          font-family: 'Syne', sans-serif;
           font-size: 14px;
-          line-height: 1.2;
+          font-weight: 700;
+          color: #eeeaf4;
+          letter-spacing: -0.01em;
         }
-        .ai-header-status {
-          display: flex;
-          align-items: center;
-          gap: 5px;
+
+        .ab-header-status {
+          display: flex; align-items: center; gap: 5px;
           margin-top: 2px;
         }
-        .ai-status-dot {
-          width: 6px;
-          height: 6px;
-          background: #4ade80;
-          border-radius: 50%;
-          animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        .ai-status-text {
-          color: rgba(255,255,255,0.75);
-          font-size: 11px;
-          font-weight: 400;
-        }
-        .ai-close-btn {
-          background: rgba(255,255,255,0.15);
-          border: none;
-          color: white;
-          cursor: pointer;
-          width: 28px;
-          height: 28px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          transition: background 0.15s;
-        }
-        .ai-close-btn:hover { background: rgba(255,255,255,0.25); }
 
-        /* Messages Area */
-        .ai-messages {
+        .ab-status-dot {
+          width: 6px; height: 6px;
+          background: #34d399;
+          border-radius: 50%;
+          animation: abBlink 2s ease-in-out infinite;
+        }
+
+        @keyframes abBlink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        .ab-status-text {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          color: rgba(52,211,153,0.7);
+          letter-spacing: 0.05em;
+        }
+
+        .ab-close {
+          width: 30px; height: 30px;
+          border-radius: 9px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.04);
+          color: rgba(238,234,244,0.5);
+          font-size: 13px;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+          flex-shrink: 0;
+        }
+
+        .ab-close:hover {
+          background: rgba(255,255,255,0.09);
+          color: #eeeaf4;
+          border-color: rgba(255,255,255,0.15);
+        }
+
+        /* ── MESSAGES ── */
+        .ab-messages {
           flex: 1;
-          padding: 16px 14px;
+          padding: 14px 14px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
           gap: 10px;
           scrollbar-width: thin;
-          scrollbar-color: rgba(139,92,246,0.3) transparent;
-        }
-        .ai-messages::-webkit-scrollbar { width: 4px; }
-        .ai-messages::-webkit-scrollbar-track { background: transparent; }
-        .ai-messages::-webkit-scrollbar-thumb {
-          background: rgba(139,92,246,0.3);
-          border-radius: 4px;
+          scrollbar-color: rgba(52,211,153,0.15) transparent;
+          position: relative;
+          z-index: 1;
         }
 
-        .ai-msg-row {
+        .ab-messages::-webkit-scrollbar { width: 3px; }
+        .ab-messages::-webkit-scrollbar-thumb {
+          background: rgba(52,211,153,0.2);
+          border-radius: 3px;
+        }
+
+        .ab-msg-row {
           display: flex;
           align-items: flex-end;
           gap: 8px;
-          animation: fadeIn 0.25s ease;
+          animation: abMsgIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
         }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .ai-msg-row.user { flex-direction: row-reverse; }
 
-        .ai-msg-avatar {
-          width: 26px;
-          height: 26px;
+        @keyframes abMsgIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .ab-msg-row.user { flex-direction: row-reverse; }
+
+        .ab-avatar {
+          width: 26px; height: 26px;
           border-radius: 8px;
           flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           font-size: 12px;
-        }
-        .ai-msg-avatar.bot {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        }
-        .ai-msg-avatar.user {
-          background: linear-gradient(135deg, #10b981, #059669);
+          border: 1px solid rgba(255,255,255,0.06);
         }
 
-        .ai-bubble {
-          max-width: 78%;
-          padding: 10px 14px;
-          border-radius: 16px;
+        .ab-avatar.bot {
+          background: rgba(52,211,153,0.1);
+          border-color: rgba(52,211,153,0.2);
+        }
+
+        .ab-avatar.user {
+          background: rgba(99,102,241,0.15);
+          border-color: rgba(99,102,241,0.25);
+        }
+
+        .ab-bubble {
+          max-width: 80%;
+          padding: 10px 13px;
+          border-radius: 14px;
+          font-family: 'Syne', sans-serif;
           font-size: 13px;
           line-height: 1.55;
           font-weight: 400;
         }
-        .ai-bubble.bot {
-          background: rgba(255,255,255,0.07);
-          color: rgba(255,255,255,0.9);
-          border: 1px solid rgba(255,255,255,0.08);
+
+        .ab-bubble.bot {
+          background: rgba(255,255,255,0.04);
+          color: rgba(238,234,244,0.85);
+          border: 1px solid rgba(255,255,255,0.07);
           border-bottom-left-radius: 4px;
         }
-        .ai-bubble.user {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
+
+        .ab-bubble.user {
+          background: rgba(52,211,153,0.12);
+          color: #eeeaf4;
+          border: 1px solid rgba(52,211,153,0.2);
           border-bottom-right-radius: 4px;
         }
 
-        /* Typing Indicator */
-        .ai-typing {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding: 10px 14px;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 16px;
+        /* ── TYPING ── */
+        .ab-typing {
+          display: flex; align-items: center; gap: 4px;
+          padding: 10px 13px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 14px;
           border-bottom-left-radius: 4px;
           width: fit-content;
         }
-        .ai-typing span {
-          width: 6px;
-          height: 6px;
-          background: rgba(255,255,255,0.4);
+
+        .ab-typing span {
+          width: 5px; height: 5px;
+          background: rgba(52,211,153,0.5);
           border-radius: 50%;
-          animation: bounce 1.2s infinite;
+          animation: abBounce 1.2s infinite;
         }
-        .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
-        .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+
+        .ab-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .ab-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes abBounce {
+          0%,60%,100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-5px); opacity: 1; }
         }
 
-        /* Input Area */
-        .ai-input-area {
-          padding: 12px 14px;
-          background: rgba(255,255,255,0.03);
-          border-top: 1px solid rgba(255,255,255,0.07);
+        /* ── DATE CHIP ── */
+        .ab-date-chip {
+          text-align: center;
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          color: rgba(238,234,244,0.2);
+          letter-spacing: 0.07em;
+          padding: 2px 0 4px;
+        }
+
+        /* ── INPUT AREA ── */
+        .ab-input-area {
+          padding: 12px 12px;
+          background: rgba(255,255,255,0.02);
+          border-top: 1px solid rgba(255,255,255,0.06);
           display: flex;
           gap: 8px;
           align-items: center;
           flex-shrink: 0;
+          position: relative;
+          z-index: 1;
         }
-        .ai-input {
-          flex: 1;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
-          padding: 10px 14px;
-          color: white;
-          font-size: 13px;
-          font-family: 'Sora', sans-serif;
-          outline: none;
-          transition: border-color 0.2s, background 0.2s;
-        }
-        .ai-input::placeholder { color: rgba(255,255,255,0.3); }
-        .ai-input:focus {
-          border-color: rgba(139, 92, 246, 0.6);
-          background: rgba(255,255,255,0.1);
-        }
-        .ai-send-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          border: none;
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
-          color: white;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-        }
-        .ai-send-btn:hover {
-          transform: scale(1.08);
-          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.55);
-        }
-        .ai-send-btn:active { transform: scale(0.95); }
-        .ai-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        /* Noise texture overlay */
-        .ai-chat-window::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-          pointer-events: none;
-          border-radius: 24px;
-          z-index: 0;
+        .ab-input {
+          flex: 1;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px;
+          padding: 10px 13px;
+          color: #eeeaf4;
+          font-family: 'Syne', sans-serif;
+          font-size: 13px;
+          outline: none;
+          transition: all 0.2s;
         }
-        .ai-header, .ai-messages, .ai-input-area { position: relative; z-index: 1; }
+
+        .ab-input::placeholder { color: rgba(238,234,244,0.2); }
+
+        .ab-input:focus {
+          border-color: rgba(52,211,153,0.35);
+          background: rgba(52,211,153,0.04);
+          box-shadow: 0 0 0 3px rgba(52,211,153,0.07);
+        }
+
+        .ab-input:disabled { opacity: 0.5; }
+
+        .ab-send {
+          width: 38px; height: 38px;
+          border-radius: 11px;
+          border: none;
+          background: linear-gradient(135deg, #34d399, #10b981);
+          color: #07080f;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+          box-shadow: 0 4px 14px rgba(52,211,153,0.35);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .ab-send::before {
+          content: '';
+          position: absolute; inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
+        }
+
+        .ab-send:hover:not(:disabled) {
+          transform: scale(1.1);
+          box-shadow: 0 6px 20px rgba(52,211,153,0.5);
+        }
+
+        .ab-send:active:not(:disabled) { transform: scale(0.95); }
+        .ab-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        @media (max-width: 400px) {
+          .ab-window { width: calc(100vw - 32px); left: 16px; }
+          .ab-toggle { left: 16px; bottom: 20px; }
+          .ab-toggle-ring { left: 12px; bottom: 16px; }
+        }
       `}</style>
 
-      <div className="ai-bot-wrap">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="ai-toggle-btn"
-          title="Chat with AI"
-        >
-          {open ? "✕" : "🤖"}
-        </button>
+      {/* PULSE RING */}
+      {!open && <div className="ab-toggle-ring" />}
 
-        {/* Chat Window */}
-        {open && (
-          <div className="ai-chat-window">
-            {/* Header */}
-            <div className="ai-header">
-              <div className="ai-header-avatar">🤖</div>
-              <div className="ai-header-info">
-                <div className="ai-header-title">DWJD Assistant</div>
-                <div className="ai-header-status">
-                  <div className="ai-status-dot" />
-                  <span className="ai-status-text">Online — ready to help</span>
+      {/* TOGGLE */}
+      <button
+        className="ab-toggle"
+        onClick={() => setOpen(o => !o)}
+        title="Chat with AI"
+      >
+        {open ? "✕" : "🤖"}
+      </button>
+
+      {/* WINDOW */}
+      {open && (
+        <div className="ab-window">
+          {/* HEADER */}
+          <div className="ab-header">
+            <div className="ab-header-icon">🤖</div>
+            <div className="ab-header-info">
+              <div className="ab-header-name">DWJD Assistant</div>
+              <div className="ab-header-status">
+                <div className="ab-status-dot" />
+                <span className="ab-status-text">Online — ready to help</span>
+              </div>
+            </div>
+            <button className="ab-close" onClick={() => setOpen(false)}>✕</button>
+          </div>
+
+          {/* MESSAGES */}
+          <div className="ab-messages">
+            <div className="ab-date-chip">Today</div>
+
+            {chat.map((c, i) => (
+              <div key={i} className={`ab-msg-row ${c.from}`}>
+                <div className={`ab-avatar ${c.from}`}>
+                  {c.from === "bot" ? "🤖" : "👤"}
+                </div>
+                <div className={`ab-bubble ${c.from}`}>{c.text}</div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="ab-msg-row bot">
+                <div className="ab-avatar bot">🤖</div>
+                <div className="ab-typing">
+                  <span /><span /><span />
                 </div>
               </div>
-              <button className="ai-close-btn" onClick={() => setOpen(false)}>✕</button>
-            </div>
-
-            {/* Messages */}
-            <div className="ai-messages">
-              {chat.map((c, i) => (
-                <div key={i} className={`ai-msg-row ${c.from}`}>
-                  <div className={`ai-msg-avatar ${c.from}`}>
-                    {c.from === "bot" ? "🤖" : "👤"}
-                  </div>
-                  <div className={`ai-bubble ${c.from}`}>{c.text}</div>
-                </div>
-              ))}
-
-              {loading && (
-                <div className="ai-msg-row bot">
-                  <div className="ai-msg-avatar bot">🤖</div>
-                  <div className="ai-typing">
-                    <span /><span /><span />
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Input */}
-            <div className="ai-input-area">
-              <input
-                className="ai-input"
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && !loading && sendMessage()}
-                placeholder="Ask me anything..."
-                disabled={loading}
-              />
-              <button
-                className="ai-send-btn"
-                onClick={sendMessage}
-                disabled={loading || !message.trim()}
-                title="Send"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
-            </div>
+            )}
+            <div ref={bottomRef} />
           </div>
-        )}
-      </div>
+
+          {/* INPUT */}
+          <div className="ab-input-area">
+            <input
+              className="ab-input"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !loading && sendMessage()}
+              placeholder="Ask me anything..."
+              disabled={loading}
+            />
+            <button
+              className="ab-send"
+              onClick={sendMessage}
+              disabled={loading || !message.trim()}
+              title="Send"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{position:"relative",zIndex:1}}>
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
