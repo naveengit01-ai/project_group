@@ -1,13 +1,16 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 
+// Authentication
 import OpeningPage from "./Opening_page";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import Login from "./pages/Login";
+
+// Main
 import Afterlogin from "./pages/Afterlogin";
 
-// Navbar pages
+// Navbar
 import Home from "./pages/Navbar/Home";
 import About from "./pages/Navbar/About";
 import Contact from "./pages/Navbar/Contact";
@@ -31,8 +34,7 @@ import DonateOtpVerify from "./pages/Navbar/Pickup/Donate_otp_verify";
 import MyRides from "./pages/Navbar/Pickup/My_rides";
 import Delivery from "./pages/Navbar/Pickup/Delivery";
 
-
-// Auth helpers
+// Auth
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
 
@@ -54,9 +56,16 @@ export default function App() {
         }
       />
 
-      {/* ================= PUBLIC ================= */}
-      <Route path="/signup" element={<Signup setEmail={setEmail} />} />
-      <Route path="/verify-otp" element={<VerifyOtp email={email} />} />
+      {/* ================= AUTH ================= */}
+      <Route
+        path="/signup"
+        element={<Signup setEmail={setEmail} />}
+      />
+
+      <Route
+        path="/verify-otp"
+        element={<VerifyOtp email={email} />}
+      />
 
       <Route
         path="/login"
@@ -69,7 +78,7 @@ export default function App() {
         }
       />
 
-      {/* ================= PROTECTED ================= */}
+      {/* ================= USER / RIDER ================= */}
       <Route
         path="/afterlogin"
         element={
@@ -78,31 +87,30 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/afterlogin" element={<Afterlogin />}>
-  {/* existing routes */}
 
-
-</Route>
-        {/* HOME */}
+        {/* Home */}
         <Route index element={<Home />} />
+
+        {/* Navbar */}
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
 
-
-
-        {/* ================= PROFILE ================= */}
+        {/* Profile */}
         <Route path="profile" element={<Myprofile />} />
         <Route path="profile/edit" element={<Edit />} />
 
-        {/* ================= DONATE ================= */}
+        {/* Donate */}
         <Route path="donate" element={<DonationsType />} />
         <Route path="donate/food" element={<Food />} />
         <Route path="donate/clothes" element={<Cloths />} />
         <Route path="donate/other" element={<Other />} />
         <Route path="donate/request" element={<MyRequests />} />
-        <Route path="donate/nearorphanages" element={<NearbyOrphanages />} />
+        <Route
+          path="donate/nearorphanages"
+          element={<NearbyOrphanages />}
+        />
 
-        {/* ================= PICKUP ================= */}
+        {/* Pickup */}
         <Route path="pickup/requests" element={<UsersRequests />} />
         <Route path="pickup/direction" element={<Direction />} />
         <Route path="pickup/verify" element={<DonateOtpVerify />} />
