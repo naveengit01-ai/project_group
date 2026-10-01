@@ -7,9 +7,6 @@ import VerifyOtp from "./pages/VerifyOtp";
 import Login from "./pages/Login";
 import Afterlogin from "./pages/Afterlogin";
 
-// 🤖 AI BOT
-import AI_Bot from "./pages/Ai_Bot";
-
 // Navbar pages
 import Home from "./pages/Navbar/Home";
 import About from "./pages/Navbar/About";
@@ -34,35 +31,11 @@ import DonateOtpVerify from "./pages/Navbar/Pickup/Donate_otp_verify";
 import MyRides from "./pages/Navbar/Pickup/My_rides";
 import Delivery from "./pages/Navbar/Pickup/Delivery";
 
-// Admin
-import Over_All from "./advertisement/Over_All";
-import Add_Pramotions from "./advertisement/Add_Pramotion";
-import AddJob from "./advertisement/Add_job";
-import Notifications from "./advertisement/Notifications";
-
-// 🔔 Notification sub-pages
-import Accept from "./advertisement/Notifications_Mange/Accept";
-import Reject from "./advertisement/Notifications_Mange/Reject";
-import InterviewResult from "./advertisement/Notifications_Mange/Interview_result";
-import AddEmploye from "./advertisement/Interview_result/Add_Employe";
-
-// YouTube Content
-import Youtube_Content from "./advertisement/Youtube_Content";
-
-// Career (Public)
-import Career from "./Career";
-
-// 🧠 Code Editor
-import CodeEditor from "./pages/Navbar/CodeEditor/Code_Editor";
 
 // Auth helpers
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
 
-// YouTube (Public)
-import YoutubeView from "./pages/YoutubeView";
-import YoutubeList from "./pages/YoutubeList";
-import To_Do_LIST from "./advertisement/To_Do_LIST";
 export default function App() {
   const [email, setEmail] = useState(null);
 
@@ -96,19 +69,6 @@ export default function App() {
         }
       />
 
-      {/* 🌍 CAREER */}
-      <Route path="/career" element={<Career />} />
-
-      {/* 📺 YOUTUBE (PUBLIC) */}
-      <Route path="/youtube" element={<YoutubeList />} />
-      <Route path="/youtube/:id" element={<YoutubeView />} />
-
-      {/* 🧠 CODE EDITOR (PUBLIC) */}
-      <Route path="/code-editor" element={<CodeEditor />} />
-
-      {/* 🤖 AI BOT (PUBLIC ROUTE) */}
-      <Route path="/ai-bot" element={<AI_Bot />} />
-
       {/* ================= PROTECTED ================= */}
       <Route
         path="/afterlogin"
@@ -121,31 +81,14 @@ export default function App() {
         <Route path="/afterlogin" element={<Afterlogin />}>
   {/* existing routes */}
 
-  <Route
-    path="todo"
-    element={<To_Do_LIST />}
-  />
+
 </Route>
         {/* HOME */}
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="contact" element={<Contact />} />
 
-        {/* 🤖 AI BOT (LOGGED-IN ROUTE) */}
-        <Route path="ai-bot" element={<AI_Bot />} />
 
-        {/* ================= ADMIN ================= */}
-        <Route path="overall" element={<Over_All />} />
-        <Route path="promotions" element={<Add_Pramotions />} />
-        <Route path="add-job" element={<AddJob />} />
-        <Route path="youtube-content" element={<Youtube_Content />} />
-
-        {/* 🔔 NOTIFICATIONS */}
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="notifications/accept/:id" element={<Accept />} />
-        <Route path="notifications/reject/:id" element={<Reject />} />
-        <Route path="notifications/result/:id" element={<InterviewResult />} />
-        <Route path="notifications/add-employee/:id" element={<AddEmploye />} />
 
         {/* ================= PROFILE ================= */}
         <Route path="profile" element={<Myprofile />} />
@@ -166,8 +109,6 @@ export default function App() {
         <Route path="pickup/my-rides" element={<MyRides />} />
         <Route path="pickup/delivery" element={<Delivery />} />
 
-        {/* 🧠 CODE EDITOR (LOGGED-IN USER) */}
-        <Route path="code-editor" element={<CodeEditor />} />
       </Route>
 
     </Routes>

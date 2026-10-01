@@ -4,7 +4,7 @@ import Home from "./Navbar/Home";
 import AI_Bot from "./Ai_Bot";
 
 const quotes = [
-  "Don't waste food. Someone is praying for it.",
+  "Don't waste food. Someone i s praying for it.",
   "Hunger exists not because of scarcity, but because of neglect.",
   "Food should fill stomachs, not landfills.",
   "What is extra for you can be everything for someone else.",
