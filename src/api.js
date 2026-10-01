@@ -1,5 +1,5 @@
-const BASE_URL = "http://localhost:5000";
-// const BASE_URL = "https://back-end-project-group.onrender.com";
+// const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://back-end-project-group.onrender.com";
 
 /* ================= SIGNUP ================= */
 export async function signup(data) {
