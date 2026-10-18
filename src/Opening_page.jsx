@@ -349,6 +349,23 @@ export default function OpeningPage() {
                 >
                   <span>✦</span> Get Started
                 </motion.button>
+
+                <motion.button
+                  className="op-btn op-btn-outline"
+                  onClick={() => {
+                    // Open the rider request page in a new tab.
+                    window.open(
+                      `${window.location.origin}/become-rider`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.66 }}
+                >
+                  <span>🚴</span> Become a Rider
+                </motion.button>
               </div>
             </div>
 

@@ -6,7 +6,7 @@ import OpeningPage from "./Opening_page";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import Login from "./pages/Login";
-
+import BecomeRider from "./BecomeRider";
 // Main
 import Afterlogin from "./pages/Afterlogin";
 
@@ -116,9 +116,12 @@ export default function App() {
         <Route path="pickup/verify" element={<DonateOtpVerify />} />
         <Route path="pickup/my-rides" element={<MyRides />} />
         <Route path="pickup/delivery" element={<Delivery />} />
-
+    
       </Route>
-
+          <Route
+  path="/become-rider"
+  element={<BecomeRider />}
+/>
     </Routes>
   );
 }
