@@ -58,6 +58,7 @@ export default function MyProfile() {
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
 
   const storedUser = getStoredUser();
   const email = storedUser?.email;
@@ -130,6 +131,18 @@ export default function MyProfile() {
   }, [fetchUser]);
 
   // Refresh profile when the user returns to this browser tab.
+  // Close the full-size photo viewer with Escape, like a lightbox.
+  useEffect(() => {
+    if (!imageViewerOpen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setImageViewerOpen(false);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [imageViewerOpen]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -271,12 +284,17 @@ export default function MyProfile() {
 
             {/* AVATAR */}
             <div className="mp-avatar-wrap">
-              <div
-                className="mp-avatar"
+              <button
+                type="button"
+                className={`mp-avatar mp-avatar-trigger${showProfileImage ? " mp-avatar-clickable" : ""}`}
                 style={{
                   background: `linear-gradient(135deg, ${avatarColor}33, ${avatarColor}11)`,
                   border: `2px solid ${avatarColor}44`,
                 }}
+                onClick={() => showProfileImage && setImageViewerOpen(true)}
+                disabled={!showProfileImage}
+                aria-label={showProfileImage ? "View profile photo full size" : "No profile photo available"}
+                title={showProfileImage ? "Tap to view photo" : undefined}
               >
                 {showProfileImage ? (
                   <img
@@ -306,7 +324,7 @@ export default function MyProfile() {
                     {initials}
                   </span>
                 )}
-              </div>
+              </button>
 
               <div
                 className="mp-avatar-glow"
@@ -386,6 +404,47 @@ export default function MyProfile() {
             </p>
           </motion.div>
         </div>
+
+        {imageViewerOpen && showProfileImage && (
+          <motion.div
+            className="mp-photo-viewer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Full-size profile photo"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setImageViewerOpen(false)}
+          >
+            <motion.div
+              className="mp-photo-viewer-content"
+              initial={{ opacity: 0, scale: 0.88, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="mp-photo-viewer-close"
+                onClick={() => setImageViewerOpen(false)}
+                aria-label="Close photo viewer"
+              >
+                ×
+              </button>
+              <img
+                className="mp-photo-viewer-image"
+                src={user.profile_image}
+                alt={`${user.first_name || "User"} ${user.last_name || ""} profile photo`}
+                referrerPolicy="no-referrer"
+                onError={() => setImageViewerOpen(false)}
+              />
+              <p className="mp-photo-viewer-caption">
+                {`${user.first_name || ""} ${user.last_name || ""}`.trim() || "Profile photo"}
+              </p>
+              <span className="mp-photo-viewer-hint">Click outside or press Esc to close</span>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
     </>
   );
@@ -530,8 +589,8 @@ const baseCSS = `
   }
 
   .mp-avatar {
-    width: 80px;
-    height: 80px;
+    width: 112px;
+    height: 112px;
     flex-shrink: 0;
     border-radius: 50%;
     display: flex;
@@ -541,6 +600,30 @@ const baseCSS = `
     z-index: 1;
     overflow: hidden;
     backdrop-filter: blur(10px);
+    padding: 0;
+    appearance: none;
+    color: inherit;
+    font: inherit;
+  }
+
+  .mp-avatar-trigger:disabled {
+    cursor: default;
+  }
+
+  .mp-avatar-clickable {
+    cursor: zoom-in;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.035), 0 10px 30px rgba(0,0,0,0.28);
+  }
+
+  .mp-avatar-clickable:hover {
+    transform: scale(1.045);
+    box-shadow: 0 0 0 6px rgba(52,211,153,0.12), 0 14px 34px rgba(0,0,0,0.36);
+  }
+
+  .mp-avatar-clickable:focus-visible {
+    outline: 3px solid #34d399;
+    outline-offset: 5px;
   }
 
   .mp-avatar-initials {
@@ -559,8 +642,8 @@ const baseCSS = `
 
   .mp-avatar-glow {
     position: absolute;
-    width: 80px;
-    height: 80px;
+    width: 112px;
+    height: 112px;
     border-radius: 50%;
     opacity: 0.15;
     filter: blur(20px);
@@ -728,6 +811,75 @@ const baseCSS = `
     letter-spacing: 0.04em;
   }
 
+  .mp-photo-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(3, 5, 10, 0.88);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    cursor: zoom-out;
+  }
+
+  .mp-photo-viewer-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: min(92vw, 720px);
+    max-height: 92vh;
+    cursor: default;
+  }
+
+  .mp-photo-viewer-image {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(88vw, 680px);
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: 14px;
+    box-shadow: 0 24px 90px rgba(0,0,0,0.55);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .mp-photo-viewer-close {
+    position: absolute;
+    top: -18px;
+    right: -18px;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 50%;
+    background: rgba(20,22,30,0.92);
+    color: #fff;
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+
+  .mp-photo-viewer-caption {
+    color: #f5f5f7;
+    font-size: 15px;
+    font-weight: 700;
+    margin: 16px 0 4px;
+    text-align: center;
+  }
+
+  .mp-photo-viewer-hint {
+    color: rgba(245,245,247,0.58);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-align: center;
+  }
+
   .mp-error-card {
     width: 100%;
     max-width: 420px;
@@ -761,6 +913,31 @@ const baseCSS = `
   }
 
   @media (max-width: 480px) {
+    .mp-avatar {
+      width: 104px;
+      height: 104px;
+    }
+
+    .mp-avatar-glow {
+      width: 104px;
+      height: 104px;
+    }
+
+    .mp-photo-viewer {
+      padding: 16px;
+    }
+
+    .mp-photo-viewer-image {
+      max-width: 90vw;
+      max-height: 75vh;
+      border-radius: 10px;
+    }
+
+    .mp-photo-viewer-close {
+      top: -14px;
+      right: -8px;
+    }
+
     .mp-name {
       font-size: 20px;
     }
