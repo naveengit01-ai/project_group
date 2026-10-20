@@ -102,7 +102,18 @@ export default function MyProfile() {
             {/* AVATAR */}
             <div className="mp-avatar-wrap">
               <div className="mp-avatar" style={{ background: `linear-gradient(135deg, ${avatarColor}33, ${avatarColor}11)`, border: `2px solid ${avatarColor}44` }}>
-                <span className="mp-avatar-initials" style={{ color: avatarColor }}>{initials}</span>
+                {user.profile_image ? (
+                  <img
+                    src={user.profile_image}
+                    alt={`${user.first_name || "User"} profile`}
+                    className="mp-avatar-image"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <span className="mp-avatar-initials" style={{ color: avatarColor }}>{initials}</span>
+                )}
               </div>
               <div className="mp-avatar-glow" style={{ background: avatarColor }} />
             </div>
@@ -284,6 +295,13 @@ const baseCSS = `
   .mp-avatar-initials {
     font-size: 28px; font-weight: 800;
     letter-spacing: -0.02em;
+  }
+
+  .mp-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
   }
 
   .mp-avatar-glow {

@@ -14,6 +14,9 @@ export default function Edit() {
   const [updating, setUpdating] = useState(false);
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState(false);
+  const [profileImage, setProfileImage] = useState(storedUser?.profile_image || "");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(storedUser?.profile_image || "");
 
   useEffect(() => { if (!email) navigate("/login"); }, [email, navigate]);
 
@@ -27,6 +30,8 @@ export default function Edit() {
         const data = await res.json();
         if (data.status === "success") {
           setForm({ first_name: data.user.first_name||"", last_name: data.user.last_name||"", phone: data.user.phone||"" });
+          setProfileImage(data.user.profile_image || "");
+          setPhotoPreview(data.user.profile_image || "");
         } else setError(data.status);
       } catch { setError("Failed to load profile"); }
       finally  { setLoading(false); }
@@ -36,17 +41,68 @@ export default function Edit() {
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
   const handleUpdate = async e => {
     e.preventDefault();
     setUpdating(true); setError("");
     try {
+      let updatedProfileImage = profileImage;
+
+      // Upload the selected image first. The backend endpoint must upload it to Drive
+      // and return { status: "photo_uploaded", user: { profile_image: "..." } }.
+      if (photoFile) {
+        const photoData = new FormData();
+        photoData.append("photo", photoFile);
+        photoData.append("email", email);
+
+        const photoResponse = await fetch(`${BASE_URL}/upload-profile-photo`, {
+          method: "POST",
+          body: photoData,
+        });
+        const photoResult = await photoResponse.json();
+
+        if (!photoResponse.ok || photoResult.status !== "photo_uploaded" || !photoResult.user?.profile_image) {
+          throw new Error(photoResult.message || photoResult.status || "Profile photo upload failed.");
+        }
+
+        updatedProfileImage = photoResult.user.profile_image;
+      }
+
       const res  = await fetch(`${BASE_URL}/update-profile`, {
         method:"PUT", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ email, ...form })
       });
       const data = await res.json();
       if (data.status === "updated_successfully") {
-        localStorage.setItem("user", JSON.stringify({ ...storedUser, ...data.user }));
+        const updatedUser = {
+          ...storedUser,
+          ...data.user,
+          profile_image: updatedProfileImage || data.user?.profile_image || "",
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setProfileImage(updatedUser.profile_image);
+        setPhotoPreview(updatedUser.profile_image);
+        setPhotoFile(null);
         setSuccess(true);
         setTimeout(() => navigate("/afterlogin/profile"), 1600);
       } else setError(data.status);
@@ -87,6 +143,27 @@ export default function Edit() {
               <div className="ed-avatar">✏️</div>
               <h1 className="ed-title">Edit Profile</h1>
               <p className="ed-subtitle">Keep your details up to date 💚</p>
+            </div>
+
+            {/* PROFILE PHOTO */}
+            <div className="ed-photo-section">
+              <div className="ed-photo-preview">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Profile preview" className="ed-photo-image" />
+                ) : (
+                  <span aria-hidden="true">👤</span>
+                )}
+              </div>
+              <label className="ed-photo-label">
+                <span>{photoFile ? "Change selected photo" : "Change profile photo"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="ed-photo-input"
+                />
+              </label>
+              <p className="ed-photo-help">JPG, PNG or another image format · Maximum 5 MB</p>
             </div>
 
             {/* SUCCESS */}
@@ -245,6 +322,33 @@ const css = `
 
   .ed-title{font-size:22px;font-weight:800;color:#eeeaf4;letter-spacing:-0.02em;}
   .ed-subtitle{font-family:'DM Mono',monospace;font-size:11px;color:rgba(238,234,244,0.35);letter-spacing:0.06em;}
+
+  /* PROFILE PHOTO */
+  .ed-photo-section{
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+    padding:0 24px 18px;
+  }
+  .ed-photo-preview{
+    width:92px;height:92px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;font-size:32px;color:#34d399;
+    background:rgba(52,211,153,0.08);
+    border:2px solid rgba(52,211,153,0.25);
+  }
+  .ed-photo-image{width:100%;height:100%;object-fit:cover;}
+  .ed-photo-label{
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:10px 14px;border:1px solid rgba(52,211,153,0.25);
+    border-radius:10px;background:rgba(52,211,153,0.08);
+    color:#6ee7b7;font-size:12px;font-weight:700;cursor:pointer;
+    transition:all .2s;
+  }
+  .ed-photo-label:hover{background:rgba(52,211,153,0.15);}
+  .ed-photo-input{display:none;}
+  .ed-photo-help{
+    text-align:center;font-family:'DM Mono',monospace;
+    font-size:9px;color:rgba(238,234,244,0.35);
+  }
 
   /* SUCCESS / ERROR */
   .ed-success{
