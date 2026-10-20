@@ -1,59 +1,166 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 const roleColors = {
-  admin:  { bg: "rgba(251,191,36,0.1)",  border: "rgba(251,191,36,0.3)",  text: "#fbbf24" },
-  rider:  { bg: "rgba(99,102,241,0.1)",  border: "rgba(99,102,241,0.3)",  text: "#818cf8" },
-  user:   { bg: "rgba(52,211,153,0.1)",  border: "rgba(52,211,153,0.3)",  text: "#34d399" },
+  admin: {
+    bg: "rgba(251,191,36,0.1)",
+    border: "rgba(251,191,36,0.3)",
+    text: "#fbbf24",
+  },
+  rider: {
+    bg: "rgba(99,102,241,0.1)",
+    border: "rgba(99,102,241,0.3)",
+    text: "#818cf8",
+  },
+  user: {
+    bg: "rgba(52,211,153,0.1)",
+    border: "rgba(52,211,153,0.3)",
+    text: "#34d399",
+  },
 };
 
-const avatarColors = ["#34d399","#818cf8","#f472b6","#fb923c","#38bdf8"];
+const avatarColors = [
+  "#34d399",
+  "#818cf8",
+  "#f472b6",
+  "#fb923c",
+  "#38bdf8",
+];
 
 function getInitials(first, last) {
-  return `${first?.[0]||""}${last?.[0]||""}`.toUpperCase();
+  return `${first?.[0] || ""}${last?.[0] || ""}`.toUpperCase() || "U";
 }
 
 function getAvatarColor(email) {
   if (!email) return avatarColors[0];
+
   const idx = email.charCodeAt(0) % avatarColors.length;
   return avatarColors[idx];
 }
 
+function getStoredUser() {
+  try {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error("Unable to read stored user:", error);
+    return null;
+  }
+}
+
 export default function MyProfile() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
 
-  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const storedUser = getStoredUser();
   const email = storedUser?.email;
 
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch(`${BASE_URL}/get-user-by-email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
-        if (data.status === "success") setUser(data.user);
-      } catch {}
+  const fetchUser = useCallback(async () => {
+    if (!email) {
+      setPageError("User session not found. Please log in again.");
+      setLoading(false);
+      return;
     }
-    if (email) fetchUser();
+
+    try {
+      setLoading(true);
+      setPageError("");
+
+      const response = await fetch(`${BASE_URL}/get-user-by-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.status !== "success" || !data.user) {
+        throw new Error(
+          data.message || "Unable to retrieve your profile."
+        );
+      }
+
+      console.log("Profile data received:", {
+        email: data.user.email,
+        hasProfileImage: Boolean(data.user.profile_image),
+        profileImage: data.user.profile_image || "(no image URL)",
+      });
+
+      setUser(data.user);
+      setImageFailed(false);
+
+      // Keep local user details synchronized without removing other fields.
+      try {
+        const currentStoredUser = getStoredUser() || {};
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            ...currentStoredUser,
+            ...data.user,
+          })
+        );
+      } catch (storageError) {
+        console.warn(
+          "Unable to synchronize local profile:",
+          storageError
+        );
+      }
+    } catch (error) {
+      console.error("Fetch profile error:", error);
+      setPageError(
+        error.message || "Unable to load your profile. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [email]);
 
-  if (!user) {
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  // Refresh profile when the user returns to this browser tab.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchUser();
+      }
+    };
+
+    window.addEventListener("focus", fetchUser);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", fetchUser);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [fetchUser]);
+
+  if (loading) {
     return (
       <>
         <style>{baseCSS}</style>
+
         <div className="mp-loading">
           <div className="mp-loading-inner">
             <div className="mp-load-ring">
               <div className="mp-load-orbit" />
               <span className="mp-load-emoji">🌱</span>
             </div>
+
             <motion.p
               className="mp-load-text"
               animate={{ opacity: [0.4, 1, 0.4] }}
@@ -62,6 +169,7 @@ export default function MyProfile() {
               Loading your impact...
             </motion.p>
           </div>
+
           <div className="mp-bg-orb mp-orb1" />
           <div className="mp-bg-orb mp-orb2" />
         </div>
@@ -69,21 +177,75 @@ export default function MyProfile() {
     );
   }
 
-  const role     = user.user_type || "user";
+  if (!user) {
+    return (
+      <>
+        <style>{baseCSS}</style>
+
+        <div className="mp-loading">
+          <div className="mp-error-card">
+            <span className="mp-error-icon">⚠️</span>
+
+            <h2>Unable to load profile</h2>
+
+            <p>
+              {pageError || "Something went wrong while loading your profile."}
+            </p>
+
+            <button className="mp-edit-btn" onClick={fetchUser}>
+              Try Again
+            </button>
+
+            <button
+              className="mp-secondary-btn"
+              onClick={() => navigate("/login")}
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const role = user.user_type || "user";
   const roleStyle = roleColors[role] || roleColors.user;
   const avatarColor = getAvatarColor(user.email);
   const initials = getInitials(user.first_name, user.last_name);
 
+  const hasProfileImage =
+    typeof user.profile_image === "string" &&
+    user.profile_image.trim().length > 0;
+
+  const showProfileImage = hasProfileImage && !imageFailed;
+
   const fields = [
-    { icon: "👤", label: "First Name",  value: user.first_name },
-    { icon: "👤", label: "Last Name",   value: user.last_name  },
-    { icon: "✉️", label: "Email",       value: user.email      },
-    { icon: "📱", label: "Phone",       value: user.phone      },
+    {
+      icon: "👤",
+      label: "First Name",
+      value: user.first_name,
+    },
+    {
+      icon: "👤",
+      label: "Last Name",
+      value: user.last_name,
+    },
+    {
+      icon: "✉️",
+      label: "Email",
+      value: user.email,
+    },
+    {
+      icon: "📱",
+      label: "Phone",
+      value: user.phone,
+    },
   ];
 
   return (
     <>
       <style>{baseCSS}</style>
+
       <div className="mp-root">
         <div className="mp-bg-orb mp-orb1" />
         <div className="mp-bg-orb mp-orb2" />
@@ -94,57 +256,111 @@ export default function MyProfile() {
             className="mp-card"
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22,1,0.36,1] }}
+            transition={{
+              duration: 0.5,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             {/* TOP STRIP */}
-            <div className="mp-strip" style={{ background: `linear-gradient(135deg, ${avatarColor}18, transparent)` }} />
+            <div
+              className="mp-strip"
+              style={{
+                background: `linear-gradient(135deg, ${avatarColor}18, transparent)`,
+              }}
+            />
 
             {/* AVATAR */}
             <div className="mp-avatar-wrap">
-              <div className="mp-avatar" style={{ background: `linear-gradient(135deg, ${avatarColor}33, ${avatarColor}11)`, border: `2px solid ${avatarColor}44` }}>
-                {user.profile_image ? (
+              <div
+                className="mp-avatar"
+                style={{
+                  background: `linear-gradient(135deg, ${avatarColor}33, ${avatarColor}11)`,
+                  border: `2px solid ${avatarColor}44`,
+                }}
+              >
+                {showProfileImage ? (
                   <img
+                    key={user.profile_image}
                     src={user.profile_image}
                     alt={`${user.first_name || "User"} profile`}
                     className="mp-avatar-image"
+                    referrerPolicy="no-referrer"
+                    onLoad={() => {
+                      console.log("Profile photo loaded successfully.");
+                    }}
                     onError={(event) => {
-                      event.currentTarget.style.display = "none";
+                      console.error(
+                        "Profile photo failed to load:",
+                        event.currentTarget.src
+                      );
+
+                      setImageFailed(true);
                     }}
                   />
                 ) : (
-                  <span className="mp-avatar-initials" style={{ color: avatarColor }}>{initials}</span>
+                  <span
+                    className="mp-avatar-initials"
+                    style={{ color: avatarColor }}
+                    aria-label="Profile initials"
+                  >
+                    {initials}
+                  </span>
                 )}
               </div>
-              <div className="mp-avatar-glow" style={{ background: avatarColor }} />
+
+              <div
+                className="mp-avatar-glow"
+                style={{ background: avatarColor }}
+              />
             </div>
 
             {/* NAME + ROLE */}
             <div className="mp-identity">
-              <h1 className="mp-name">{user.first_name} {user.last_name}</h1>
-              <span className="mp-role-badge" style={{ background: roleStyle.bg, border: `1px solid ${roleStyle.border}`, color: roleStyle.text }}>
+              <h1 className="mp-name">
+                {user.first_name} {user.last_name}
+              </h1>
+
+              <span
+                className="mp-role-badge"
+                style={{
+                  background: roleStyle.bg,
+                  border: `1px solid ${roleStyle.border}`,
+                  color: roleStyle.text,
+                }}
+              >
                 {role.charAt(0).toUpperCase() + role.slice(1)}
               </span>
             </div>
 
-            <p className="mp-tagline">Don't Waste. Just Donate. 💚</p>
+            <p className="mp-tagline">
+              Don't Waste. Just Donate. 💚
+            </p>
 
             {/* DIVIDER */}
             <div className="mp-divider" />
 
-            {/* FIELDS */}
+            {/* PROFILE FIELDS */}
             <div className="mp-fields">
-              {fields.map((f, i) => (
+              {fields.map((field, index) => (
                 <motion.div
-                  key={f.label}
+                  key={field.label}
                   className="mp-field"
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 + i * 0.07 }}
+                  transition={{ delay: 0.15 + index * 0.07 }}
                 >
-                  <span className="mp-field-icon">{f.icon}</span>
+                  <span className="mp-field-icon">
+                    {field.icon}
+                  </span>
+
                   <div className="mp-field-content">
-                    <span className="mp-field-label">{f.label}</span>
-                    <span className="mp-field-value">{f.value || "—"}</span>
+                    <span className="mp-field-label">
+                      {field.label}
+                    </span>
+
+                    <span className="mp-field-value">
+                      {field.value || "—"}
+                    </span>
                   </div>
                 </motion.div>
               ))}
@@ -153,7 +369,7 @@ export default function MyProfile() {
             {/* DIVIDER */}
             <div className="mp-divider" />
 
-            {/* EDIT BTN */}
+            {/* EDIT PROFILE BUTTON */}
             <motion.button
               className="mp-edit-btn"
               whileHover={{ scale: 1.02 }}
@@ -165,7 +381,9 @@ export default function MyProfile() {
             </motion.button>
 
             {/* FOOTER */}
-            <p className="mp-footer">Every profile here represents a real-world impact 🌍</p>
+            <p className="mp-footer">
+              Every profile here represents a real-world impact 🌍
+            </p>
           </motion.div>
         </div>
       </div>
@@ -179,33 +397,48 @@ const baseCSS = `
   .mp-root {
     min-height: 100vh;
     background: #07080f;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 40px 16px;
-    position: relative; overflow: hidden;
+    position: relative;
+    overflow: hidden;
     font-family: 'Syne', sans-serif;
   }
 
   .mp-loading {
     min-height: 100vh;
     background: #07080f;
-    display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
     font-family: 'Syne', sans-serif;
   }
 
   .mp-loading-inner {
-    display: flex; flex-direction: column; align-items: center; gap: 20px;
-    position: relative; z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
   }
 
   .mp-load-ring {
-    width: 72px; height: 72px;
+    width: 72px;
+    height: 72px;
     position: relative;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .mp-load-orbit {
-    position: absolute; inset: 0;
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
     border: 2px solid transparent;
     border-top-color: #34d399;
@@ -213,7 +446,9 @@ const baseCSS = `
     animation: mpSpin 1s linear infinite;
   }
 
-  @keyframes mpSpin { to { transform: rotate(360deg); } }
+  @keyframes mpSpin {
+    to { transform: rotate(360deg); }
+  }
 
   .mp-load-emoji {
     font-size: 28px;
@@ -221,8 +456,8 @@ const baseCSS = `
   }
 
   @keyframes mpFloat {
-    0%,100%{ transform: translateY(0); }
-    50%{ transform: translateY(-5px); }
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
   }
 
   .mp-load-text {
@@ -232,24 +467,32 @@ const baseCSS = `
     letter-spacing: 0.06em;
   }
 
-  /* BG */
   .mp-bg-orb {
-    position: absolute; border-radius: 50%;
-    filter: blur(80px); pointer-events: none;
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
   }
+
   .mp-orb1 {
-    width: 500px; height: 500px;
-    top: -150px; left: -150px;
+    width: 500px;
+    height: 500px;
+    top: -150px;
+    left: -150px;
     background: rgba(52,211,153,0.06);
   }
+
   .mp-orb2 {
-    width: 400px; height: 400px;
-    bottom: -100px; right: -100px;
+    width: 400px;
+    height: 400px;
+    bottom: -100px;
+    right: -100px;
     background: rgba(99,102,241,0.05);
   }
 
   .mp-grid {
-    position: absolute; inset: 0;
+    position: absolute;
+    inset: 0;
     background-image:
       linear-gradient(rgba(52,211,153,0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(52,211,153,0.02) 1px, transparent 1px);
@@ -258,11 +501,12 @@ const baseCSS = `
   }
 
   .mp-wrap {
-    position: relative; z-index: 1;
-    width: 100%; max-width: 460px;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 460px;
   }
 
-  /* CARD */
   .mp-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
@@ -279,25 +523,34 @@ const baseCSS = `
 
   .mp-avatar-wrap {
     position: relative;
-    display: flex; justify-content: center;
+    display: flex;
+    justify-content: center;
     margin-top: -40px;
     margin-bottom: 16px;
   }
 
   .mp-avatar {
-    width: 80px; height: 80px;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    position: relative; z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
     backdrop-filter: blur(10px);
   }
 
   .mp-avatar-initials {
-    font-size: 28px; font-weight: 800;
+    font-size: 28px;
+    font-weight: 800;
     letter-spacing: -0.02em;
   }
 
   .mp-avatar-image {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -306,24 +559,33 @@ const baseCSS = `
 
   .mp-avatar-glow {
     position: absolute;
-    width: 80px; height: 80px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     opacity: 0.15;
     filter: blur(20px);
-    top: 50%; left: 50%;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
+    pointer-events: none;
   }
 
   .mp-identity {
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     padding: 0 24px;
   }
 
   .mp-name {
-    font-size: 22px; font-weight: 800;
+    font-size: 22px;
+    font-weight: 800;
     color: #eeeaf4;
     letter-spacing: -0.02em;
     text-align: center;
+    overflow-wrap: anywhere;
+    margin: 0;
   }
 
   .mp-role-badge {
@@ -346,18 +608,26 @@ const baseCSS = `
 
   .mp-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,0.06),
+      transparent
+    );
     margin: 20px 0;
   }
 
-  /* FIELDS */
   .mp-fields {
-    display: flex; flex-direction: column; gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     padding: 0 24px;
   }
 
   .mp-field {
-    display: flex; align-items: center; gap: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
     padding: 12px 14px;
     border-radius: 12px;
     background: rgba(255,255,255,0.02);
@@ -370,11 +640,17 @@ const baseCSS = `
     border-color: rgba(52,211,153,0.1);
   }
 
-  .mp-field-icon { font-size: 15px; flex-shrink: 0; }
+  .mp-field-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+  }
 
   .mp-field-content {
-    display: flex; flex-direction: column; gap: 2px;
-    flex: 1; min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
   }
 
   .mp-field-label {
@@ -386,36 +662,62 @@ const baseCSS = `
   }
 
   .mp-field-value {
-    font-size: 14px; font-weight: 600;
+    font-size: 14px;
+    font-weight: 600;
     color: #eeeaf4;
     letter-spacing: -0.01em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* EDIT BTN */
   .mp-edit-btn {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     width: calc(100% - 48px);
     margin: 0 24px;
     padding: 14px;
     background: linear-gradient(135deg, #34d399, #10b981);
-    border: none; border-radius: 14px;
+    border: none;
+    border-radius: 14px;
     color: #07080f;
     font-family: 'Syne', sans-serif;
-    font-size: 14px; font-weight: 700;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     box-shadow: 0 8px 24px rgba(52,211,153,0.3);
-    position: relative; overflow: hidden;
+    position: relative;
+    overflow: hidden;
   }
 
   .mp-edit-btn::before {
     content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.15) 0%,
+      transparent 60%
+    );
     pointer-events: none;
   }
 
-  .mp-btn-arrow { font-size: 16px; }
+  .mp-secondary-btn {
+    display: block;
+    margin: 12px auto 0;
+    padding: 10px 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    background: transparent;
+    color: #eeeaf4;
+    cursor: pointer;
+  }
+
+  .mp-btn-arrow {
+    font-size: 16px;
+  }
 
   .mp-footer {
     text-align: center;
@@ -426,8 +728,49 @@ const baseCSS = `
     letter-spacing: 0.04em;
   }
 
-  @media(max-width:480px){
-    .mp-name { font-size: 20px; }
-    .mp-card { border-radius: 20px; }
+  .mp-error-card {
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    z-index: 1;
+    padding: 28px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    color: #eeeaf4;
+    text-align: center;
+  }
+
+  .mp-error-icon {
+    font-size: 36px;
+  }
+
+  .mp-error-card h2 {
+    font-family: 'Syne', sans-serif;
+    margin: 12px 0;
+  }
+
+  .mp-error-card p {
+    color: rgba(238,234,244,0.65);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .mp-error-card .mp-edit-btn {
+    margin-top: 20px;
+  }
+
+  @media (max-width: 480px) {
+    .mp-name {
+      font-size: 20px;
+    }
+
+    .mp-card {
+      border-radius: 20px;
+    }
+
+    .mp-fields {
+      padding: 0 14px;
+    }
   }
 `;
