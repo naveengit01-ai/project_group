@@ -171,7 +171,7 @@ export default function BecomeRider() {
     try {
       const body = new FormData();
       body.append("photo", photoBlobRef.current, "rider-profile.jpg");
-      const response = await fetch(`${API_BASE_URL}/rider/upload-camera-photo`, {
+      const response = await fetch(`${API_BASE_URL}/rider/request-account`, {
         method: "POST",
         body,
       });
