@@ -161,31 +161,24 @@ export default function BecomeRider() {
     setCameraError("");
   };
 
+  // Confirm the camera photo locally. The photo is sent together with the
+  // rider's details when the existing /rider/request-account endpoint is called.
   const confirmPhoto = async () => {
-    if (!photoBlobRef.current) {
+    if (!photoBlobRef.current || !capturedPhoto) {
       setCameraError("Capture a photo before confirming.");
       return;
     }
+
     setUploadingPhoto(true);
     setCameraError("");
     try {
-      const body = new FormData();
-      body.append("photo", photoBlobRef.current, "rider-profile.jpg");
-      const response = await fetch(`${API_BASE_URL}/rider/request-account`, {
-        method: "POST",
-        body,
-      });
-      const data = await response.json();
-      if (!response.ok || data.status !== "success" || !data.profile_image) {
-        throw new Error(data.message || "Could not upload this photo. Please try again.");
-      }
-      setProfileImageUrl(data.profile_image);
+      setProfileImageUrl(capturedPhoto);
       setCameraOpen(false);
       stopCamera();
       setMessageType("success");
-      setMessage("Profile photo captured and saved. You can now submit your request.");
+      setMessage("Photo confirmed. Submit your rider request to save it.");
     } catch (error) {
-      setCameraError(error.message || "Photo upload failed. Please try again.");
+      setCameraError(error.message || "Could not confirm this photo. Please try again.");
     } finally {
       setUploadingPhoto(false);
     }
@@ -217,7 +210,8 @@ export default function BecomeRider() {
           last_name: form.last_name.trim(),
           email: form.email.trim(),
           phone: form.phone.trim(),
-          profile_image: profileImageUrl,
+          // Captured JPEG data URL; backend uploads it to Google Drive.
+          profile_image_data: profileImageUrl,
         }),
       });
       const data = await response.json();
@@ -403,7 +397,7 @@ export default function BecomeRider() {
                 <div style={{ flex: 1 }}>
                   <strong style={{ display: "block", color: "#166534", fontSize: 14 }}>Rider profile photo *</strong>
                   <span style={{ display: "block", color: "#4b5563", fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>
-                    {profileImageUrl ? "Photo confirmed and uploaded." : "Use your live camera. Gallery uploads are not available."}
+                    {profileImageUrl ? "Photo confirmed. It will be uploaded when you submit the request." : "Use your live camera. Gallery uploads are not available."}
                   </span>
                   <button type="button" onClick={openCamera} style={{ marginTop: 10, border: 0, borderRadius: 10, padding: "10px 13px", background: "#166534", color: "white", fontWeight: 800, cursor: "pointer" }}>
                     {profileImageUrl ? "Retake Photo" : "Open Camera"}
