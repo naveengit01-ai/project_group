@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 const API_BASE_URL =
@@ -17,6 +17,15 @@ export default function BecomeRider() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
   const [success, setSuccess] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [capturedPhoto, setCapturedPhoto] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const photoBlobRef = useRef(null);
 
   useEffect(() => {
     document.title = "Become a Rider | DWJD";
@@ -69,6 +78,119 @@ export default function BecomeRider() {
     }
   };
 
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  const openCamera = () => {
+    setCameraError("");
+    setCapturedPhoto("");
+    photoBlobRef.current = null;
+    setCameraOpen(true);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const startCamera = async () => {
+      if (!cameraOpen || capturedPhoto) return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("Live camera is not available in this browser. Use HTTPS and a supported browser.");
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1280 } },
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch (error) {
+        setCameraError(error.name === "NotAllowedError"
+          ? "Camera permission was denied. Allow camera access in your browser settings and try again."
+          : "Unable to open the camera. Check that your camera is connected and not being used by another app.");
+      }
+    };
+    startCamera();
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraOpen, capturedPhoto]);
+
+  useEffect(() => () => stopCamera(), []);
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || !video.videoWidth) {
+      setCameraError("The camera is still starting. Please try again in a moment.");
+      return;
+    }
+    const maxSide = 1200;
+    const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError("Could not capture the photo. Please try again.");
+        return;
+      }
+      photoBlobRef.current = blob;
+      setCapturedPhoto(canvas.toDataURL("image/jpeg", 0.9));
+      setCameraError("");
+      stopCamera();
+    }, "image/jpeg", 0.9);
+  };
+
+  const retakePhoto = async () => {
+    setCapturedPhoto("");
+    setProfileImageUrl("");
+    photoBlobRef.current = null;
+    setCameraError("");
+  };
+
+  const confirmPhoto = async () => {
+    if (!photoBlobRef.current) {
+      setCameraError("Capture a photo before confirming.");
+      return;
+    }
+    setUploadingPhoto(true);
+    setCameraError("");
+    try {
+      const body = new FormData();
+      body.append("photo", photoBlobRef.current, "rider-profile.jpg");
+      const response = await fetch(`${API_BASE_URL}/rider/upload-camera-photo`, {
+        method: "POST",
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok || data.status !== "success" || !data.profile_image) {
+        throw new Error(data.message || "Could not upload this photo. Please try again.");
+      }
+      setProfileImageUrl(data.profile_image);
+      setCameraOpen(false);
+      stopCamera();
+      setMessageType("success");
+      setMessage("Profile photo captured and saved. You can now submit your request.");
+    } catch (error) {
+      setCameraError(error.message || "Photo upload failed. Please try again.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const submitRequest = async (event) => {
     event.preventDefault();
     setMessage("");
@@ -76,6 +198,12 @@ export default function BecomeRider() {
     if (!emailEligible) {
       setMessageType("error");
       setMessage("Please verify your email eligibility first.");
+      return;
+    }
+
+    if (!profileImageUrl) {
+      setMessageType("error");
+      setMessage("Please open the camera, capture your profile photo, and confirm it before submitting.");
       return;
     }
 
@@ -89,6 +217,7 @@ export default function BecomeRider() {
           last_name: form.last_name.trim(),
           email: form.email.trim(),
           phone: form.phone.trim(),
+          profile_image: profileImageUrl,
         }),
       });
       const data = await response.json();
@@ -262,6 +391,27 @@ export default function BecomeRider() {
               />
             </label>
 
+            <section style={{ marginTop: 20, padding: 16, border: "1px solid #d1fae5", background: "#f0fdf4", borderRadius: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                {profileImageUrl ? (
+                  <img src={profileImageUrl} alt="Confirmed rider profile" style={{ width: 76, height: 76, borderRadius: "50%", objectFit: "cover", border: "3px solid #86efac" }} />
+                ) : capturedPhoto ? (
+                  <img src={capturedPhoto} alt="Captured rider profile preview" style={{ width: 76, height: 76, borderRadius: "50%", objectFit: "cover", border: "3px solid #86efac" }} />
+                ) : (
+                  <div style={{ width: 76, height: 76, borderRadius: "50%", background: "#dcfce7", display: "grid", placeItems: "center", fontSize: 28 }}>📷</div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <strong style={{ display: "block", color: "#166534", fontSize: 14 }}>Rider profile photo *</strong>
+                  <span style={{ display: "block", color: "#4b5563", fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>
+                    {profileImageUrl ? "Photo confirmed and uploaded." : "Use your live camera. Gallery uploads are not available."}
+                  </span>
+                  <button type="button" onClick={openCamera} style={{ marginTop: 10, border: 0, borderRadius: 10, padding: "10px 13px", background: "#166534", color: "white", fontWeight: 800, cursor: "pointer" }}>
+                    {profileImageUrl ? "Retake Photo" : "Open Camera"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
             <button
               type="button"
               onClick={verifyEmail}
@@ -352,6 +502,40 @@ export default function BecomeRider() {
           By submitting, you agree that DWJD Customer Support may contact you about this request.
         </p>
       </motion.section>
+
+      {cameraOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Capture rider profile photo" onClick={(event) => { if (event.target === event.currentTarget && !uploadingPhoto) { setCameraOpen(false); stopCamera(); } }} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(3, 7, 18, .82)", display: "grid", placeItems: "center", padding: 16 }}>
+          <section style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 22, padding: 20, boxShadow: "0 25px 80px rgba(0,0,0,.35)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+              <div>
+                <h2 style={{ margin: 0, color: "#111827", fontSize: 21 }}>Rider profile photo</h2>
+                <p style={{ margin: "5px 0 0", color: "#6b7280", fontSize: 13 }}>Capture a clear photo using your live camera.</p>
+              </div>
+              <button type="button" disabled={uploadingPhoto} onClick={() => { setCameraOpen(false); stopCamera(); }} aria-label="Close camera" style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid #e5e7eb", background: "#f9fafb", fontSize: 22, cursor: "pointer" }}>×</button>
+            </div>
+            <div style={{ overflow: "hidden", borderRadius: 16, background: "#111827", aspectRatio: "4 / 3", display: "grid", placeItems: "center" }}>
+              {capturedPhoto ? (
+                <img src={capturedPhoto} alt="Captured photo preview" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              ) : (
+                <video ref={videoRef} autoPlay muted playsInline aria-label="Live camera preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              )}
+            </div>
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            {cameraError && <p role="alert" style={{ color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 11, fontSize: 13, lineHeight: 1.5 }}>{cameraError}</p>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+              {!capturedPhoto ? (
+                <button type="button" onClick={capturePhoto} style={{ flex: 1, minWidth: 130, border: 0, borderRadius: 12, padding: 14, background: "#166534", color: "white", fontWeight: 800, cursor: "pointer" }}>📸 Capture Photo</button>
+              ) : (
+                <>
+                  <button type="button" disabled={uploadingPhoto} onClick={retakePhoto} style={{ flex: 1, minWidth: 110, border: "1px solid #d1d5db", borderRadius: 12, padding: 14, background: "#fff", color: "#111827", fontWeight: 800, cursor: "pointer" }}>Retake</button>
+                  <button type="button" disabled={uploadingPhoto} onClick={confirmPhoto} style={{ flex: 1, minWidth: 150, border: 0, borderRadius: 12, padding: 14, background: "#166534", color: "white", fontWeight: 800, cursor: uploadingPhoto ? "wait" : "pointer", opacity: uploadingPhoto ? .7 : 1 }}>{uploadingPhoto ? "Uploading photo…" : "✓ Confirm Photo"}</button>
+                </>
+              )}
+            </div>
+            <p style={{ margin: "12px 0 0", color: "#9ca3af", fontSize: 11, lineHeight: 1.5 }}>Camera access requires permission and a secure HTTPS connection. No gallery picker is provided.</p>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
