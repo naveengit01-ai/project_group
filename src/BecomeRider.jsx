@@ -102,10 +102,29 @@ export default function BecomeRider() {
         return;
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1280 } },
-        });
+        // Prefer the FRONT/selfie camera on mobile devices.
+        // Use a modest resolution to keep the JSON/Base64 request small.
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: { exact: "user" },
+              width: { ideal: 640, max: 640 },
+              height: { ideal: 640, max: 640 },
+            },
+          });
+        } catch (frontCameraError) {
+          // Some browsers don't support exact facingMode; retry with a preference.
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: "user",
+              width: { ideal: 640, max: 640 },
+              height: { ideal: 640, max: 640 },
+            },
+          });
+        }
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
           return;
@@ -136,7 +155,8 @@ export default function BecomeRider() {
       setCameraError("The camera is still starting. Please try again in a moment.");
       return;
     }
-    const maxSide = 1200;
+    // Keep the captured image small enough for a Base64 JSON API payload.
+    const maxSide = 640;
     const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
@@ -159,7 +179,7 @@ export default function BecomeRider() {
   };
 
   reader.readAsDataURL(blob);
-}, "image/jpeg", 0.7);
+}, "image/jpeg", 0.55);
   };
 
   const retakePhoto = async () => {
@@ -222,11 +242,21 @@ export default function BecomeRider() {
           profile_image_data: profileImageUrl,
         }),
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      let data = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        data = {};
+      }
 
       if (!response.ok || data.status !== "request_submitted") {
         setMessageType("error");
-        setMessage(data.message || "We couldn't submit your request. Please try again.");
+        if (response.status === 413 || /Payload Too Large/i.test(responseText)) {
+          setMessage("The photo request is still too large. The backend JSON limit must be increased and the backend redeployed.");
+        } else {
+          setMessage(data.message || "We couldn't submit your request. Please try again.");
+        }
         return;
       }
 
@@ -530,7 +560,7 @@ export default function BecomeRider() {
               ) : (
                 <>
                   <button type="button" disabled={uploadingPhoto} onClick={retakePhoto} style={{ flex: 1, minWidth: 110, border: "1px solid #d1d5db", borderRadius: 12, padding: 14, background: "#fff", color: "#111827", fontWeight: 800, cursor: "pointer" }}>Retake</button>
-                  <button type="button" disabled={uploadingPhoto} onClick={confirmPhoto} style={{ flex: 1, minWidth: 150, border: 0, borderRadius: 12, padding: 14, background: "#166534", color: "white", fontWeight: 800, cursor: uploadingPhoto ? "wait" : "pointer", opacity: uploadingPhoto ? .7 : 1 }}>{uploadingPhoto ? "Uploading photo…" : "✓ Confirm Photo"}</button>
+                  <button type="button" disabled={uploadingPhoto} onClick={confirmPhoto} style={{ flex: 1, minWidth: 150, border: 0, borderRadius: 12, padding: 14, background: "#166534", color: "white", fontWeight: 800, cursor: uploadingPhoto ? "wait" : "pointer", opacity: uploadingPhoto ? .7 : 1 }}>{uploadingPhoto ? "Confirming photo…" : "✓ Confirm Photo"}</button>
                 </>
               )}
             </div>
