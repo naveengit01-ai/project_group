@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../api";
 
 export default function Signup({ setEmail }) {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     username: "",
@@ -12,391 +13,894 @@ export default function Signup({ setEmail }) {
     phone: "",
     email: "",
     password: "",
-    confirm_password: ""
+    confirm_password: "",
   });
 
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleChange = e => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  // Create and clean up the local image preview URL.
+  useEffect(() => {
+    if (!profilePhoto) {
+      setPhotoPreview("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(profilePhoto);
+    setPhotoPreview(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [profilePhoto]);
+
+  // Handle text fields.
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setErrorMessage("");
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
+  // Handle profile-picture selection.
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
 
-    if (form.username.length < 6) {
-      alert("Username must be at least 6 characters");
+    if (!file) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setErrorMessage(
+        "Please select a JPEG, PNG, or WEBP image."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage(
+        "Profile picture must not exceed 5 MB."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    setProfilePhoto(file);
+    setErrorMessage("");
+  };
+
+  // Remove the selected picture.
+  const removePhoto = () => {
+    setProfilePhoto(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    setErrorMessage("");
+  };
+
+  // Validate and submit registration.
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (loading) return;
+
+    setErrorMessage("");
+
+    const username = form.username.trim();
+    const firstName = form.first_name.trim();
+    const lastName = form.last_name.trim();
+    const phone = form.phone.trim();
+    const email = form.email.trim().toLowerCase();
+
+    if (
+      !username ||
+      !firstName ||
+      !lastName ||
+      !phone ||
+      !email ||
+      !form.password ||
+      !form.confirm_password
+    ) {
+      setErrorMessage("Please fill in all required fields.");
+      return;
+    }
+
+    if (username.length < 6) {
+      setErrorMessage(
+        "Username must be at least 6 characters."
+      );
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErrorMessage("Please enter a valid email address.");
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setErrorMessage(
+        "Password must be at least 8 characters."
+      );
       return;
     }
 
     if (form.password !== form.confirm_password) {
-      alert("Passwords do not match");
+      setErrorMessage("Passwords do not match.");
       return;
+    }
+
+    // FormData is required for uploading an actual image file.
+    const formData = new FormData();
+
+    formData.append("username", username);
+    formData.append("first_name", firstName);
+    formData.append("last_name", lastName);
+    formData.append("phone", phone);
+    formData.append("email", email);
+    formData.append("password", form.password);
+    formData.append(
+      "confirm_password",
+      form.confirm_password
+    );
+    formData.append("user_type", "user");
+
+    // Match the backend's profileUpload.single("profile_image").
+    if (profilePhoto) {
+      formData.append("profile_image", profilePhoto);
     }
 
     setLoading(true);
 
     try {
-      const res = await signup({ ...form, user_type: "user" });
+      const response = await signup(formData);
 
-      if (res.status === "signup_success_otp_sent" || res.status === "otp_resent") {
-        alert("OTP sent to your email 📩");
-        setEmail(form.email);
+      if (
+        response.status === "signup_success_otp_sent" ||
+        response.status === "otp_resent"
+      ) {
+        if (typeof setEmail === "function") {
+          setEmail(email);
+        }
+
         navigate("/verify-otp");
-      } else if (res.status === "user_exists") {
-        alert("Email already registered. Please login.");
-        navigate("/login");
-      } else {
-        alert(res.status);
+        return;
       }
-    } catch {
-      alert("Server error");
-    }
 
-    setLoading(false);
+      if (response.status === "user_exists") {
+        setErrorMessage(
+          "This email is already registered. Please log in."
+        );
+        return;
+      }
+
+      if (response.status === "missing_fields") {
+        setErrorMessage(
+          "Please complete all required fields."
+        );
+        return;
+      }
+
+      if (response.status === "password_mismatch") {
+        setErrorMessage("Passwords do not match.");
+        return;
+      }
+
+      if (response.status === "invalid_username") {
+        setErrorMessage(
+          "Username must be at least 6 characters."
+        );
+        return;
+      }
+
+      if (response.status === "weak_password") {
+        setErrorMessage(
+          "Password must be at least 8 characters."
+        );
+        return;
+      }
+
+      if (response.status === "file_too_large") {
+        setErrorMessage(
+          "Your profile picture must not exceed 5 MB."
+        );
+        return;
+      }
+
+      if (
+        response.status === "invalid_image" ||
+        response.status === "upload_error"
+      ) {
+        setErrorMessage(
+          response.message ||
+            "The selected profile picture is invalid."
+        );
+        return;
+      }
+
+      if (response.status === "otp_email_failed") {
+        setErrorMessage(
+          "We couldn't send your verification email. Please try again."
+        );
+        return;
+      }
+
+      setErrorMessage(
+        response.message ||
+          response.status ||
+          "Unable to create your account. Please try again."
+      );
+    } catch (error) {
+      console.error("Signup error:", error);
+
+      setErrorMessage(
+        error.message ||
+          "Unable to connect to the server. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap');
-
-        html, body { background: #07080f; margin: 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
         .sg-root {
           min-height: 100vh;
-          background: #07080f;
-          color: #eeeaf4;
-          font-family: 'Syne', sans-serif;
-          position: relative;
-          overflow: hidden;
+          box-sizing: border-box;
+          padding: 40px 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 40px 24px;
-        }
-
-        .sg-root::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          background:
-            radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,0.07), transparent 60%),
-            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,0.06), transparent 60%);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .sg-grid-bg {
-          position: fixed;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(52,211,153,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(52,211,153,0.03) 1px, transparent 1px);
-          background-size: 56px 56px;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .sg-card {
           position: relative;
-          z-index: 1;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 24px;
-          padding: 40px 36px;
-          width: 100%;
-          max-width: 460px;
-          box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(52,211,153,0.04) inset;
-          animation: sgCardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-        }
-
-        @keyframes sgCardIn {
-          from { opacity: 0; transform: translateY(28px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .sg-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(52,211,153,0.4), transparent);
-          border-radius: 24px 24px 0 0;
-        }
-
-        /* HEADER */
-        .sg-badge {
-          display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(52,211,153,0.08);
-          border: 1px solid rgba(52,211,153,0.2);
-          border-radius: 100px;
-          padding: 6px 18px;
-          font-family: 'DM Mono', monospace;
-          font-size: 11px;
-          color: #34d399;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          margin-bottom: 16px;
-        }
-
-        .sg-badge-dot {
-          width: 6px; height: 6px;
-          background: #34d399;
-          border-radius: 50%;
-          animation: sgBlink 2s ease-in-out infinite;
-        }
-
-        @keyframes sgBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-        .sg-title {
-          font-size: 28px;
-          font-weight: 800;
-          letter-spacing: -0.03em;
-          line-height: 1.1;
-          margin-bottom: 6px;
-          background: linear-gradient(135deg, #eeeaf4 0%, #a8a0c8 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .sg-title span {
-          background: linear-gradient(135deg, #34d399, #10b981);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .sg-subtitle {
-          font-family: 'DM Mono', monospace;
-          font-size: 11px;
-          color: rgba(238,234,244,0.35);
-          margin-bottom: 28px;
-        }
-
-        /* FORM */
-        .sg-form { display: flex; flex-direction: column; gap: 10px; }
-
-        .sg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-        .sg-field { display: flex; flex-direction: column; gap: 5px; }
-
-        .sg-label {
-          font-family: 'DM Mono', monospace;
-          font-size: 10px;
-          color: rgba(238,234,244,0.4);
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-        }
-
-        .sg-required { color: #f87171; font-size: 10px; margin-left: 2px; }
-
-        .sg-input {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 10px;
-          padding: 11px 14px;
+          overflow: hidden;
+          background: #07080f;
           color: #eeeaf4;
           font-family: 'Syne', sans-serif;
-          font-size: 13px;
-          outline: none;
-          transition: all 0.2s;
-          width: 100%;
+        }
+
+        .sg-root *,
+        .sg-root *::before,
+        .sg-root *::after {
           box-sizing: border-box;
         }
 
-        .sg-input::placeholder { color: rgba(238,234,244,0.2); }
-
-        .sg-input:focus {
-          border-color: rgba(52,211,153,0.4);
-          background: rgba(52,211,153,0.04);
-          box-shadow: 0 0 0 3px rgba(52,211,153,0.08);
+        .sg-root::before,
+        .sg-root::after {
+          content: '';
+          position: absolute;
+          width: 420px;
+          height: 420px;
+          border-radius: 50%;
+          filter: blur(100px);
+          pointer-events: none;
         }
 
-        /* SUBMIT */
-        .sg-submit {
+        .sg-root::before {
+          top: -180px;
+          left: -150px;
+          background: rgba(52, 211, 153, .11);
+        }
+
+        .sg-root::after {
+          right: -180px;
+          bottom: -180px;
+          background: rgba(99, 102, 241, .13);
+        }
+
+        .sg-grid {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: .4;
+          background-image:
+            linear-gradient(rgba(52,211,153,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52,211,153,.035) 1px, transparent 1px);
+          background-size: 48px 48px;
+        }
+
+        .sg-card {
           width: 100%;
-          margin-top: 6px;
-          padding: 14px;
+          max-width: 740px;
+          position: relative;
+          z-index: 1;
+          padding: 38px;
+          border: 1px solid rgba(255,255,255,.1);
+          border-radius: 26px;
+          background: rgba(14, 16, 27, .93);
+          box-shadow: 0 30px 100px rgba(0,0,0,.4);
+          animation: sg-enter .55s ease both;
+        }
+
+        @keyframes sg-enter {
+          from {
+            opacity: 0;
+            transform: translateY(18px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .sg-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 28px;
+        }
+
+        .sg-logo {
+          width: 46px;
+          height: 46px;
+          display: grid;
+          place-items: center;
+          border-radius: 15px;
           background: linear-gradient(135deg, #34d399, #10b981);
-          border: none;
-          border-radius: 12px;
-          color: #07080f;
-          font-family: 'Syne', sans-serif;
+          color: #06130e;
+          font-size: 20px;
+          font-weight: 800;
+          box-shadow: 0 8px 28px rgba(16,185,129,.2);
+        }
+
+        .sg-brand-title {
+          margin: 0;
+          font-size: 19px;
+          font-weight: 800;
+          letter-spacing: -.5px;
+        }
+
+        .sg-brand-sub {
+          margin: 4px 0 0;
+          color: #81869b;
+          font-size: 11px;
+          font-family: 'DM Mono', monospace;
+          letter-spacing: 1.5px;
+        }
+
+        .sg-heading {
+          margin: 0;
+          font-size: clamp(28px, 4vw, 37px);
+          letter-spacing: -1.4px;
+          line-height: 1.15;
+        }
+
+        .sg-heading span {
+          color: #34d399;
+        }
+
+        .sg-description {
+          margin: 12px 0 28px;
+          color: #9699ad;
+          font-size: 13px;
+          line-height: 1.8;
+        }
+
+        .sg-photo-section {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          padding: 18px;
+          margin-bottom: 26px;
+          border: 1px dashed rgba(255,255,255,.15);
+          border-radius: 18px;
+          background: rgba(255,255,255,.018);
+        }
+
+        .sg-avatar {
+          width: 82px;
+          height: 82px;
+          flex-shrink: 0;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          border-radius: 50%;
+          border: 2px solid rgba(52,211,153,.4);
+          background: #171b29;
+          color: #34d399;
+          font-size: 28px;
+          font-weight: 800;
+        }
+
+        .sg-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .sg-photo-title {
+          margin: 0 0 6px;
           font-size: 14px;
           font-weight: 700;
-          cursor: pointer;
-          transition: all 0.25s ease;
-          box-shadow: 0 8px 24px rgba(52,211,153,0.3);
-          position: relative;
-          overflow: hidden;
         }
 
-        .sg-submit::before {
-          content: '';
-          position: absolute; inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+        .sg-photo-hint {
+          margin: 0 0 12px;
+          color: #81869b;
+          font-size: 11px;
+          line-height: 1.6;
+        }
+
+        .sg-file-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          cursor: pointer;
+          border-radius: 9px;
+          padding: 9px 12px;
+          background: rgba(52,211,153,.1);
+          border: 1px solid rgba(52,211,153,.24);
+          color: #6ee7b7;
+          font-size: 11px;
+          font-weight: 700;
+          transition: .2s;
+        }
+
+        .sg-file-label:hover {
+          background: rgba(52,211,153,.18);
+          transform: translateY(-1px);
+        }
+
+        .sg-file-input {
+          display: none;
+        }
+
+        .sg-remove-photo {
+          display: block;
+          margin-top: 9px;
+          padding: 0;
+          border: 0;
+          background: none;
+          color: #fca5a5;
+          font-size: 11px;
+          cursor: pointer;
+        }
+
+        .sg-fields {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 19px;
+        }
+
+        .sg-field {
+          min-width: 0;
+        }
+
+        .sg-field-full {
+          grid-column: 1 / -1;
+        }
+
+        .sg-field label {
+          display: block;
+          margin-bottom: 8px;
+          color: #c4c6d5;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: .3px;
+        }
+
+        .sg-field input:not([type="checkbox"]) {
+          display: block;
+          width: 100%;
+          min-width: 0;
+          padding: 13px 14px;
+          outline: none;
+          border: 1px solid rgba(255,255,255,.1);
+          border-radius: 11px;
+          background: rgba(255,255,255,.035);
+          color: #f4f4f5;
+          font-family: 'DM Mono', monospace;
+          font-size: 12px;
+          transition: border-color .2s, box-shadow .2s;
+        }
+
+        .sg-field input::placeholder {
+          color: #62677b;
+        }
+
+        .sg-field input:focus {
+          border-color: rgba(52,211,153,.7);
+          box-shadow: 0 0 0 3px rgba(52,211,153,.08);
+        }
+
+        .sg-error {
+          margin: 22px 0 0;
+          padding: 12px 14px;
+          border: 1px solid rgba(248,113,113,.25);
+          border-radius: 11px;
+          background: rgba(248,113,113,.08);
+          color: #fca5a5;
+          font-size: 12px;
+          line-height: 1.6;
+        }
+
+        .sg-submit {
+          width: 100%;
+          margin-top: 25px;
+          padding: 15px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          border: 0;
+          border-radius: 12px;
+          background: linear-gradient(100deg, #34d399, #10b981);
+          color: #052e22;
+          font-family: 'Syne', sans-serif;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: transform .2s, box-shadow .2s, opacity .2s;
         }
 
         .sg-submit:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(52,211,153,0.45);
+          box-shadow: 0 10px 30px rgba(16,185,129,.2);
         }
 
-        .sg-submit:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        /* LOADING SPINNER inside button */
-        .sg-btn-inner {
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          position: relative; z-index: 1;
+        .sg-submit:disabled {
+          opacity: .6;
+          cursor: not-allowed;
         }
 
-        .sg-btn-spinner {
-          width: 14px; height: 14px;
-          border: 2px solid rgba(7,8,15,0.3);
-          border-top-color: #07080f;
-          border-radius: 50%;
-          animation: sgSpin 0.7s linear infinite;
-        }
-
-        @keyframes sgSpin { to { transform: rotate(360deg); } }
-
-        /* FOOTER LINK */
         .sg-footer {
+          margin: 22px 0 0;
           text-align: center;
-          margin-top: 16px;
-          font-family: 'DM Mono', monospace;
+          color: #81869b;
           font-size: 12px;
-          color: rgba(238,234,244,0.35);
         }
 
-        .sg-footer span {
-          color: #34d399;
+        .sg-link {
+          padding: 0;
+          border: 0;
+          background: none;
+          color: #6ee7b7;
+          font: inherit;
+          font-weight: 700;
           cursor: pointer;
-          transition: opacity 0.2s;
         }
 
-        .sg-footer span:hover { opacity: 0.75; }
-
-        /* DIVIDER */
-        .sg-divider {
-          height: 1px;
-          background: rgba(255,255,255,0.06);
-          margin: 4px 0;
+        .sg-security {
+          margin-top: 23px;
+          padding-top: 17px;
+          border-top: 1px solid rgba(255,255,255,.07);
+          color: #6f7488;
+          text-align: center;
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          letter-spacing: .3px;
         }
 
-        @media (max-width: 480px) {
-          .sg-row { grid-template-columns: 1fr; }
-          .sg-card { padding: 32px 20px; }
+        @media (max-width: 560px) {
+          .sg-root {
+            padding: 20px 12px;
+          }
+
+          .sg-card {
+            padding: 24px 18px;
+            border-radius: 20px;
+          }
+
+          .sg-fields {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+
+          .sg-field-full {
+            grid-column: auto;
+          }
+
+          .sg-photo-section {
+            align-items: flex-start;
+            gap: 13px;
+            padding: 13px;
+          }
+
+          .sg-avatar {
+            width: 66px;
+            height: 66px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sg-card {
+            animation: none;
+          }
+
+          .sg-submit,
+          .sg-file-label {
+            transition: none;
+          }
         }
       `}</style>
 
-      <div className="sg-root">
-        <div className="sg-grid-bg" />
+      <main className="sg-root">
+        <div className="sg-grid" />
 
-        <div className="sg-card">
-          {/* HEADER */}
-          <div className="sg-badge">
-            <span className="sg-badge-dot" />
-            New Account
+        <section className="sg-card">
+          <div className="sg-brand">
+            <div className="sg-logo">D</div>
+
+            <div>
+              <h2 className="sg-brand-title">DWJD</h2>
+              <p className="sg-brand-sub">
+                JOIN OUR COMMUNITY
+              </p>
+            </div>
           </div>
-          <div className="sg-title">Join the <span>Mission</span></div>
-          <div className="sg-subtitle">Help us eliminate food waste — one delivery at a time</div>
 
-          {/* FORM */}
-          <form className="sg-form" onSubmit={handleSubmit}>
+          <h1 className="sg-heading">
+            Create your <span>account.</span>
+          </h1>
 
-            <div className="sg-field">
-              <label className="sg-label">Username <span className="sg-required">*</span></label>
-              <input
-                className="sg-input"
-                name="username"
-                placeholder="min. 6 characters"
-                onChange={handleChange}
-              />
+          <p className="sg-description">
+            Set up your profile and become part of the
+            DWJD community. Your email will be verified
+            before you sign in.
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            {/* Profile picture */}
+
+            <div className="sg-photo-section">
+              <div className="sg-avatar">
+                {photoPreview ? (
+                  <img
+                    src={photoPreview}
+                    alt="Selected profile preview"
+                  />
+                ) : (
+                  <span>
+                    {form.first_name.trim()
+                      ? form.first_name.trim()[0].toUpperCase()
+                      : "?"}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <p className="sg-photo-title">
+                  Your profile picture
+                </p>
+
+                <p className="sg-photo-hint">
+                  Optional · JPEG, PNG or WEBP · Maximum 5 MB
+                </p>
+
+                <label
+                  className="sg-file-label"
+                  htmlFor="profile_image"
+                >
+                  {profilePhoto
+                    ? "Change picture"
+                    : "Choose picture"}
+                </label>
+
+                <input
+                  ref={fileInputRef}
+                  id="profile_image"
+                  className="sg-file-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePhotoChange}
+                />
+
+                {profilePhoto && (
+                  <button
+                    className="sg-remove-photo"
+                    type="button"
+                    onClick={removePhoto}
+                  >
+                    Remove picture
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="sg-row">
-              <div className="sg-field">
-                <label className="sg-label">First Name <span className="sg-required">*</span></label>
-                <input
-                  className="sg-input"
-                  name="first_name"
-                  placeholder="John"
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="sg-field">
-                <label className="sg-label">Last Name <span className="sg-required">*</span></label>
-                <input
-                  className="sg-input"
-                  name="last_name"
-                  placeholder="Doe"
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+            {/* Form fields */}
 
-            <div className="sg-row">
+            <div className="sg-fields">
               <div className="sg-field">
-                <label className="sg-label">Phone <span className="sg-required">*</span></label>
+                <label htmlFor="username">
+                  USERNAME
+                </label>
+
                 <input
-                  className="sg-input"
+                  id="username"
+                  name="username"
+                  value={form.username}
+                  onChange={handleChange}
+                  placeholder="Choose a username"
+                  minLength={6}
+                  autoComplete="username"
+                  required
+                />
+              </div>
+
+              <div className="sg-field">
+                <label htmlFor="phone">
+                  PHONE NUMBER
+                </label>
+
+                <input
+                  id="phone"
                   name="phone"
-                  placeholder="+91 9999..."
+                  type="tel"
+                  value={form.phone}
                   onChange={handleChange}
+                  placeholder="Enter phone number"
+                  autoComplete="tel"
+                  required
                 />
               </div>
+
               <div className="sg-field">
-                <label className="sg-label">Email <span className="sg-required">*</span></label>
+                <label htmlFor="first_name">
+                  FIRST NAME
+                </label>
+
                 <input
-                  className="sg-input"
-                  name="email"
-                  placeholder="you@email.com"
+                  id="first_name"
+                  name="first_name"
+                  value={form.first_name}
                   onChange={handleChange}
+                  placeholder="First name"
+                  autoComplete="given-name"
+                  required
                 />
               </div>
-            </div>
 
-            <div className="sg-divider" />
+              <div className="sg-field">
+                <label htmlFor="last_name">
+                  LAST NAME
+                </label>
 
-            <div className="sg-field">
-              <label className="sg-label">Password <span className="sg-required">*</span></label>
-              <input
-                className="sg-input"
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="sg-field">
-              <label className="sg-label">Confirm Password <span className="sg-required">*</span></label>
-              <input
-                className="sg-input"
-                type="password"
-                name="confirm_password"
-                placeholder="••••••••"
-                onChange={handleChange}
-              />
-            </div>
-
-            <button className="sg-submit" type="submit" disabled={loading}>
-              <div className="sg-btn-inner">
-                {loading && <span className="sg-btn-spinner" />}
-                {loading ? "Sending OTP..." : "Create Account →"}
+                <input
+                  id="last_name"
+                  name="last_name"
+                  value={form.last_name}
+                  onChange={handleChange}
+                  placeholder="Last name"
+                  autoComplete="family-name"
+                  required
+                />
               </div>
+
+              <div className="sg-field sg-field-full">
+                <label htmlFor="email">
+                  EMAIL ADDRESS
+                </label>
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+
+              <div className="sg-field">
+                <label htmlFor="password">
+                  PASSWORD
+                </label>
+
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Minimum 8 characters"
+                  minLength={8}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <div className="sg-field">
+                <label htmlFor="confirm_password">
+                  CONFIRM PASSWORD
+                </label>
+
+                <input
+                  id="confirm_password"
+                  name="confirm_password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.confirm_password}
+                  onChange={handleChange}
+                  placeholder="Re-enter password"
+                  minLength={8}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <div className="sg-field sg-field-full">
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    color: "#9699ad",
+                    fontSize: 12,
+                    fontWeight: 400,
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(event) =>
+                      setShowPassword(event.target.checked)
+                    }
+                    style={{
+                      width: 15,
+                      height: 15,
+                      accentColor: "#34d399",
+                    }}
+                  />
+
+                  Show password
+                </label>
+              </div>
+            </div>
+
+            {/* Error message */}
+
+            {errorMessage && (
+              <div className="sg-error" role="alert">
+                {errorMessage}
+              </div>
+            )}
+
+            {/* Submit button */}
+
+            <button
+              className="sg-submit"
+              type="submit"
+              disabled={loading}
+            >
+              {loading
+                ? "Creating your account..."
+                : "Create Account →"}
             </button>
           </form>
 
-          <div className="sg-footer">
-            Already registered?{" "}
-            <span onClick={() => navigate("/login")}>Login here</span>
+          <p className="sg-footer">
+            Already have an account?{" "}
+            <button
+              type="button"
+              className="sg-link"
+              onClick={() => navigate("/login")}
+            >
+              Log in
+            </button>
+          </p>
+
+          <div className="sg-security">
+            EMAIL VERIFICATION · SECURE PASSWORD HASHING
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </>
   );
 }
