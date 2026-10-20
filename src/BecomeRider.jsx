@@ -143,15 +143,23 @@ export default function BecomeRider() {
     const context = canvas.getContext("2d");
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
-      if (!blob) {
-        setCameraError("Could not capture the photo. Please try again.");
-        return;
-      }
-      photoBlobRef.current = blob;
-      setCapturedPhoto(canvas.toDataURL("image/jpeg", 0.9));
-      setCameraError("");
-      stopCamera();
-    }, "image/jpeg", 0.9);
+  if (!blob) {
+    setCameraError("Could not capture the photo. Please try again.");
+    return;
+  }
+
+  photoBlobRef.current = blob;
+
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    setCapturedPhoto(reader.result);
+    setCameraError("");
+    stopCamera();
+  };
+
+  reader.readAsDataURL(blob);
+}, "image/jpeg", 0.7);
   };
 
   const retakePhoto = async () => {
