@@ -42,6 +42,27 @@ const stats = [
 
 const foodEmojis = ["🍱","🥗","🍛","🥘","🍲","🫕","🥙","🍜","🥡","🫙","🍚","🥞"];
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://back-end-project-group.onrender.com").replace(/\/$/, "");
+
+// Convert common Google Drive share links into usable media URLs.
+function getDriveFileId(value = "") {
+  const url = String(value || "");
+  return url.match(/\/file\/d\/([\w-]+)/)?.[1]
+    || url.match(/[?&]id=([\w-]+)/)?.[1]
+    || url.match(/drive\.google\.com\/open\?id=([\w-]+)/)?.[1]
+    || null;
+}
+
+function getPromotionImageUrl(value = "") {
+  const id = getDriveFileId(value);
+  return id ? `https://drive.google.com/uc?export=view&id=${id}` : value;
+}
+
+function getPromotionVideoEmbedUrl(value = "") {
+  const id = getDriveFileId(value);
+  return id ? `https://drive.google.com/file/d/${id}/preview?autoplay=1&mute=1` : value;
+}
+
 export default function OpeningPage() {
   const navigate  = useNavigate();
   const audioRef  = useRef(null);
@@ -59,6 +80,30 @@ export default function OpeningPage() {
   const [phase,      setPhase]      = useState("idle");
   const [emoji,      setEmoji]      = useState("🍱");
   const [ripple,     setRipple]     = useState(false);
+  const [promotions, setPromotions] = useState([]);
+  const [promotionsLoading, setPromotionsLoading] = useState(true);
+  const [promotionsError, setPromotionsError] = useState("");
+
+  /* PUBLIC PAID + ACTIVE PROMOTIONS */
+  useEffect(() => {
+    let cancelled = false;
+    const loadPromotions = async () => {
+      try {
+        setPromotionsLoading(true);
+        setPromotionsError("");
+        const response = await fetch(`${API_BASE_URL}/advertisements/active`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || "Could not load promotions.");
+        if (!cancelled) setPromotions(Array.isArray(data.advertisements) ? data.advertisements : []);
+      } catch (error) {
+        if (!cancelled) setPromotionsError(error.message || "Could not load promotions.");
+      } finally {
+        if (!cancelled) setPromotionsLoading(false);
+      }
+    };
+    loadPromotions();
+    return () => { cancelled = true; };
+  }, []);
 
   /* SLIDESHOW */
   useEffect(() => {
@@ -391,6 +436,58 @@ export default function OpeningPage() {
             </div>
           </div>
 
+          <section aria-label="Brand promotions" style={{ background: "#080e09", color: "#f0ede8", padding: "76px 22px 84px" }}>
+            <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+              <div style={{ textAlign: "center", marginBottom: 34 }}>
+                <span style={{ display: "inline-block", color: "#4ade80", border: "1px solid rgba(74,222,128,.3)", background: "rgba(74,222,128,.08)", borderRadius: 999, padding: "7px 14px", fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase" }}>DWJD • Brand partners</span>
+                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: "clamp(30px,5vw,52px)", margin: "18px 0 10px", color: "#f0ede8" }}>Featured Promotions</h2>
+                <p style={{ color: "rgba(240,237,232,.62)", maxWidth: 620, margin: "0 auto", lineHeight: 1.7 }}>Discover campaigns from brands partnering with DWJD.</p>
+              </div>
+
+              {promotionsLoading ? (
+                <p role="status" style={{ textAlign: "center", color: "#86efac", padding: 28 }}>Loading promotions…</p>
+              ) : promotionsError ? (
+                <p role="status" style={{ textAlign: "center", color: "#fca5a5", padding: 28 }}>{promotionsError}</p>
+              ) : promotions.length === 0 ? (
+                <div style={{ textAlign: "center", border: "1px dashed rgba(134,239,172,.25)", borderRadius: 20, padding: "32px 20px", color: "rgba(240,237,232,.62)" }}>
+                  New brand promotions will appear here when they are approved, paid, active, and within their campaign dates.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 24 }}>
+                  {promotions.map((promotion) => {
+                    const imageUrl = getPromotionImageUrl(promotion.image_url || "");
+                    const videoUrl = String(promotion.video_url || "").trim();
+                    const driveVideoId = getDriveFileId(videoUrl);
+                    const videoEmbedUrl = getPromotionVideoEmbedUrl(videoUrl);
+                    return (
+                      <article key={promotion._id || `${promotion.brand_name}-${promotion.title}`} style={{ overflow: "hidden", borderRadius: 22, background: "#101811", border: "1px solid rgba(134,239,172,.14)", boxShadow: "0 18px 45px rgba(0,0,0,.22)" }}>
+                        {videoUrl ? (
+                          driveVideoId ? (
+                            <iframe title={`${promotion.title || promotion.brand_name || "Brand"} promotion video`} src={videoEmbedUrl} loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen style={{ display: "block", width: "100%", aspectRatio: "16 / 9", border: 0, background: "#000" }} />
+                          ) : (
+                            <video autoPlay muted loop controls playsInline preload="auto" poster={imageUrl || undefined} style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", background: "#000" }}>
+                              <source src={videoUrl} />Your browser does not support embedded video.
+                            </video>
+                          )
+                        ) : imageUrl ? (
+                          <img src={imageUrl} alt={promotion.title || `${promotion.brand_name || "Brand"} promotion`} loading="lazy" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", background: "#172217" }} onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                        ) : (
+                          <div style={{ display: "grid", placeItems: "center", width: "100%", aspectRatio: "16 / 9", background: "linear-gradient(135deg,#142719,#0b100c)", color: "#86efac", fontSize: 42 }}>✦</div>
+                        )}
+                        <div style={{ padding: "22px 22px 24px" }}>
+                          <p style={{ color: "#4ade80", textTransform: "uppercase", letterSpacing: ".12em", fontSize: 11, fontWeight: 700, marginBottom: 9 }}>{promotion.brand_name || "DWJD Partner"}</p>
+                          <h3 style={{ fontSize: 22, lineHeight: 1.3, fontWeight: 700, marginBottom: 10 }}>{promotion.title || "Featured promotion"}</h3>
+                          {promotion.description && <p style={{ color: "rgba(240,237,232,.65)", lineHeight: 1.7, fontSize: 14, whiteSpace: "pre-wrap" }}>{promotion.description}</p>}
+                          {promotion.collaboration_type && <span style={{ display: "inline-block", marginTop: 16, borderRadius: 999, background: "rgba(74,222,128,.1)", color: "#86efac", padding: "6px 10px", fontSize: 11 }}>{String(promotion.collaboration_type).replace(/_/g, " ")}</span>}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
           <div className="op-divider" />
 
           <section style={{ background: "#050a05" }}>
@@ -405,4 +502,4 @@ export default function OpeningPage() {
       </div>
     </>
   );
-}
+} 
