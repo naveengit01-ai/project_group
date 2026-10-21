@@ -9,7 +9,7 @@ import Login from "./pages/Login";
 import BecomeRider from "./BecomeRider";
 // Main
 import Afterlogin from "./pages/Afterlogin";
-
+import PromotionRequest from "./PromotionRequest";
 // Navbar
 import Home from "./pages/Navbar/Home";
 import About from "./pages/Navbar/About";
@@ -121,6 +121,10 @@ export default function App() {
           <Route
   path="/become-rider"
   element={<BecomeRider />}
+/>
+<Route
+  path="/promotion-request"
+  element={<PromotionRequest />}
 />
     </Routes>
   );

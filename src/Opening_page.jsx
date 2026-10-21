@@ -366,6 +366,16 @@ export default function OpeningPage() {
                 >
                   <span>🚴</span> Become a Rider
                 </motion.button>
+
+                <motion.button
+                  className="op-btn op-btn-outline"
+                  onClick={() => navigate("/promotion-request")}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.74 }}
+                >
+                  <span>✦</span> Promote Your Brand
+                </motion.button>
               </div>
             </div>
 
