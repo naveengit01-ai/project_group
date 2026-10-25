@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Home from "./Navbar/Home";
@@ -21,459 +22,618 @@ const images = [
   "https://images.unsplash.com/photo-1606787366850-de6330128bfc",
 ];
 
+const userNavLinks = [
+  { icon: "🏠", label: "Home", path: "/afterlogin" },
+  { icon: "ℹ️", label: "About", path: "/afterlogin/about" },
+  { icon: "📞", label: "Contact", path: "/afterlogin/contact" },
+];
+
 export default function Afterlogin() {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  useEffect(() => {
-    if (!user) navigate("/login");
-  }, [user, navigate]);
-
-  if (!user) return null;
-
-  const role = user.user_type;
-  const email = user.email;
-  const firstLetter = email.charAt(0).toUpperCase();
-  const isAdmin = role === "admin";
-  const isHome = location.pathname === "/afterlogin";
-
-  const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
+  // IMPORTANT: All hooks are declared before any conditional return.
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch (error) {
+      console.error("Unable to read saved user:", error);
+      return null;
+    }
+  });
+
+  // Refresh user data if the same tab dispatches this event after login.
   useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+    const refreshUser = () => {
+      try {
+        setUser(JSON.parse(localStorage.getItem("user") || "null"));
+      } catch {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener("dwjd-profile-updated", refreshUser);
+    window.addEventListener("storage", refreshUser);
+
+    return () => {
+      window.removeEventListener("dwjd-profile-updated", refreshUser);
+      window.removeEventListener("storage", refreshUser);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Close the dropdown when the user clicks outside it.
+  useEffect(() => {
+    const handler = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    return () => {
+      document.removeEventListener("mousedown", handler);
+    };
   }, []);
 
-  /* ── nav links shared between desktop bar and dropdown ── */
-  const userNavLinks = [
-    { icon: "🏠", label: "Home",    path: "/afterlogin" },
-    { icon: "ℹ️",  label: "About",   path: "/afterlogin/about" },
-    { icon: "📞", label: "Contact", path: "/afterlogin/contact" },
-  ];
+  // All hooks are above this return.
+  if (!user) return null;
+
+  const role = user.user_type;
+  const email = user.email || "";
+  const firstLetter = email.charAt(0).toUpperCase() || "U";
+  const isAdmin = role === "admin";
+  const isHome = location.pathname === "/afterlogin";
+
+  const logout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/login", { replace: true });
+  };
+
+  const goTo = (path) => {
+    setMenuOpen(false);
+    navigate(path);
+  };
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap');
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #07080f; }
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        html, body {
+          background: #07080f;
+        }
 
         .al-root {
+          position: relative;
           min-height: 100vh;
+          overflow-x: hidden;
           background: #07080f;
           color: #eeeaf4;
           font-family: 'Syne', sans-serif;
-          position: relative;
-          overflow-x: hidden;
         }
 
         .al-root::before {
           content: '';
-          position: fixed; inset: 0;
+          position: fixed;
+          inset: 0;
           background:
-            radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,0.07), transparent 60%),
-            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,0.06), transparent 60%);
+            radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,.07), transparent 60%),
+            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,.06), transparent 60%);
           pointer-events: none;
           z-index: 0;
         }
 
         .al-grid-bg {
-          position: fixed; inset: 0;
+          position: fixed;
+          inset: 0;
           background-image:
-            linear-gradient(rgba(52,211,153,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(52,211,153,0.03) 1px, transparent 1px);
+            linear-gradient(rgba(52,211,153,.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(52,211,153,.03) 1px, transparent 1px);
           background-size: 56px 56px;
           pointer-events: none;
           z-index: 0;
         }
 
-        /* ═══════════ NAVBAR ═══════════ */
         .al-nav {
           position: fixed;
-          top: 16px; left: 50%;
+          top: 16px;
+          left: 50%;
           transform: translateX(-50%);
           z-index: 100;
           width: calc(100% - 32px);
           max-width: 1100px;
-          background: rgba(13,14,26,0.85);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 20px;
           padding: 12px 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(52,211,153,0.04) inset;
-          animation: navDrop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+          background: rgba(13,14,26,.88);
+          backdrop-filter: blur(24px);
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,.4);
+          animation: navDrop .6s ease both;
         }
 
         @keyframes navDrop {
-          from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        .al-nav::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 20%; right: 20%;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(52,211,153,0.35), transparent);
-          border-radius: 100px;
+          from { opacity: 0; transform: translate(-50%,-20px); }
+          to { opacity: 1; transform: translate(-50%,0); }
         }
 
         .al-logo {
           font-size: 20px;
           font-weight: 800;
-          letter-spacing: -0.03em;
+          letter-spacing: -.03em;
           cursor: pointer;
-          background: linear-gradient(135deg, #eeeaf4, #a8a0c8);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          transition: opacity 0.2s;
+          color: #eeeaf4;
           white-space: nowrap;
         }
-        .al-logo span {
-          background: linear-gradient(135deg, #34d399, #10b981);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .al-logo:hover { opacity: 0.8; }
 
-        /* desktop nav links */
-        .al-nav-links {
+        .al-logo span {
+          color: #34d399;
+        }
+
+        .al-nav-links, .al-nav-right {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 8px;
         }
 
         .al-nav-btn {
           padding: 8px 16px;
+          border: 0;
           border-radius: 10px;
-          border: none;
           background: transparent;
-          color: rgba(238,234,244,0.55);
-          font-family: 'Syne', sans-serif;
-          font-size: 13px;
-          font-weight: 600;
+          color: rgba(238,234,244,.65);
+          font: 600 13px 'Syne', sans-serif;
           cursor: pointer;
-          transition: all 0.2s;
-          white-space: nowrap;
+          transition: .2s;
         }
+
         .al-nav-btn:hover {
-          background: rgba(255,255,255,0.06);
-          color: #eeeaf4;
+          background: rgba(255,255,255,.06);
+          color: white;
         }
 
         .al-nav-right {
-          display: flex;
-          align-items: center;
-          gap: 10px;
           position: relative;
         }
 
-        /* avatar / profile button */
         .al-avatar {
-          width: 36px; height: 36px;
+          width: 38px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid rgba(52,211,153,.4);
           border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-weight: 700; font-size: 14px;
-          cursor: pointer;
-          border: 1.5px solid rgba(52,211,153,0.4);
-          background: rgba(52,211,153,0.15);
+          background: rgba(52,211,153,.15);
           color: #34d399;
-          transition: all 0.2s;
-          flex-shrink: 0;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: .2s;
         }
+
         .al-avatar.rider {
-          border-color: rgba(99,102,241,0.4);
-          background: rgba(99,102,241,0.15);
+          border-color: rgba(99,102,241,.4);
+          background: rgba(99,102,241,.15);
           color: #818cf8;
         }
+
         .al-avatar:hover {
           transform: scale(1.08);
-          box-shadow: 0 0 0 3px rgba(52,211,153,0.15);
         }
 
         .al-menu-btn {
-          width: 36px; height: 36px;
+          width: 38px;
+          height: 38px;
+          border: 1px solid rgba(255,255,255,.1);
           border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.04);
-          color: rgba(238,234,244,0.6);
-          font-size: 14px;
-          cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s;
-          flex-shrink: 0;
-        }
-        .al-menu-btn:hover {
-          background: rgba(255,255,255,0.09);
+          background: rgba(255,255,255,.04);
           color: #eeeaf4;
-          border-color: rgba(255,255,255,0.2);
+          cursor: pointer;
         }
 
-        /* DROPDOWN */
         .al-dropdown {
           position: absolute;
           top: calc(100% + 12px);
           right: 0;
-          width: 220px;
-          background: #0d0e1a;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 16px;
+          width: 230px;
           padding: 8px;
-          box-shadow: 0 24px 48px rgba(0,0,0,0.5);
-          animation: dropIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 16px;
+          background: #0d0e1a;
+          box-shadow: 0 24px 48px rgba(0,0,0,.5);
+          animation: dropIn .2s ease both;
           z-index: 200;
         }
+
         @keyframes dropIn {
-          from { opacity: 0; transform: scale(0.92) translateY(-8px); transform-origin: top right; }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .al-dropdown::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(52,211,153,0.3), transparent);
-          border-radius: 16px 16px 0 0;
+          from { opacity: 0; transform: translateY(-8px) scale(.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .al-menu-item {
-          padding: 9px 12px;
-          border-radius: 10px;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 500;
-          color: rgba(238,234,244,0.65);
-          display: flex; align-items: center; gap: 10px;
-          transition: all 0.15s;
-        }
-        .al-menu-item:hover {
-          background: rgba(255,255,255,0.06);
-          color: #eeeaf4;
-        }
-        .al-menu-item.danger { color: rgba(248,113,113,0.7); }
-        .al-menu-item.danger:hover {
-          background: rgba(248,113,113,0.08);
-          color: #f87171;
-        }
-
-        .al-menu-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
-        .al-menu-hr { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 4px; }
         .al-menu-section {
-          padding: 6px 12px 4px;
-          font-family: 'DM Mono', monospace;
-          font-size: 9px;
-          color: rgba(238,234,244,0.25);
-          letter-spacing: 0.1em;
+          padding: 8px 12px 5px;
+          color: rgba(238,234,244,.35);
+          font: 10px 'DM Mono', monospace;
+          letter-spacing: .1em;
           text-transform: uppercase;
         }
 
-        @media (max-width: 768px) { .al-nav-links { display: none; } }
-
-        /* ═══════════ ADMIN DASHBOARD ═══════════ */
-        .al-admin-root {
-          min-height: 100vh;
-          display: flex; align-items: center; justify-content: center;
-          padding: 40px 24px;
-          position: relative; z-index: 1;
-        }
-        .al-admin-card {
-          width: 100%; max-width: 520px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 28px;
-          padding: 40px 36px;
-          box-shadow: 0 40px 80px rgba(0,0,0,0.5);
-          animation: cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-          position: relative;
-        }
-        @keyframes cardIn {
-          from { opacity: 0; transform: translateY(28px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .al-admin-card::before {
-          content: '';
-          position: absolute; top: 0; left: 0; right: 0; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(52,211,153,0.4), transparent);
-          border-radius: 28px 28px 0 0;
-        }
-        .al-admin-badge {
-          display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(52,211,153,0.08);
-          border: 1px solid rgba(52,211,153,0.2);
-          border-radius: 100px;
-          padding: 6px 18px;
-          font-family: 'DM Mono', monospace;
-          font-size: 11px; color: #34d399;
-          letter-spacing: 0.1em; text-transform: uppercase;
-          margin-bottom: 16px;
-        }
-        .al-admin-badge-dot {
-          width: 6px; height: 6px;
-          background: #34d399; border-radius: 50%;
-          animation: blink 2s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        .al-admin-title {
-          font-size: 28px; font-weight: 800; letter-spacing: -0.03em;
-          margin-bottom: 6px;
-          background: linear-gradient(135deg, #eeeaf4 0%, #a8a0c8 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
-        .al-admin-title span {
-          background: linear-gradient(135deg, #34d399, #10b981);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
-        .al-admin-sub {
-          font-family: 'DM Mono', monospace; font-size: 11px;
-          color: rgba(238,234,244,0.35); margin-bottom: 32px;
-        }
-        .al-admin-grid {
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 12px; margin-bottom: 12px;
-        }
-        .al-admin-tile {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 16px; padding: 18px 16px;
+        .al-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          color: rgba(238,234,244,.75);
+          font-size: 13px;
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-          display: flex; flex-direction: column; gap: 8px;
-          position: relative; overflow: hidden;
+          transition: .15s;
         }
+
+        .al-menu-item:hover {
+          background: rgba(255,255,255,.06);
+          color: white;
+        }
+
+        .al-menu-item.danger {
+          color: #f87171;
+        }
+
+        .al-menu-hr {
+          height: 1px;
+          margin: 7px 4px;
+          background: rgba(255,255,255,.07);
+        }
+
+        .al-admin-root {
+          position: relative;
+          z-index: 1;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 110px 24px 40px;
+        }
+
+        .al-admin-card {
+          position: relative;
+          width: 100%;
+          max-width: 520px;
+          padding: 40px 36px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 28px;
+          background: rgba(255,255,255,.03);
+          box-shadow: 0 40px 80px rgba(0,0,0,.5);
+          animation: cardIn .5s ease both;
+        }
+
+        @keyframes cardIn {
+          from { opacity: 0; transform: translateY(25px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .al-admin-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+          padding: 6px 16px;
+          border: 1px solid rgba(52,211,153,.2);
+          border-radius: 100px;
+          background: rgba(52,211,153,.08);
+          color: #34d399;
+          font: 11px 'DM Mono', monospace;
+          text-transform: uppercase;
+        }
+
+        .al-admin-badge-dot, .al-hero-badge-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #34d399;
+          animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+          50% { opacity: .3; }
+        }
+
+        .al-admin-title {
+          margin-bottom: 8px;
+          font-size: 28px;
+          font-weight: 800;
+        }
+
+        .al-admin-title span, .al-hero-title span {
+          color: #34d399;
+        }
+
+        .al-admin-sub {
+          margin-bottom: 28px;
+          color: rgba(238,234,244,.4);
+          font: 11px 'DM Mono', monospace;
+        }
+
+        .al-admin-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .al-admin-tile {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 18px 16px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 16px;
+          background: rgba(255,255,255,.03);
+          cursor: pointer;
+          transition: .25s;
+        }
+
         .al-admin-tile:hover {
           transform: translateY(-3px);
-          border-color: var(--tile-color, rgba(52,211,153,0.3));
-          box-shadow: 0 12px 32px rgba(0,0,0,0.3);
-        }
-        .al-tile-icon { font-size: 22px; line-height: 1; }
-        .al-tile-label { font-size: 13px; font-weight: 700; color: #eeeaf4; letter-spacing: -0.01em; }
-        .al-tile-desc { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(238,234,244,0.35); }
-        .al-logout-btn {
-          display: block; margin: 16px auto 0;
-          background: none; border: none;
-          font-family: 'DM Mono', monospace; font-size: 11px;
-          color: rgba(248,113,113,0.55); cursor: pointer;
-          transition: color 0.2s; letter-spacing: 0.05em;
-        }
-        .al-logout-btn:hover { color: #f87171; }
-        @media (max-width: 480px) {
-          .al-admin-grid { grid-template-columns: 1fr; }
-          .al-admin-card { padding: 32px 20px; }
+          border-color: var(--tile-color);
+          box-shadow: 0 12px 32px rgba(0,0,0,.3);
         }
 
-        /* ═══════════ HERO ═══════════ */
-        .al-hero { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+        .al-tile-icon { font-size: 22px; }
+        .al-tile-label { font-size: 13px; font-weight: 700; }
+        .al-tile-desc { color: rgba(238,234,244,.4); font: 10px 'DM Mono', monospace; }
+
+        .al-logout-btn {
+          display: block;
+          margin: 22px auto 0;
+          border: 0;
+          background: transparent;
+          color: #f87171;
+          font: 11px 'DM Mono', monospace;
+          cursor: pointer;
+        }
+
+        .al-hero {
+          position: relative;
+          width: 100%;
+          height: 100vh;
+          overflow: hidden;
+        }
+
         .al-hero-img {
-          position: absolute; inset: 0; width: 100%; height: 100%;
-          object-fit: cover; transition: opacity 1.2s ease;
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: opacity 1s ease;
         }
+
         .al-hero-img.hidden { opacity: 0; }
+
         .al-hero-overlay {
-          position: absolute; inset: 0;
-          background: linear-gradient(to bottom, rgba(7,8,15,0.2) 0%, rgba(7,8,15,0.55) 50%, rgba(7,8,15,0.9) 100%);
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            to bottom,
+            rgba(7,8,15,.2),
+            rgba(7,8,15,.55) 50%,
+            rgba(7,8,15,.9)
+          );
         }
+
         .al-hero-content {
-          position: relative; z-index: 2; height: 100%;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          text-align: center; padding: 0 24px;
+          position: relative;
+          z-index: 2;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 0 24px;
+          text-align: center;
         }
+
         .al-hero-badge {
-          display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25);
-          border-radius: 100px; padding: 6px 18px;
-          font-family: 'DM Mono', monospace; font-size: 11px; color: #34d399;
-          letter-spacing: 0.1em; text-transform: uppercase;
-          margin-bottom: 24px; animation: fadeUp 0.8s ease both;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 24px;
+          padding: 7px 18px;
+          border: 1px solid rgba(52,211,153,.25);
+          border-radius: 100px;
+          background: rgba(52,211,153,.1);
+          color: #34d399;
+          font: 11px 'DM Mono', monospace;
+          text-transform: uppercase;
+          animation: fadeUp .8s ease both;
         }
-        .al-hero-badge-dot {
-          width: 6px; height: 6px; background: #34d399; border-radius: 50%;
-          animation: blink 2s ease-in-out infinite;
-        }
+
         .al-hero-title {
-          font-size: clamp(40px,7vw,80px); font-weight: 800;
-          letter-spacing: -0.04em; line-height: 1.0; margin-bottom: 20px;
-          background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.75) 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-          animation: fadeUp 0.8s 0.1s ease both;
+          margin-bottom: 20px;
+          font-size: clamp(40px,7vw,80px);
+          font-weight: 800;
+          line-height: 1;
+          letter-spacing: -.04em;
+          animation: fadeUp .8s .1s ease both;
         }
-        .al-hero-title span {
-          background: linear-gradient(135deg, #34d399, #10b981);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
+
         .al-hero-quote {
-          max-width: 600px; font-family: 'DM Mono', monospace;
-          font-size: clamp(13px,2vw,16px); color: rgba(238,234,244,0.55);
-          line-height: 1.7; margin-bottom: 36px; min-height: 48px;
-          animation: fadeUp 0.8s 0.2s ease both; transition: opacity 0.5s;
+          max-width: 600px;
+          min-height: 48px;
+          margin-bottom: 36px;
+          color: rgba(238,234,244,.65);
+          font: clamp(13px,2vw,16px) 'DM Mono', monospace;
+          line-height: 1.7;
+          transition: opacity .5s;
         }
-        .al-hero-dots { display: flex; gap: 6px; animation: fadeUp 0.8s 0.3s ease both; }
+
+        .al-hero-dots {
+          display: flex;
+          gap: 6px;
+        }
+
         .al-hero-dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: rgba(52,211,153,0.3); cursor: pointer; transition: all 0.3s;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(52,211,153,.3);
+          cursor: pointer;
+          transition: .3s;
         }
-        .al-hero-dot.active { background: #34d399; width: 20px; border-radius: 3px; }
+
+        .al-hero-dot.active {
+          width: 20px;
+          border-radius: 3px;
+          background: #34d399;
+        }
+
         .al-hero-scroll {
-          position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-          display: flex; flex-direction: column; align-items: center; gap: 6px;
-          color: rgba(238,234,244,0.3); font-family: 'DM Mono', monospace;
-          font-size: 10px; letter-spacing: 0.1em;
-          animation: fadeUp 1s 0.5s ease both;
+          position: absolute;
+          bottom: 32px;
+          left: 50%;
+          z-index: 3;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          transform: translateX(-50%);
+          color: rgba(238,234,244,.4);
+          font: 10px 'DM Mono', monospace;
+          letter-spacing: .1em;
         }
+
         .al-hero-scroll-line {
-          width: 1px; height: 40px;
-          background: linear-gradient(to bottom, rgba(52,211,153,0.6), transparent);
+          width: 1px;
+          height: 40px;
+          background: linear-gradient(to bottom, #34d399, transparent);
           animation: scrollLine 2s ease-in-out infinite;
         }
-        @keyframes scrollLine { 0%,100%{transform:scaleY(1);opacity:1} 50%{transform:scaleY(0.6);opacity:0.4} }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 
-        .al-outlet { position: relative; z-index: 1; padding-top: 100px; min-height: 100vh; }
+        @keyframes scrollLine {
+          50% { transform: scaleY(.6); opacity: .4; }
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .al-outlet {
+          position: relative;
+          z-index: 1;
+          min-height: 100vh;
+          padding-top: 100px;
+        }
+
+        @media (max-width: 768px) {
+          .al-nav-links { display: none; }
+        }
+
+        @media (max-width: 480px) {
+          .al-admin-grid { grid-template-columns: 1fr; }
+          .al-admin-card { padding: 30px 20px; }
+          .al-admin-root { padding: 100px 16px 30px; }
+          .al-nav { padding: 10px 14px; }
+          .al-hero-title { font-size: clamp(38px,12vw,58px); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .al-root *, .al-root *::before, .al-root *::after {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
       `}</style>
 
       <div className="al-root">
         <div className="al-grid-bg" />
 
-        {/* ═══════════ ADMIN PANEL ═══════════ */}
+        {/* ADMIN DASHBOARD */}
         {isAdmin && isHome && (
           <div className="al-admin-root">
             <div className="al-admin-card">
               <div className="al-admin-badge">
-                <span className="al-admin-badge-dot" /> Admin Panel
+                <span className="al-admin-badge-dot" />
+                Admin Panel
               </div>
-              <div className="al-admin-title">Control <span>Center</span></div>
-              <div className="al-admin-sub">Manage the platform — all tools in one place</div>
+
+              <div className="al-admin-title">
+                Control <span>Center</span>
+              </div>
+
+              <div className="al-admin-sub">
+                Manage the platform — all tools in one place
+              </div>
 
               <div className="al-admin-grid">
                 {[
-                  { icon: "📊", label: "Overall Statistics", desc: "Platform metrics & insights",  path: "/afterlogin/overall",          color: "rgba(52,211,153,0.3)"  },
-                  { icon: "🎯", label: "Promotions",         desc: "Manage campaigns",              path: "/afterlogin/promotions",        color: "rgba(99,210,255,0.3)"  },
-                  { icon: "💼", label: "Add Job",            desc: "Post opportunities",            path: "/afterlogin/add-job",           color: "rgba(251,191,36,0.3)"  },
-                  { icon: "📺", label: "YouTube Content",    desc: "Manage video library",          path: "/afterlogin/youtube-content",   color: "rgba(248,113,113,0.3)" },
-                  { icon: "🔔", label: "Notifications",      desc: "Send alerts & updates",         path: "/afterlogin/notifications",     color: "rgba(244,114,182,0.3)" },
-                  { icon: "📝", label: "To-Do List",         desc: "Track your tasks",              path: "/afterlogin/todo",              color: "rgba(167,139,250,0.3)" },
-                ].map((tile, i) => (
+                  {
+                    icon: "📊",
+                    label: "Overall Statistics",
+                    desc: "Platform metrics & insights",
+                    path: "/afterlogin/overall",
+                    color: "rgba(52,211,153,.3)",
+                  },
+                  {
+                    icon: "🎯",
+                    label: "Promotions",
+                    desc: "Manage campaigns",
+                    path: "/afterlogin/promotions",
+                    color: "rgba(99,210,255,.3)",
+                  },
+                  {
+                    icon: "💼",
+                    label: "Add Job",
+                    desc: "Post opportunities",
+                    path: "/afterlogin/add-job",
+                    color: "rgba(251,191,36,.3)",
+                  },
+                  {
+                    icon: "📺",
+                    label: "YouTube Content",
+                    desc: "Manage video library",
+                    path: "/afterlogin/youtube-content",
+                    color: "rgba(248,113,113,.3)",
+                  },
+                  {
+                    icon: "🔔",
+                    label: "Notifications",
+                    desc: "Send alerts & updates",
+                    path: "/afterlogin/notifications",
+                    color: "rgba(244,114,182,.3)",
+                  },
+                  {
+                    icon: "📝",
+                    label: "To-Do List",
+                    desc: "Track your tasks",
+                    path: "/afterlogin/todo",
+                    color: "rgba(167,139,250,.3)",
+                  },
+                ].map((tile, index) => (
                   <div
                     key={tile.path}
                     className="al-admin-tile"
                     style={{
                       "--tile-color": tile.color,
-                      animationDelay: `${i * 0.07}s`,
-                      animation: "cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+                      animation: `cardIn .5s ${index * 0.07}s ease both`,
                     }}
                     onClick={() => navigate(tile.path)}
                   >
@@ -484,26 +644,22 @@ export default function Afterlogin() {
                 ))}
               </div>
 
-              <button
-                className="al-logout-btn"
-                onClick={() => { localStorage.clear(); navigate("/login"); }}
-              >
+              <button className="al-logout-btn" onClick={logout}>
                 ⎋ &nbsp;Logout
               </button>
             </div>
           </div>
         )}
 
-        {/* ═══════════ NAVBAR — USER / RIDER only ═══════════ */}
+        {/* USER / RIDER NAVBAR */}
         {!isAdmin && (
           <nav className="al-nav">
             <div className="al-logo" onClick={() => navigate("/afterlogin")}>
               DW<span>JD</span>
             </div>
 
-            {/* Desktop: Home, About, Contact only */}
             <div className="al-nav-links">
-              {userNavLinks.map(link => (
+              {userNavLinks.map((link) => (
                 <button
                   key={link.path}
                   className="al-nav-btn"
@@ -515,42 +671,46 @@ export default function Afterlogin() {
             </div>
 
             <div className="al-nav-right" ref={menuRef}>
-              {/* Avatar — clicking opens dropdown */}
               <div
                 className={`al-avatar ${role === "rider" ? "rider" : ""}`}
                 title={email}
-                onClick={() => setMenuOpen(p => !p)}
+                onClick={() => setMenuOpen((previous) => !previous)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    setMenuOpen((previous) => !previous);
+                  }
+                }}
               >
                 {firstLetter}
               </div>
 
-              {/* Hamburger */}
               <button
                 className="al-menu-btn"
-                onClick={() => setMenuOpen(p => !p)}
+                aria-label="Toggle navigation menu"
+                onClick={() => setMenuOpen((previous) => !previous)}
               >
                 {menuOpen ? "✕" : "☰"}
               </button>
 
               {menuOpen && (
                 <div className="al-dropdown">
-
-                  {/* Navigation section — Home, About, Contact */}
                   <div className="al-menu-section">Navigation</div>
-                  {userNavLinks.map(item => (
+
+                  {userNavLinks.map((item) => (
                     <div
                       key={item.path}
                       className="al-menu-item"
-                      onClick={() => { setMenuOpen(false); navigate(item.path); }}
+                      onClick={() => goTo(item.path)}
                     >
-                      <span className="al-menu-icon">{item.icon}</span>
+                      <span>{item.icon}</span>
                       {item.label}
                     </div>
                   ))}
 
                   <div className="al-menu-hr" />
 
-                  {/* Role-specific section */}
                   <div className="al-menu-section">
                     {role === "user" ? "My Account" : "Rider"}
                   </div>
@@ -559,57 +719,55 @@ export default function Afterlogin() {
                     <>
                       <div
                         className="al-menu-item"
-                        onClick={() => { setMenuOpen(false); navigate("/afterlogin/donate/request"); }}
+                        onClick={() => goTo("/afterlogin/donate/request")}
                       >
-                        <span className="al-menu-icon">📋</span> My Requests
+                        <span>📋</span> My Requests
                       </div>
+
                       <div
                         className="al-menu-item"
-                        onClick={() => { setMenuOpen(false); navigate("/afterlogin/donate"); }}
+                        onClick={() => goTo("/afterlogin/donate")}
                       >
-                        <span className="al-menu-icon">🎁</span> Donate
+                        <span>🎁</span> Donate
                       </div>
                     </>
                   ) : (
                     <>
                       <div
                         className="al-menu-item"
-                        onClick={() => { setMenuOpen(false); navigate("/afterlogin/pickup/requests"); }}
+                        onClick={() => goTo("/afterlogin/pickup/requests")}
                       >
-                        <span className="al-menu-icon">📦</span> Available Pickups
+                        <span>📦</span> Available Pickups
                       </div>
+
                       <div
                         className="al-menu-item"
-                        onClick={() => { setMenuOpen(false); navigate("/afterlogin/pickup/my-rides"); }}
+                        onClick={() => goTo("/afterlogin/pickup/my-rides")}
                       >
-                        <span className="al-menu-icon">🏍️</span> My Deliveries
+                        <span>🏍️</span> My Deliveries
                       </div>
                     </>
                   )}
 
                   <div
                     className="al-menu-item"
-                    onClick={() => { setMenuOpen(false); navigate("/afterlogin/profile"); }}
+                    onClick={() => goTo("/afterlogin/profile")}
                   >
-                    <span className="al-menu-icon">👤</span> My Profile
+                    <span>👤</span> My Profile
                   </div>
 
                   <div className="al-menu-hr" />
 
-                  <div
-                    className="al-menu-item danger"
-                    onClick={() => { localStorage.clear(); navigate("/login"); }}
-                  >
-                    <span className="al-menu-icon">⎋</span> Logout
+                  <div className="al-menu-item danger" onClick={logout}>
+                    <span>⎋</span> Logout
                   </div>
-
                 </div>
               )}
             </div>
           </nav>
         )}
 
-        {/* ═══════════ HERO — USER / RIDER home only ═══════════ */}
+        {/* USER / RIDER HOME PAGE */}
         {!isAdmin && isHome && (
           <>
             <HomeHero />
@@ -619,44 +777,59 @@ export default function Afterlogin() {
           </>
         )}
 
-        {/* ═══════════ OUTLET ═══════════ */}
+        {/* NESTED ROUTES */}
         {!isHome && (
           <div className="al-outlet">
             <Outlet />
           </div>
         )}
 
+        {/* CHATBOT */}
         {!isAdmin && <AI_Bot />}
       </div>
     </>
   );
 }
 
-/* ═══════════ HERO COMPONENT ═══════════ */
 function HomeHero() {
-  const [index,   setIndex]   = useState(0);
+  const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const t = setInterval(() => {
+    const interval = setInterval(() => {
       setVisible(false);
-      setTimeout(() => {
-        setIndex(i => (i + 1) % images.length);
+
+      const timeout = setTimeout(() => {
+        setIndex((current) => (current + 1) % images.length);
         setVisible(true);
       }, 600);
+
+      // The timeout completes before the next interval.
+      return () => clearTimeout(timeout);
     }, 4500);
-    return () => clearInterval(t);
+
+    return () => clearInterval(interval);
   }, []);
+
+  const selectImage = (nextIndex) => {
+    setVisible(false);
+    setTimeout(() => {
+      setIndex(nextIndex);
+      setVisible(true);
+    }, 250);
+  };
 
   return (
     <div className="al-hero">
-      {images.map((src, i) => (
+      {images.map((src, imageIndex) => (
         <img
           key={src}
           src={src}
           alt=""
-          className={`al-hero-img ${i === index && visible ? "" : "hidden"}`}
-          style={{ zIndex: i === index ? 1 : 0 }}
+          className={`al-hero-img ${
+            imageIndex === index && visible ? "" : "hidden"
+          }`}
+          style={{ zIndex: imageIndex === index ? 1 : 0 }}
         />
       ))}
 
@@ -669,7 +842,9 @@ function HomeHero() {
         </div>
 
         <h1 className="al-hero-title">
-          Don't Waste.<br /><span>Just Donate.</span>
+          Don't Waste.
+          <br />
+          <span>Just Donate.</span>
         </h1>
 
         <p className="al-hero-quote" style={{ opacity: visible ? 1 : 0 }}>
@@ -677,11 +852,15 @@ function HomeHero() {
         </p>
 
         <div className="al-hero-dots">
-          {images.map((_, i) => (
-            <div
-              key={i}
-              className={`al-hero-dot ${i === index ? "active" : ""}`}
-              onClick={() => setIndex(i)}
+          {images.map((_, dotIndex) => (
+            <button
+              key={dotIndex}
+              type="button"
+              aria-label={`Show image ${dotIndex + 1}`}
+              className={`al-hero-dot ${
+                dotIndex === index ? "active" : ""
+              }`}
+              onClick={() => selectImage(dotIndex)}
             />
           ))}
         </div>
