@@ -50,43 +50,22 @@ const API_BASE_URL = (
 ).replace(/\/$/, "");
 
 function getDriveFileId(value = "") {
-  const raw = String(value || "").trim();
-  if (!raw) return null;
+  const url = String(value || "");
 
-  // Accept Drive share URLs, open?id= URLs, thumbnail URLs, and raw file IDs.
-  try {
-    const parsed = new URL(raw);
-    const host = parsed.hostname.toLowerCase();
-    if (host.endsWith("drive.google.com") || host.endsWith("docs.google.com")) {
-      const pathMatch = parsed.pathname.match(/\/file\/d\/([^/]+)/);
-      const queryId = parsed.searchParams.get("id");
-      const thumbnailId = parsed.searchParams.get("id");
-      const pathId = pathMatch?.[1];
-      const id = pathId || queryId || thumbnailId;
-      return id ? decodeURIComponent(id) : null;
-    }
-  } catch {
-    // Not an absolute URL; it may be a raw Drive file ID.
-  }
-
-  if (/^[\w-]{20,}$/.test(raw)) return raw;
-  const match = raw.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|[?&]id=)([\w-]+)/i);
-  return match?.[1] || null;
+  return (
+    url.match(/\/file\/d\/([\w-]+)/)?.[1] ||
+    url.match(/[?&]id=([\w-]+)/)?.[1] ||
+    url.match(/drive\.google\.com\/open\?id=([\w-]+)/)?.[1] ||
+    null
+  );
 }
 
 function getPromotionImageUrl(value = "") {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
+  const id = getDriveFileId(value);
 
-  const id = getDriveFileId(raw);
-  if (id) {
-    // Drive's thumbnail endpoint is generally more suitable for <img> than its preview page.
-    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1600`;
-  }
-
-  // Normalize common Google-hosted image links; preserve ordinary public image URLs.
-  if (/^https?:\/\//i.test(raw)) return raw;
-  return raw;
+  return id
+    ? `https://drive.google.com/uc?export=view&id=${id}`
+    : value;
 }
 
 function getPromotionVideoEmbedUrl(value = "") {
@@ -95,6 +74,83 @@ function getPromotionVideoEmbedUrl(value = "") {
   return id
     ? `https://drive.google.com/file/d/${id}/preview?autoplay=1&mute=1`
     : value;
+}
+
+/*
+ * Direct video URLs:
+ * - Autoplay muted
+ * - Loop continuously
+ * - Custom mute/unmute icon only
+ * - Volume set to 65% when unmuted
+ * - No native video controls
+ *
+ * Google Drive preview URLs are rendered separately as iframes below.
+ * Their internal controls cannot reliably be controlled by this component.
+ */
+function PromotionVideo({ videoUrl, imageUrl }) {
+  const videoRef = useRef(null);
+  const [muted, setMuted] = useState(true);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = muted;
+    video.volume = 0.65;
+
+    if (video.paused) {
+      video.play().catch(() => {
+        // The browser may restrict autoplay.
+      });
+    }
+  }, [muted, videoUrl]);
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const nextMuted = !muted;
+
+    video.volume = 0.65;
+    video.muted = nextMuted;
+    setMuted(nextMuted);
+
+    if (video.paused) {
+      video.play().catch(() => {});
+    }
+  };
+
+  return (
+    <div className="promo-video-wrap">
+  <video
+    ref={videoRef}
+    autoPlay
+    muted={muted}
+    loop
+    playsInline
+    preload="metadata"
+    poster={imageUrl || undefined}
+  >
+    <source src={videoUrl} />
+  </video>
+
+  <button
+    type="button"
+    className="promo-mute-button"
+    onClick={() => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      video.volume = 0.65;
+      video.muted = !video.muted;
+      setMuted(video.muted);
+    }}
+    aria-label={muted ? "Unmute video" : "Mute video"}
+  >
+    {muted ? "🔇" : "🔊"}
+  </button>
+</div>
+  );
 }
 
 export default function OpeningPage() {
@@ -297,11 +353,9 @@ export default function OpeningPage() {
     window.addEventListener("touchstart", onTouchStart, {
       passive: true
     });
-
     window.addEventListener("touchmove", onTouchMove, {
       passive: true
     });
-
     window.addEventListener("touchend", onTouchEnd);
     window.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
@@ -328,7 +382,6 @@ export default function OpeningPage() {
       : "none",
     willChange: "transform"
   };
-
   return (
     <>
       <style>{`
@@ -877,6 +930,62 @@ export default function OpeningPage() {
           pointer-events: none;
         }
 
+        .promo-video-wrap {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          background: #000;
+        }
+
+        .promo-video-wrap video {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border: 0;
+        }
+
+        /* 3. Mute/unmute icon positioned at the top-left corner */
+        .promo-mute-button {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          z-index: 15;
+          display: grid;
+          place-items: center;
+          width: 36px;
+          height: 36px;
+          border: 1px solid rgba(255,255,255,.24);
+          border-radius: 50%;
+          background: rgba(5,10,7,.75);
+          color: #f4f7f5;
+          backdrop-filter: blur(12px);
+          cursor: pointer;
+          transition: background .2s, border-color .2s, transform .2s;
+        }
+
+        .promo-mute-button:hover {
+          background: rgba(124,224,177,.25);
+          border-color: rgba(124,224,177,.6);
+          transform: scale(1.05);
+        }
+
+        .promo-mute-button svg {
+          width: 17px;
+          height: 17px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .promo-mute-button:focus-visible {
+          outline: 2px solid #7ce0b1;
+          outline-offset: 3px;
+        }
+
         .promo-media img,
         .promo-media video,
         .promo-media iframe {
@@ -892,28 +1001,25 @@ export default function OpeningPage() {
           transform: scale(1.045);
         }
 
+        /* Placed in the top-right corner to allow the mute button to own top-left */
         .promo-media-tag {
           position: absolute;
           z-index: 2;
-          left: 16px;
-          top: 16px;
+          right: 14px;
+          top: 14px;
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 11px;
+          padding: 7px 11px;
           border: 1px solid rgba(255,255,255,.18);
           border-radius: 999px;
-          background: rgba(7,12,9,.72);
+          background: rgba(7,12,9,.75);
           backdrop-filter: blur(12px);
           color: #f1f5f2;
           font-size: 9px;
           font-weight: 700;
           letter-spacing: .11em;
           text-transform: uppercase;
-        }
-
-        .promo-media-placeholder[hidden] {
-          display: none !important;
         }
 
         .promo-media-placeholder {
@@ -1027,6 +1133,253 @@ export default function OpeningPage() {
           transform: translate(2px,-2px);
         }
 
+        /* Premium empty state */
+
+        .promo-empty {
+          position: relative;
+          isolation: isolate;
+          display: grid;
+          grid-template-columns: minmax(0,1.05fr) minmax(320px,.95fr);
+          align-items: center;
+          gap: clamp(30px,6vw,88px);
+          min-height: 420px;
+          overflow: hidden;
+          padding: clamp(30px,6vw,76px);
+          border: 1px solid rgba(177,218,194,.15);
+          border-radius: 30px;
+          background:
+            radial-gradient(
+              ellipse at 78% 48%,
+              rgba(37,112,77,.16),
+              transparent 38%
+            ),
+            linear-gradient(
+              115deg,
+              rgba(255,255,255,.035),
+              rgba(255,255,255,.008) 58%
+            ),
+            #0a100d;
+          box-shadow: 0 30px 100px rgba(0,0,0,.2);
+        }
+
+        .promo-empty::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          opacity: .25;
+          background-image:
+            linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+            linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+          background-size: 44px 44px;
+          mask-image: linear-gradient(110deg,black,transparent 78%);
+        }
+
+        .promo-empty-copy {
+          position: relative;
+          z-index: 2;
+          max-width: 550px;
+          text-align: left;
+        }
+
+        .promo-empty-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          color: #8ce8be;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+        }
+
+        .promo-live-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #68e6ad;
+          box-shadow: 0 0 14px rgba(104,230,173,.8);
+        }
+
+        .promo-empty h3 {
+          max-width: 570px;
+          margin-top: 24px;
+          color: #f4f1e9;
+          font-family: 'Playfair Display',serif;
+          font-size: clamp(34px,4.4vw,58px);
+          font-weight: 400;
+          letter-spacing: -.04em;
+          line-height: 1.12;
+        }
+
+        .promo-empty h3 em {
+          color: #7ce0b1;
+          font-weight: 400;
+        }
+
+        .promo-empty p {
+          max-width: 465px;
+          margin: 20px 0 0;
+          color: #a0aca4;
+          font-size: 14px;
+          line-height: 1.95;
+        }
+
+        .promo-empty-bottom {
+          display: flex;
+          align-items: center;
+          gap: 13px;
+          margin-top: 34px;
+          color: #7d9185;
+          font-size: 10px;
+          letter-spacing: .13em;
+          text-transform: uppercase;
+        }
+
+        .promo-empty-rule {
+          width: 38px;
+          height: 1px;
+          background: #6ed9a5;
+        }
+
+        .promo-empty-art {
+          position: relative;
+          display: grid;
+          place-items: center;
+          min-height: 310px;
+          overflow: visible;
+        }
+
+        .promo-art-glow {
+          position: absolute;
+          width: min(74%,280px);
+          aspect-ratio: 1;
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(77,207,145,.17),
+            rgba(29,101,68,.06) 47%,
+            transparent 72%
+          );
+          filter: blur(6px);
+        }
+
+        .promo-orbit {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          border: 1px solid rgba(119,220,170,.18);
+          border-radius: 50%;
+          transform: translate(-50%,-50%) rotate(-24deg);
+        }
+
+        .promo-orbit-one {
+          width: 270px;
+          height: 190px;
+        }
+
+        .promo-orbit-two {
+          width: 220px;
+          height: 290px;
+          transform: translate(-50%,-50%) rotate(36deg);
+          border-color: rgba(119,220,170,.11);
+        }
+
+        .promo-art-core {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 116px;
+          height: 116px;
+          border: 1px solid rgba(126,231,177,.38);
+          border-radius: 34px;
+          background: linear-gradient(145deg,rgba(28,76,53,.95),rgba(10,25,17,.98));
+          box-shadow:
+            0 0 0 12px rgba(95,211,148,.035),
+            0 20px 65px rgba(0,0,0,.4),
+            inset 0 1px rgba(255,255,255,.12);
+          color: #8ce8be;
+          transform: rotate(-7deg);
+        }
+
+        .promo-art-core span {
+          font-size: 40px;
+          line-height: 1;
+        }
+
+        .promo-art-core small {
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: .25em;
+        }
+
+        .promo-float {
+          position: absolute;
+          z-index: 3;
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          padding: 12px 16px;
+          border: 1px solid rgba(198,225,207,.15);
+          border-radius: 16px;
+          background: rgba(14,24,18,.87);
+          box-shadow: 0 16px 40px rgba(0,0,0,.28);
+          backdrop-filter: blur(16px);
+        }
+
+        .promo-float-top {
+          top: 20px;
+          right: -4px;
+        }
+
+        .promo-float-bottom {
+          bottom: 32px;
+          left: -4px;
+        }
+
+        .promo-float-icon {
+          display: grid;
+          place-items: center;
+          width: 34px;
+          height: 34px;
+          border: 1px solid rgba(124,224,177,.22);
+          border-radius: 11px;
+          background: rgba(124,224,177,.08);
+          color: #8ce8be;
+          font-size: 17px;
+        }
+
+        .promo-float b,
+        .promo-float small {
+          display: block;
+        }
+
+        .promo-float b {
+          color: #e8eee9;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .promo-float small {
+          margin-top: 4px;
+          color: #8f9d93;
+          font-size: 10px;
+        }
+
+        .promo-art-caption {
+          position: absolute;
+          bottom: -2px;
+          color: #5f7668;
+          font-size: 8px;
+          font-weight: 700;
+          letter-spacing: .22em;
+          text-align: center;
+        }
+
         .promo-state {
           min-height: 210px;
           display: flex;
@@ -1095,6 +1448,37 @@ export default function OpeningPage() {
         }
 
         @media (max-width: 760px) {
+          .promo-empty {
+            grid-template-columns: 1fr;
+            gap: 18px;
+            padding: 34px 25px;
+          }
+
+          .promo-empty-copy {
+            text-align: center;
+            margin: 0 auto;
+          }
+
+          .promo-empty h3 {
+            font-size: clamp(32px,8vw,46px);
+          }
+
+          .promo-empty p {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .promo-empty-bottom {
+            justify-content: center;
+            margin-top: 24px;
+          }
+
+          .promo-empty-art {
+            min-height: 280px;
+          }
+
+          .promo-float-top { right: 0; }
+          .promo-float-bottom { left: 0; }
         }
 
         @media (max-width: 640px) {
@@ -1117,7 +1501,8 @@ export default function OpeningPage() {
           .promo-footnote-line { width: 28px; }
         }
       `}</style>
-            <div className="op-root">
+
+      <div className="op-root">
         {/* PULL STRIP */}
         <div className="pull-strip">
           <span
@@ -1304,6 +1689,7 @@ export default function OpeningPage() {
               <span className="op-scroll-text">Scroll</span>
             </div>
           </div>
+
           {/* PREMIUM FEATURED PROMOTIONS */}
           <section
             aria-label="Brand promotions"
@@ -1349,7 +1735,72 @@ export default function OpeningPage() {
                   <span className="promo-state-icon">!</span>
                   <p>{promotionsError}</p>
                 </div>
-              ) : promotions.length === 0 ? null : (
+              ) : promotions.length === 0 ? (
+                <motion.div
+                  className="promo-empty"
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7 }}
+                >
+                  <div className="promo-empty-copy">
+                    <span className="promo-empty-label">
+                      <span className="promo-live-dot" />
+                      A space for purposeful brands
+                    </span>
+
+                    <h3>
+                      Good things happen when{" "}
+                      <em>brands show up.</em>
+                    </h3>
+
+                    <p>
+                      We’re preparing the next wave of DWJD partner
+                      campaigns. Once a promotion is approved, paid,
+                      and active, you’ll find its story right here.
+                    </p>
+
+                    <div className="promo-empty-bottom">
+                      <span className="promo-empty-rule" />
+                      <span>Partnerships with purpose</span>
+                    </div>
+                  </div>
+
+                  <div
+                    className="promo-empty-art"
+                    aria-hidden="true"
+                  >
+                    <div className="promo-orbit promo-orbit-one" />
+                    <div className="promo-orbit promo-orbit-two" />
+                    <div className="promo-art-glow" />
+
+                    <div className="promo-art-core">
+                      <span>✳</span>
+                      <small>DWJD</small>
+                    </div>
+
+                    <div className="promo-float promo-float-top">
+                      <span className="promo-float-icon">↗</span>
+                      <span>
+                        <b>Shared impact</b>
+                        <small>Better, together</small>
+                      </span>
+                    </div>
+
+                    <div className="promo-float promo-float-bottom">
+                      <span className="promo-float-icon">✦</span>
+                      <span>
+                        <b>Purpose first</b>
+                        <small>Every partner matters</small>
+                      </span>
+                    </div>
+
+                    <div className="promo-art-caption">
+                      THE NEXT CHAPTER STARTS HERE
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
                 <>
                   <div className="promo-grid">
                     {promotions.map((promotion, cardIndex) => {
@@ -1401,58 +1852,23 @@ export default function OpeningPage() {
                                   allowFullScreen
                                 />
                               ) : (
-                                <video
-                                  autoPlay
-                                  muted
-                                  loop
-                                  controls
-                                  playsInline
-                                  preload="metadata"
-                                  poster={imageUrl || undefined}
-                                >
-                                  <source src={videoUrl} />
-                                  Your browser does not support embedded video.
-                                </video>
+                                <PromotionVideo
+                                  videoUrl={videoUrl}
+                                  imageUrl={imageUrl}
+                                />
                               )
                             ) : imageUrl ? (
-                              <>
-                                <img
-                                  src={imageUrl}
-                                  alt={
-                                    promotion.title ||
-                                    `${promotion.brand_name || "Brand"} promotion`
-                                  }
-                                  loading="lazy"
-                                  referrerPolicy="no-referrer"
-                                  data-fallback-url={(() => {
-                                    const id = getDriveFileId(promotion.image_url || "");
-                                    return id
-                                      ? `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`
-                                      : "";
-                                  })()}
-                                  onError={(event) => {
-                                    const image = event.currentTarget;
-                                    const fallbackUrl = image.dataset.fallbackUrl;
-                                    if (fallbackUrl && image.src !== fallbackUrl && !image.dataset.fallbackTried) {
-                                      image.dataset.fallbackTried = "true";
-                                      image.src = fallbackUrl;
-                                      return;
-                                    }
-                                    image.style.display = "none";
-                                    const placeholder = image.nextElementSibling;
-                                    if (placeholder) placeholder.hidden = false;
-                                  }}
-                                />
-                                <div
-                                  className="promo-media-placeholder"
-                                  hidden
-                                  role="img"
-                                  aria-label="Promotion image unavailable"
-                                >
-                                  <span>✳</span>
-                                  <small>IMAGE UNAVAILABLE</small>
-                                </div>
-                              </>
+                              <img
+                                src={imageUrl}
+                                alt={
+                                  promotion.title ||
+                                  `${promotion.brand_name || "Brand"} promotion`
+                                }
+                                loading="lazy"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
+                                }}
+                              />
                             ) : (
                               <div className="promo-media-placeholder">
                                 <span>✳</span>

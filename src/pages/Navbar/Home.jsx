@@ -4,12 +4,7 @@ import {
   AnimatePresence,
   useReducedMotion,
 } from "framer-motion";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const BASE_URL =
   "https://back-end-project-group.onrender.com";
@@ -22,11 +17,9 @@ const ACCENTS = [
   { color: "#83d9ff", rgb: "131,217,255" },
 ];
 
-const formatDate = (value) => {
+function formatDate(value) {
   if (!value) return "";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "";
 
   return new Intl.DateTimeFormat("en-IN", {
@@ -34,20 +27,22 @@ const formatDate = (value) => {
     month: "short",
     year: "numeric",
   }).format(date);
-};
+}
 
-const getInitials = (name = "") =>
-  String(name)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase() || "DW";
+function getInitials(name = "") {
+  return (
+    String(name)
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase() || "DW"
+  );
+}
 
-/* Convert Google Drive links into image thumbnail links. */
-const getDriveFileId = (url = "") => {
+function getDriveFileId(url = "") {
   const value = String(url).trim();
 
   const patterns = [
@@ -58,7 +53,6 @@ const getDriveFileId = (url = "") => {
 
   for (const pattern of patterns) {
     const match = value.match(pattern);
-
     if (match?.[1]) {
       try {
         return decodeURIComponent(match[1]);
@@ -69,11 +63,10 @@ const getDriveFileId = (url = "") => {
   }
 
   return "";
-};
+}
 
-const getCampaignImageUrl = (url = "") => {
+function getCampaignImageUrl(url = "") {
   const value = String(url).trim();
-
   if (!value) return "";
 
   const fileId = getDriveFileId(value);
@@ -85,9 +78,9 @@ const getCampaignImageUrl = (url = "") => {
   }
 
   return value;
-};
+}
 
-/* Reusable campaign artwork with a reliable fallback. */
+/* Artwork image: fully visible, centered and never cropped. */
 function CampaignArtwork({ ad, index, accent }) {
   const imageUrl = getCampaignImageUrl(ad.image_url);
   const [imageFailed, setImageFailed] = useState(false);
@@ -123,10 +116,7 @@ function CampaignArtwork({ ad, index, accent }) {
           onError={() => setImageFailed(true)}
         />
       ) : (
-        <div
-          className="partner-brand-monogram"
-          aria-label={`${ad.brand_name || "Partner"} initials`}
-        >
+        <div className="partner-brand-monogram">
           {getInitials(ad.brand_name)}
         </div>
       )}
@@ -139,7 +129,6 @@ function CampaignArtwork({ ad, index, accent }) {
   );
 }
 
-/* Campaign details modal. */
 function CampaignModal({ campaign, onClose }) {
   const imageUrl = getCampaignImageUrl(campaign.image_url);
   const [imageFailed, setImageFailed] = useState(false);
@@ -156,9 +145,7 @@ function CampaignModal({ campaign, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <motion.div
@@ -192,9 +179,7 @@ function CampaignModal({ campaign, onClose }) {
           )}
         </div>
 
-        <p className="partner-kicker">
-          LIVE PARTNER CAMPAIGN
-        </p>
+        <p className="partner-kicker">LIVE PARTNER CAMPAIGN</p>
 
         <h3 id="partner-modal-title">
           {campaign.title ||
@@ -256,7 +241,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
-
   const reduceMotion = useReducedMotion();
 
   const fetchPromotions = useCallback(async () => {
@@ -269,26 +253,22 @@ export default function Home() {
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Request failed (${response.status})`
-        );
+        throw new Error(`Request failed (${response.status})`);
       }
 
       const data = await response.json();
 
       if (!Array.isArray(data.advertisements)) {
         throw new Error(
-          data.message ||
-            "The promotions response was unexpected."
+          data.message || "Unexpected promotions response."
         );
       }
 
       setAds(data.advertisements);
     } catch (err) {
       console.error("Campaign loading failed:", err);
-
       setError(
-        "We couldn't load the live partner campaigns. Please try again."
+        "We couldn't load the live campaigns. Please try again."
       );
     } finally {
       setLoading(false);
@@ -300,74 +280,40 @@ export default function Home() {
   }, [fetchPromotions]);
 
   useEffect(() => {
-    if (!selected) return undefined;
+    if (!selected) return;
 
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setSelected(null);
-      }
+      if (event.key === "Escape") setSelected(null);
     };
 
     window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
-    };
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown);
   }, [selected]);
-
-  const countLabel = useMemo(
-    () =>
-      `${String(ads.length).padStart(2, "0")} ${
-        ads.length === 1
-          ? "ACTIVE CAMPAIGN"
-          : "ACTIVE CAMPAIGNS"
-      }`,
-    [ads.length]
-  );
 
   return (
     <>
-      <style>{css}</style>
+      <style>{styles}</style>
 
-      <section
-        className="partner-section"
-        aria-labelledby="partner-heading"
-      >
-        <div className="partner-grid-bg" aria-hidden="true" />
-
-        <div
-          className="partner-glow partner-glow-one"
-          aria-hidden="true"
-        />
-
-        <div
-          className="partner-glow partner-glow-two"
-          aria-hidden="true"
-        />
+      <section className="partner-section">
+        <div className="partner-grid-bg" />
+        <div className="partner-glow" />
 
         <div className="partner-shell">
           <motion.header
             className="partner-header"
             initial={
-              reduceMotion
-                ? false
-                : { opacity: 0, y: 24 }
+              reduceMotion ? false : { opacity: 0, y: 20 }
             }
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.25 }}
-            transition={{
-              duration: 0.65,
-              ease: [0.22, 1, 0.36, 1],
-            }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
           >
             <div className="partner-eyebrow">
               <span className="partner-live-pip" />
-              <span>Goodness in motion</span>
-              <span className="partner-eyebrow-divider" />
-              <span>Live partner network</span>
+              GOODNESS IN MOTION
+              <span className="eyebrow-divider" />
+              LIVE PARTNER NETWORK
             </div>
 
             <div className="partner-heading-row">
@@ -375,13 +321,9 @@ export default function Home() {
                 <p className="partner-kicker">
                   THE PEOPLE BEHIND THE PURPOSE
                 </p>
-
-                <h2
-                  id="partner-heading"
-                  className="partner-heading"
-                >
+                <h2 className="partner-heading">
                   Good things happen
-                  <br className="partner-mobile-break" />{" "}
+                  <br />
                   <span>when we team up.</span>
                 </h2>
               </div>
@@ -394,81 +336,47 @@ export default function Home() {
             </div>
 
             <div className="partner-meta-row">
-              <div className="partner-count">
-                <span className="partner-count-dot" />
-                {countLabel}
-              </div>
-
-              <div className="partner-meta-note">
+              <span className="partner-count">
+                <span className="partner-live-pip" />
+                {String(ads.length).padStart(2, "0")} ACTIVE{" "}
+                {ads.length === 1 ? "CAMPAIGN" : "CAMPAIGNS"}
+              </span>
+              <span className="partner-meta-note">
                 A little support. A lasting impact.
-              </div>
+              </span>
             </div>
           </motion.header>
 
           {loading ? (
-            <div
-              className="partner-state"
-              role="status"
-              aria-live="polite"
-            >
+            <div className="partner-state" role="status">
               <div className="partner-loader">
                 <span />
                 <span />
                 <span />
               </div>
-
               <h3>Finding the good in progress</h3>
-              <p>Loading verified live campaigns…</p>
+              <p>Loading live campaigns…</p>
             </div>
           ) : error ? (
-            <div
-              className="partner-state partner-state-error"
-              role="alert"
-            >
-              <div className="partner-state-icon">↻</div>
-
-              <h3>Our partners are just out of reach</h3>
+            <div className="partner-state" role="alert">
+              <h3>Campaigns are temporarily unavailable</h3>
               <p>{error}</p>
-
               <button
-                type="button"
                 className="partner-retry"
                 onClick={fetchPromotions}
               >
-                Try again <span>↗</span>
+                Try again ↗
               </button>
             </div>
           ) : ads.length === 0 ? (
-            <div className="partner-empty">
-              <div
-                className="partner-empty-art"
-                aria-hidden="true"
-              >
-                <span className="empty-ring empty-ring-one" />
-                <span className="empty-ring empty-ring-two" />
-                <span className="empty-star">✳</span>
-                <span className="empty-seed">✦</span>
-              </div>
-
-              <p className="partner-kicker">
-                GOOD THINGS ARE GROWING
-              </p>
-
-              <h3>
-                Our next collaboration is on its way.
-              </h3>
-
-              <p>
-                There are no live campaigns at the moment.
-                Check back soon to see who’s joining the mission.
-              </p>
-
+            <div className="partner-state">
+              <h3>Our next collaboration is on its way.</h3>
+              <p>Check back soon to see our new campaigns.</p>
               <button
-                type="button"
                 className="partner-retry"
                 onClick={fetchPromotions}
               >
-                Refresh campaigns <span>↻</span>
+                Refresh campaigns ↻
               </button>
             </div>
           ) : (
@@ -481,14 +389,13 @@ export default function Home() {
                 hidden: {},
                 visible: {
                   transition: {
-                    staggerChildren: reduceMotion ? 0 : 0.09,
+                    staggerChildren: reduceMotion ? 0 : 0.08,
                   },
                 },
               }}
             >
               {ads.map((ad, index) => {
-                const accent =
-                  ACCENTS[index % ACCENTS.length];
+                const accent = ACCENTS[index % ACCENTS.length];
 
                 return (
                   <motion.article
@@ -499,18 +406,15 @@ export default function Home() {
                       "--accent-rgb": accent.rgb,
                     }}
                     variants={{
-                      hidden: { opacity: 0, y: 22 },
+                      hidden: { opacity: 0, y: 20 },
                       visible: {
                         opacity: 1,
                         y: 0,
-                        transition: {
-                          duration: 0.55,
-                          ease: [0.22, 1, 0.36, 1],
-                        },
+                        transition: { duration: 0.5 },
                       },
                     }}
                     whileHover={
-                      reduceMotion ? undefined : { y: -7 }
+                      reduceMotion ? undefined : { y: -5 }
                     }
                   >
                     <CampaignArtwork
@@ -526,13 +430,12 @@ export default function Home() {
                           LIVE CAMPAIGN
                         </span>
 
-                        {ad.collaboration_type && (
-                          <span className="partner-type">
-                            {String(
-                              ad.collaboration_type
-                            ).replace(/[_-]/g, " ")}
-                          </span>
-                        )}
+                        <span className="partner-type">
+                          {String(
+                            ad.collaboration_type ||
+                              "Paid Promotion"
+                          ).replace(/[_-]/g, " ")}
+                        </span>
                       </div>
 
                       <p className="partner-brand-name">
@@ -540,8 +443,7 @@ export default function Home() {
                       </p>
 
                       <h3 className="partner-card-title">
-                        {ad.title ||
-                          "Making a difference together"}
+                        {ad.title || "Making a difference together"}
                       </h3>
 
                       <p className="partner-card-description">
@@ -554,7 +456,6 @@ export default function Home() {
                           <span className="partner-date-icon">
                             ↗
                           </span>
-
                           <span>
                             {ad.end_date
                               ? `Campaign ends ${formatDate(
@@ -567,11 +468,9 @@ export default function Home() {
                         <button
                           type="button"
                           className="partner-open-button"
-                          aria-label={`View details for ${
-                            ad.title ||
-                            ad.brand_name ||
-                            "campaign"
-                          }`}
+                          aria-label={`View ${
+                            ad.title || ad.brand_name || "campaign"
+                          } details`}
                           onClick={() => setSelected(ad)}
                         >
                           ↗
@@ -588,19 +487,10 @@ export default function Home() {
 
           {!loading && !error && ads.length > 0 && (
             <div className="partner-footer-note">
-              <span className="partner-footer-mark">✳</span>
-
-              <span>
-                Every partnership can help make a meal matter.
-              </span>
-
+              <span>✳</span>
+              Every partnership can help make a meal matter.
               <span className="partner-footer-rule" />
-
-              <span className="partner-footer-count">
-                {ads.length}{" "}
-                {ads.length === 1 ? "partner" : "partners"} and
-                counting
-              </span>
+              <span>{ads.length} partners and counting</span>
             </div>
           )}
         </div>
@@ -619,55 +509,47 @@ export default function Home() {
   );
 }
 
-const css = `
+const styles = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 .partner-section {
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  padding: clamp(60px, 8vw, 110px) 0;
   background: #080b10;
   color: #f4f7f5;
-  padding: clamp(72px, 9vw, 126px) 0 clamp(68px, 8vw, 104px);
   font-family: 'DM Sans', sans-serif;
 }
 
-.partner-section * {
+.partner-section *,
+.partner-section *::before,
+.partner-section *::after {
   box-sizing: border-box;
 }
 
 .partner-grid-bg {
   position: absolute;
   inset: 0;
-  z-index: -3;
-  opacity: .22;
+  z-index: -2;
+  opacity: .18;
   background-image:
     linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
   background-size: 58px 58px;
-  mask-image: linear-gradient(to bottom, black, transparent 95%);
 }
 
 .partner-glow {
   position: absolute;
-  z-index: -2;
+  z-index: -1;
+  top: -260px;
+  left: -150px;
   width: 480px;
   height: 480px;
   border-radius: 50%;
+  background: rgba(67,230,166,.12);
   filter: blur(110px);
   pointer-events: none;
-}
-
-.partner-glow-one {
-  top: -250px;
-  left: -180px;
-  background: rgba(67,230,166,.13);
-}
-
-.partner-glow-two {
-  right: -220px;
-  bottom: -200px;
-  background: rgba(123,111,255,.12);
 }
 
 .partner-shell {
@@ -676,48 +558,45 @@ const css = `
 }
 
 .partner-header {
-  margin-bottom: 38px;
+  margin-bottom: 36px;
 }
 
 .partner-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  padding: 9px 13px;
   border: 1px solid rgba(124,247,196,.19);
-  background: rgba(124,247,196,.055);
-  border-radius: 100px;
-  padding: 9px 14px;
+  border-radius: 99px;
+  background: rgba(124,247,196,.05);
   color: #b6c9c1;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: .13em;
-  text-transform: uppercase;
+  letter-spacing: .12em;
 }
 
-.partner-live-pip,
-.partner-count-dot {
-  width: 7px;
-  height: 7px;
-  display: inline-block;
+.partner-live-pip {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
   border-radius: 50%;
   background: #7cf7c4;
-  box-shadow: 0 0 14px rgba(124,247,196,.8);
+  box-shadow: 0 0 12px rgba(124,247,196,.8);
   animation: partnerPulse 2s infinite;
 }
 
-.partner-eyebrow-divider {
+.eyebrow-divider {
   height: 13px;
   width: 1px;
   background: rgba(255,255,255,.2);
-  margin: 0 2px;
 }
 
 .partner-heading-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 44px;
-  margin-top: 30px;
+  gap: 36px;
+  margin-top: 28px;
 }
 
 .partner-kicker {
@@ -725,36 +604,27 @@ const css = `
   color: #7cf7c4;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .19em;
-  text-transform: uppercase;
+  letter-spacing: .17em;
 }
 
 .partner-heading {
   margin: 0;
-  font-family: 'Manrope', sans-serif;
-  font-size: clamp(38px, 6.2vw, 76px);
-  line-height: 1.04;
-  font-weight: 700;
-  letter-spacing: -.065em;
-  max-width: 780px;
+  font: 700 clamp(38px, 6vw, 72px)/1.05 'Manrope', sans-serif;
+  letter-spacing: -.06em;
 }
 
-.partner-heading span {
+.partner-heading > span {
   color: transparent;
-  background: linear-gradient(100deg, #7cf7c4 5%, #c1f8db 42%, #a5a4ff 100%);
-  -webkit-background-clip: text;
+  background: linear-gradient(100deg, #7cf7c4, #c1f8db 50%, #a5a4ff);
   background-clip: text;
-}
-
-.partner-mobile-break {
-  display: none;
+  -webkit-background-clip: text;
 }
 
 .partner-intro {
   max-width: 310px;
   margin: 0 0 6px;
   color: #8c9894;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.85;
 }
 
@@ -762,25 +632,25 @@ const css = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-top: 34px;
-  padding-top: 18px;
+  gap: 18px;
+  margin-top: 32px;
+  padding: 18px 0;
   border-top: 1px solid rgba(255,255,255,.1);
 }
 
 .partner-count {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   color: #b4c2bc;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .14em;
+  letter-spacing: .13em;
 }
 
 .partner-meta-note {
-  font-size: 12px;
   color: #65716c;
+  font-size: 12px;
 }
 
 .partner-campaign-grid {
@@ -792,33 +662,34 @@ const css = `
 
 .partner-card {
   position: relative;
-  min-width: 0;
   display: flex;
+  min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,.105);
+  border: 1px solid rgba(255,255,255,.1);
   border-radius: 22px;
-  background: linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.018) 48%, rgba(255,255,255,.025));
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.015));
   box-shadow: 0 16px 44px rgba(0,0,0,.15);
   transition: border-color .25s, box-shadow .25s;
 }
 
 .partner-card:hover {
   border-color: rgba(var(--accent-rgb), .42);
-  box-shadow: 0 24px 60px rgba(0,0,0,.3), 0 0 35px rgba(var(--accent-rgb),.055);
+  box-shadow: 0 24px 60px rgba(0,0,0,.28);
 }
 
-/* Artwork is fixed-height; image remains fully visible and uncropped. */
+/* Image area: keep its full proportions visible. */
 .partner-card-visual {
-  height: 250px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 270px;
+  flex: 0 0 270px;
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(ellipse at 50% 55%, rgba(var(--accent-rgb), .16), transparent 60%),
+    radial-gradient(ellipse at 50% 48%, rgba(var(--accent-rgb), .15), transparent 62%),
     linear-gradient(135deg, #101c1b, #080d11 75%);
   border-bottom: 1px solid rgba(255,255,255,.07);
 }
@@ -827,8 +698,8 @@ const css = `
   content: "";
   position: absolute;
   z-index: -1;
-  width: 210px;
-  height: 210px;
+  width: 220px;
+  height: 220px;
   border: 1px solid rgba(var(--accent-rgb), .12);
   border-radius: 50%;
 }
@@ -836,90 +707,87 @@ const css = `
 .partner-card-visual::after {
   content: "";
   position: absolute;
-  inset: 0;
   z-index: 2;
-  background: linear-gradient(135deg, rgba(255,255,255,.045), transparent 45%, rgba(0,0,0,.12));
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.035), transparent 48%);
   pointer-events: none;
 }
 
 .partner-card-number {
   position: absolute;
+  z-index: 3;
   top: 17px;
   left: 18px;
-  z-index: 3;
-  color: rgba(255,255,255,.48);
-  font-family: 'Manrope', sans-serif;
-  font-size: 12px;
-  font-weight: 800;
+  color: rgba(255,255,255,.5);
+  font: 800 12px 'Manrope', sans-serif;
   letter-spacing: .1em;
 }
 
 .partner-card-orbit {
   position: absolute;
-  width: 142px;
-  height: 142px;
-  border: 1px solid rgba(var(--accent-rgb), .15);
+  width: 155px;
+  height: 155px;
+  border: 1px solid rgba(var(--accent-rgb), .13);
   border-radius: 50%;
   pointer-events: none;
 }
 
 .orbit-a {
-  width: 180px;
-  height: 180px;
-  transform: rotate(34deg) scaleX(1.2);
+  width: 205px;
+  height: 205px;
+  transform: scaleX(1.15);
 }
 
 .orbit-b {
-  width: 132px;
-  height: 132px;
+  width: 150px;
+  height: 150px;
   border-style: dashed;
-  opacity: .65;
-  transform: rotate(-25deg) scaleX(1.3);
+  opacity: .6;
 }
 
-/* The image is contained, centered, and never stretched. */
+/*
+  Main fix:
+  The image can grow in both dimensions but remains within
+  the artwork area. "contain" preserves the original aspect ratio.
+*/
 .partner-card-image {
   position: relative;
   z-index: 1;
   display: block;
   width: auto;
   height: auto;
-  max-width: 78%;
-  max-height: 155px;
+  max-width: min(82%, 260px);
+  max-height: 200px;
   object-fit: contain;
   object-position: center;
-  border-radius: 10px;
-  filter: drop-shadow(0 8px 20px rgba(0,0,0,.25));
-  transition: transform .6s cubic-bezier(.2,.7,.2,1);
+  border-radius: 12px;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,.22));
+  transition: transform .45s ease;
 }
 
 .partner-card:hover .partner-card-image {
-  transform: scale(1.04);
+  transform: scale(1.025);
 }
 
 .partner-brand-monogram {
   position: relative;
   z-index: 1;
-  width: 80px;
-  height: 80px;
   display: grid;
+  width: 82px;
+  height: 82px;
   place-items: center;
-  border: 1px solid rgba(var(--accent-rgb), .48);
-  border-radius: 25px;
-  background: linear-gradient(145deg, rgba(var(--accent-rgb), .22), rgba(8,11,16,.8));
+  border: 1px solid rgba(var(--accent-rgb), .45);
+  border-radius: 24px;
+  background: rgba(var(--accent-rgb), .1);
   color: var(--accent);
-  font-family: 'Manrope', sans-serif;
-  font-size: 27px;
-  font-weight: 800;
-  box-shadow: 0 0 50px rgba(var(--accent-rgb), .13);
-  transform: rotate(-7deg);
+  font: 800 27px 'Manrope', sans-serif;
 }
 
 .partner-visual-label {
   position: absolute;
+  z-index: 3;
   bottom: 16px;
   left: 18px;
-  z-index: 3;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -929,7 +797,7 @@ const css = `
   letter-spacing: .13em;
 }
 
-.partner-visual-label span {
+.partner-visual-label > span {
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -939,8 +807,8 @@ const css = `
 
 .partner-card-content {
   display: flex;
-  flex-direction: column;
   flex: 1;
+  flex-direction: column;
   padding: 22px 21px 18px;
 }
 
@@ -948,8 +816,8 @@ const css = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
 .partner-status {
@@ -962,24 +830,23 @@ const css = `
   letter-spacing: .12em;
 }
 
-.partner-status span {
+.partner-status > span {
   width: 5px;
   height: 5px;
-  background: var(--accent);
   border-radius: 50%;
-  box-shadow: 0 0 9px rgba(var(--accent-rgb), .7);
+  background: var(--accent);
 }
 
 .partner-type {
-  max-width: 50%;
+  max-width: 55%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 6px 10px;
   border: 1px solid rgba(255,255,255,.1);
-  border-radius: 100px;
-  padding: 6px 9px;
+  border-radius: 99px;
   color: #8d9993;
   font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-transform: capitalize;
 }
 
@@ -988,31 +855,27 @@ const css = `
   color: #8f9e96;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: .035em;
 }
 
 .partner-card-title {
   margin: 0;
   color: #f2f6f3;
-  font-family: 'Manrope', sans-serif;
-  font-size: 23px;
-  line-height: 1.28;
-  font-weight: 800;
+  font: 800 23px/1.28 'Manrope', sans-serif;
   letter-spacing: -.045em;
   overflow-wrap: anywhere;
 }
 
 .partner-card-description {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   min-height: 62px;
   margin: 12px 0 20px;
+  overflow: hidden;
   color: #89958f;
   font-size: 12px;
   line-height: 1.75;
   overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .partner-card-footer {
@@ -1037,9 +900,9 @@ const css = `
 
 .partner-date-icon {
   display: grid;
+  flex: 0 0 32px;
+  height: 32px;
   place-items: center;
-  flex: 0 0 30px;
-  height: 30px;
   border: 1px solid rgba(var(--accent-rgb), .2);
   border-radius: 10px;
   color: var(--accent);
@@ -1047,15 +910,15 @@ const css = `
 
 .partner-open-button {
   display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   place-items: center;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(var(--accent-rgb), .35);
-  border-radius: 13px;
+  border: 1px solid rgba(var(--accent-rgb), .38);
+  border-radius: 14px;
   background: rgba(var(--accent-rgb), .08);
   color: var(--accent);
-  font-size: 18px;
+  font-size: 19px;
   cursor: pointer;
   transition: background .2s, transform .2s;
 }
@@ -1068,7 +931,6 @@ const css = `
 
 .partner-card-bottom-line {
   height: 2px;
-  width: 100%;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: .55;
 }
@@ -1082,7 +944,7 @@ const css = `
   font-size: 11px;
 }
 
-.partner-footer-mark {
+.partner-footer-note > span:first-child {
   color: #7cf7c4;
   font-size: 16px;
 }
@@ -1093,35 +955,25 @@ const css = `
   background: rgba(255,255,255,.09);
 }
 
-.partner-footer-count {
-  color: #9ba79f;
-  font-size: 10px;
-  white-space: nowrap;
-}
-
 .partner-state {
   min-height: 270px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   padding: 40px 20px;
   border: 1px solid rgba(255,255,255,.09);
   border-radius: 24px;
   background: rgba(255,255,255,.025);
+  text-align: center;
 }
 
-.partner-state h3,
-.partner-empty h3 {
+.partner-state h3 {
   margin: 18px 0 8px;
-  font-family: 'Manrope', sans-serif;
-  font-size: 22px;
-  letter-spacing: -.04em;
+  font: 700 22px 'Manrope', sans-serif;
 }
 
-.partner-state p,
-.partner-empty > p:not(.partner-kicker) {
+.partner-state p {
   max-width: 430px;
   margin: 0;
   color: #84918a;
@@ -1131,9 +983,7 @@ const css = `
 
 .partner-loader {
   display: flex;
-  align-items: center;
   gap: 7px;
-  height: 20px;
 }
 
 .partner-loader span {
@@ -1152,21 +1002,7 @@ const css = `
   animation-delay: .36s;
 }
 
-.partner-state-icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border: 1px solid rgba(255,145,145,.24);
-  border-radius: 16px;
-  color: #ffb3b3;
-  font-size: 23px;
-}
-
 .partner-retry {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
   margin-top: 22px;
   padding: 12px 16px;
   border: 1px solid rgba(124,247,196,.3);
@@ -1175,89 +1011,25 @@ const css = `
   color: #b9f9dc;
   font: 600 12px 'DM Sans', sans-serif;
   cursor: pointer;
-  transition: background .2s, transform .2s;
-}
-
-.partner-retry:hover {
-  background: rgba(124,247,196,.15);
-  transform: translateY(-2px);
-}
-
-.partner-empty {
-  position: relative;
-  min-height: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 44px 20px;
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 24px;
-  background: radial-gradient(ellipse at 50% 0%, rgba(124,247,196,.07), transparent 58%), rgba(255,255,255,.02);
-  text-align: center;
-}
-
-.partner-empty-art {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  margin-bottom: 10px;
-  display: grid;
-  place-items: center;
-}
-
-.empty-ring {
-  position: absolute;
-  border: 1px solid rgba(124,247,196,.3);
-  border-radius: 50%;
-  animation: partnerSpin 14s linear infinite;
-}
-
-.empty-ring-one {
-  inset: 5px;
-}
-
-.empty-ring-two {
-  inset: 18px;
-  border-style: dashed;
-  animation-direction: reverse;
-}
-
-.empty-star {
-  color: #7cf7c4;
-  font-size: 35px;
-}
-
-.empty-seed {
-  position: absolute;
-  right: 2px;
-  top: 10px;
-  color: #a5a4ff;
-  font-size: 17px;
-}
-
-.partner-empty .partner-kicker {
-  margin-bottom: 0;
 }
 
 .partner-modal-backdrop {
   position: fixed;
-  inset: 0;
   z-index: 9999;
+  inset: 0;
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(2,5,7,.78);
+  background: rgba(2,5,7,.8);
   backdrop-filter: blur(12px);
 }
 
 .partner-modal {
   position: relative;
   width: min(520px, 100%);
-  max-height: min(88vh, 760px);
+  max-height: 88vh;
   overflow: auto;
-  padding: 30px;
+  padding: 28px;
   border: 1px solid rgba(255,255,255,.13);
   border-radius: 26px;
   background: #0e1418;
@@ -1266,43 +1038,50 @@ const css = `
 
 .partner-modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
   z-index: 2;
+  top: 14px;
+  right: 14px;
   width: 36px;
   height: 36px;
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 12px;
-  background: rgba(0,0,0,.3);
-  color: #fff;
+  background: rgba(0,0,0,.4);
+  color: white;
   font-size: 23px;
   cursor: pointer;
 }
 
 .partner-modal-art {
-  height: 180px;
-  display: grid;
-  place-items: center;
+  height: 230px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 25px;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 18px;
-  background: radial-gradient(circle, rgba(124,247,196,.12), transparent 70%), rgba(255,255,255,.025);
+  background: radial-gradient(circle, rgba(124,247,196,.12), transparent 70%), #0a1013;
 }
 
+/* Same full-image-fit behavior in the modal. */
 .partner-modal-art img {
   display: block;
-  max-width: 78%;
-  max-height: 150px;
   width: auto;
   height: auto;
+  max-width: 88%;
+  max-height: 210px;
   object-fit: contain;
   object-position: center;
+  border-radius: 12px;
 }
 
-.partner-modal-art span {
+.partner-modal-art > span {
   color: #7cf7c4;
   font: 800 34px 'Manrope', sans-serif;
+}
+
+.partner-modal .partner-kicker {
+  margin-bottom: 12px;
 }
 
 .partner-modal h3 {
@@ -1354,8 +1133,8 @@ const css = `
 
 .partner-modal-done {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   margin-top: 22px;
   padding: 14px 16px;
@@ -1380,20 +1159,7 @@ const css = `
 }
 
 @keyframes partnerBounce {
-  to {
-    transform: translateY(-7px);
-    opacity: .5;
-  }
-}
-
-@keyframes partnerSpin {
-  to { transform: rotate(360deg); }
-}
-
-@media (min-width: 1400px) {
-  .partner-campaign-grid { gap: 22px; }
-  .partner-card-visual { height: 250px; }
-  .partner-card-content { padding: 24px; }
+  to { transform: translateY(-7px); opacity: .5; }
 }
 
 @media (max-width: 900px) {
@@ -1407,72 +1173,90 @@ const css = `
     gap: 18px;
   }
 
-  .partner-intro { max-width: 540px; }
-
   .partner-campaign-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 560px) {
-  .partner-section { padding: 68px 0 64px; }
+  .partner-section {
+    padding: 58px 0;
+  }
 
-  .partner-shell { width: calc(100% - 32px); }
+  .partner-shell {
+    width: calc(100% - 28px);
+  }
 
   .partner-eyebrow {
     gap: 7px;
-    padding: 8px 10px;
+    padding: 8px 9px;
     font-size: 8px;
-    letter-spacing: .08em;
+    letter-spacing: .07em;
   }
 
-  .partner-heading-row { margin-top: 25px; }
-
-  .partner-heading { font-size: clamp(38px, 10vw, 52px); }
-
-  .partner-mobile-break { display: block; }
-
-  .partner-intro { font-size: 13px; }
+  .partner-heading {
+    font-size: clamp(36px, 9.5vw, 50px);
+  }
 
   .partner-meta-row {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
-    margin-top: 25px;
   }
 
   .partner-campaign-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 16px;
   }
 
-  .partner-card-visual { height: 250px; }
+  .partner-card-visual {
+    height: 270px;
+    flex-basis: 270px;
+  }
 
   .partner-card-image {
-    max-width: 78%;
-    max-height: 155px;
+    max-width: 82%;
+    max-height: 200px;
   }
 
-  .partner-card-content { padding: 19px; }
+  .partner-card-content {
+    padding: 20px 19px 18px;
+  }
 
-  .partner-card-title { font-size: 22px; }
+  .partner-card-title {
+    font-size: 22px;
+  }
 
   .partner-footer-note {
     flex-wrap: wrap;
     line-height: 1.6;
   }
 
-  .partner-footer-rule { min-width: 40px; }
+  .partner-modal {
+    padding: 22px;
+  }
 
-  .partner-modal { padding: 22px; }
+  .partner-modal-art {
+    height: 220px;
+  }
 
-  .partner-modal h3 { font-size: 25px; }
+  .partner-modal-art img {
+    max-height: 200px;
+  }
 
-  .partner-modal-details { grid-template-columns: 1fr; }
+  .partner-modal h3 {
+    font-size: 25px;
+  }
+
+  .partner-modal-details {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .partner-section * {
+  .partner-section *,
+  .partner-section *::before,
+  .partner-section *::after {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
