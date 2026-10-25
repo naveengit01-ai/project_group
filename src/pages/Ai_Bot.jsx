@@ -445,7 +445,32 @@ export default function AI_Bot() {
                 <div className={`ab-avatar ${c.from}`}>
                   {c.from === "bot" ? "🤖" : "👤"}
                 </div>
-                <div className={`ab-bubble ${c.from}`}>{c.text}</div>
+                <div className={`ab-bubble ${c.from}`}>
+  {c.from === "bot" ? (
+    <ReactMarkdown
+      components={{
+        a: ({ href, children }) => {
+          const safeUrl = new URL(href || "", window.location.origin);
+          const isTrusted =
+            safeUrl.protocol === "https:" &&
+            safeUrl.hostname === "dwjd.vercel.app";
+
+          return isTrusted ? (
+            <a href={safeUrl.href} className="chat-link">
+              {children}
+            </a>
+          ) : (
+            <>{children}</>
+          );
+        },
+      }}
+    >
+      {c.text}
+    </ReactMarkdown>
+  ) : (
+    c.text
+  )}
+</div>
               </div>
             ))}
 
