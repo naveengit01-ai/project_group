@@ -1,6 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
@@ -62,12 +63,11 @@ function detectBotMood(text = "") {
 
 function SafeMarkdownLink({ href, children }) {
   try {
-    const url = new URL(href || "");
+    if (!href) return <>{children}</>;
 
-    if (
-      url.protocol !== "https:" ||
-      url.hostname !== "dwjd.vercel.app"
-    ) {
+    const url = new URL(href, "https://dwjd.vercel.app");
+
+    if (!["http:", "https:"].includes(url.protocol)) {
       return <>{children}</>;
     }
 
@@ -77,6 +77,7 @@ function SafeMarkdownLink({ href, children }) {
         href={url.href}
         target="_blank"
         rel="noopener noreferrer"
+        title={`Open ${url.hostname} in a new tab`}
       >
         {children} ↗
       </a>
@@ -1928,12 +1929,13 @@ export default function AI_Bot() {
                   <div className={`dwjd-ai-bubble ${item.from}`}>
                     {item.from === "bot" ? (
                       <ReactMarkdown
-                        components={{
-                          a: SafeMarkdownLink,
-                        }}
-                      >
-                        {item.text}
-                      </ReactMarkdown>
+  remarkPlugins={[remarkGfm]}
+  components={{
+    a: SafeMarkdownLink,
+  }}
+>
+  {item.text}
+</ReactMarkdown>
                     ) : (
                       item.text
                     )}

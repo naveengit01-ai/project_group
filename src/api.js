@@ -122,3 +122,29 @@ export async function googleAuthExchange(code) {
 
   return handleResponse(res);
 }
+
+
+// ============================================
+// RIDER APPLICATION
+// POST /rider/request-account
+// Uses the existing logged-in User account
+// ============================================
+
+export async function requestRiderAccount(data = {}) {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("Please log in before requesting rider access.");
+  }
+
+  const res = await fetch(`${BASE_URL}/rider/request-account`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(res);
+}

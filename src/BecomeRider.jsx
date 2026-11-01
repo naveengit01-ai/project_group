@@ -1,8 +1,46 @@
+
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://back-end-project-group.onrender.com";
+import { BASE_URL } from "../../api.js";
+
+// --------------------------------------------------
+// GET LOGGED-IN USER
+// --------------------------------------------------
+
+function getLoggedInUser() {
+  const keys = ["user", "userInfo", "loggedInUser", "profile"];
+
+  for (const key of keys) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+
+      const parsed = JSON.parse(raw);
+
+      const candidates = [
+        parsed,
+        parsed?.user,
+        parsed?.data?.user,
+        parsed?.profile,
+      ].filter(Boolean);
+
+      for (const candidate of candidates) {
+        if (candidate.email || candidate._id) {
+          return candidate;
+        }
+      }
+    } catch {
+      // Try the next storage key.
+    }
+  }
+
+  return null;
+}
+
+// --------------------------------------------------
+// COMPONENT
+// --------------------------------------------------
 
 export default function BecomeRider() {
   const [form, setForm] = useState({
@@ -11,80 +49,102 @@ export default function BecomeRider() {
     email: "",
     phone: "",
   });
-  const [emailEligible, setEmailEligible] = useState(false);
-  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
+
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
   const [success, setSuccess] = useState(false);
+
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [capturedPhoto, setCapturedPhoto] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
   const photoBlobRef = useRef(null);
 
+  // ------------------------------------------------
+  // LOAD AUTHENTICATED USER
+  // ------------------------------------------------
+
   useEffect(() => {
     document.title = "Become a Rider | DWJD";
-  }, []);
 
-  const updateField = (event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const token = localStorage.getItem("token");
+    const user = getLoggedInUser();
 
-    if (name === "email") {
-      setEmailEligible(false);
-      setMessage("");
-    }
-  };
-
-  const verifyEmail = async (event) => {
-    event.preventDefault();
-    setMessage("");
-
-    if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
+    if (!token || !user) {
+      setAuthenticated(false);
       setMessageType("error");
-      setMessage("Enter your first name, last name, and email first.");
+      setMessage("Please log in before requesting rider access.");
+      setLoadingUser(false);
       return;
     }
 
-    setCheckingEmail(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/rider/verify-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email.trim() }),
-      });
-      const data = await response.json();
-
-      if (!response.ok || data.status !== "email_eligible") {
-        setEmailEligible(false);
-        setMessageType("error");
-        setMessage(data.message || "This email cannot be used for a rider request.");
-        return;
-      }
-
-      setEmailEligible(true);
-      setMessageType("success");
-      setMessage("Email is eligible. Enter your mobile number to continue.");
-    } catch (error) {
+    if (user.user_type && user.user_type !== "user") {
+      setAuthenticated(false);
       setMessageType("error");
-      setMessage("We couldn't check your email. Please try again.");
-    } finally {
-      setCheckingEmail(false);
+      setMessage(
+        user.user_type === "rider"
+          ? "You already have a rider account."
+          : "This account cannot submit a rider application."
+      );
+      setLoadingUser(false);
+      return;
     }
+
+    setForm({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      email: user.email || "",
+      phone: user.phone || "",
+    });
+
+    setProfileImageUrl(user.profile_image || "");
+
+    setAuthenticated(true);
+    setLoadingUser(false);
+  }, []);
+
+  // ------------------------------------------------
+  // PHONE INPUT
+  // ------------------------------------------------
+
+  const updatePhone = (event) => {
+    setForm((current) => ({
+      ...current,
+      phone: event.target.value,
+    }));
   };
+
+  // ------------------------------------------------
+  // CAMERA CLEANUP
+  // ------------------------------------------------
 
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-    if (videoRef.current) videoRef.current.srcObject = null;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   };
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
+  // ------------------------------------------------
+  // OPEN CAMERA
+  // ------------------------------------------------
 
   const openCamera = () => {
     setCameraError("");
@@ -93,18 +153,26 @@ export default function BecomeRider() {
     setCameraOpen(true);
   };
 
+  // ------------------------------------------------
+  // START LIVE CAMERA
+  // ------------------------------------------------
+
   useEffect(() => {
     let cancelled = false;
+
     const startCamera = async () => {
       if (!cameraOpen || capturedPhoto) return;
+
       if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraError("Live camera is not available in this browser. Use HTTPS and a supported browser.");
+        setCameraError(
+          "Camera is unavailable. Please use HTTPS and a supported browser."
+        );
         return;
       }
+
       try {
-        // Prefer the FRONT/selfie camera on mobile devices.
-        // Use a modest resolution to keep the JSON/Base64 request small.
         let stream;
+
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             audio: false,
@@ -114,8 +182,7 @@ export default function BecomeRider() {
               height: { ideal: 640, max: 640 },
             },
           });
-        } catch (frontCameraError) {
-          // Some browsers don't support exact facingMode; retry with a preference.
+        } catch {
           stream = await navigator.mediaDevices.getUserMedia({
             audio: false,
             video: {
@@ -125,72 +192,99 @@ export default function BecomeRider() {
             },
           });
         }
+
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
+
         streamRef.current = stream;
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
       } catch (error) {
-        setCameraError(error.name === "NotAllowedError"
-          ? "Camera permission was denied. Allow camera access in your browser settings and try again."
-          : "Unable to open the camera. Check that your camera is connected and not being used by another app.");
+        setCameraError(
+          error.name === "NotAllowedError"
+            ? "Camera permission denied. Allow camera access and try again."
+            : "Unable to open the camera. Check your camera connection."
+        );
       }
     };
+
     startCamera();
+
     return () => {
       cancelled = true;
     };
   }, [cameraOpen, capturedPhoto]);
 
-  useEffect(() => () => stopCamera(), []);
+  // ------------------------------------------------
+  // CAPTURE PHOTO
+  // ------------------------------------------------
 
   const capturePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
     if (!video || !canvas || !video.videoWidth) {
-      setCameraError("The camera is still starting. Please try again in a moment.");
+      setCameraError("Camera is still starting. Please try again.");
       return;
     }
-    // Keep the captured image small enough for a Base64 JSON API payload.
+
     const maxSide = 640;
-    const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+
+    const scale = Math.min(
+      1,
+      maxSide / Math.max(video.videoWidth, video.videoHeight)
+    );
+
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
+
     const context = canvas.getContext("2d");
+
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob((blob) => {
-  if (!blob) {
-    setCameraError("Could not capture the photo. Please try again.");
-    return;
-  }
 
-  photoBlobRef.current = blob;
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setCameraError("Could not capture the photo.");
+          return;
+        }
 
-  const reader = new FileReader();
+        photoBlobRef.current = blob;
 
-  reader.onloadend = () => {
-    setCapturedPhoto(reader.result);
-    setCameraError("");
-    stopCamera();
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+          setCapturedPhoto(reader.result);
+          setCameraError("");
+          stopCamera();
+        };
+
+        reader.readAsDataURL(blob);
+      },
+      "image/jpeg",
+      0.55
+    );
   };
 
-  reader.readAsDataURL(blob);
-}, "image/jpeg", 0.55);
-  };
+  // ------------------------------------------------
+  // RETAKE PHOTO
+  // ------------------------------------------------
 
-  const retakePhoto = async () => {
+  const retakePhoto = () => {
     setCapturedPhoto("");
-    setProfileImageUrl("");
     photoBlobRef.current = null;
     setCameraError("");
   };
 
-  // Confirm the camera photo locally. The photo is sent together with the
-  // rider's details when the existing /rider/request-account endpoint is called.
+  // ------------------------------------------------
+  // CONFIRM PHOTO
+  // ------------------------------------------------
+
   const confirmPhoto = async () => {
     if (!photoBlobRef.current || !capturedPhoto) {
       setCameraError("Capture a photo before confirming.");
@@ -199,85 +293,109 @@ export default function BecomeRider() {
 
     setUploadingPhoto(true);
     setCameraError("");
+
     try {
       setProfileImageUrl(capturedPhoto);
       setCameraOpen(false);
       stopCamera();
+
       setMessageType("success");
-      setMessage("Photo confirmed. Submit your rider request to save it.");
-    } catch (error) {
-      setCameraError(error.message || "Could not confirm this photo. Please try again.");
+      setMessage("Profile photo confirmed.");
     } finally {
       setUploadingPhoto(false);
     }
   };
 
+  // ------------------------------------------------
+  // SUBMIT RIDER APPLICATION
+  // ------------------------------------------------
+
   const submitRequest = async (event) => {
     event.preventDefault();
+
     setMessage("");
 
-    if (!emailEligible) {
+    const token = localStorage.getItem("token");
+
+    if (!token || !authenticated) {
       setMessageType("error");
-      setMessage("Please verify your email eligibility first.");
+      setMessage("Your login session is missing. Please log in again.");
+      return;
+    }
+
+    if (!form.first_name || !form.last_name || !form.email) {
+      setMessageType("error");
+      setMessage("Your account profile is incomplete.");
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      setMessageType("error");
+      setMessage("Please enter your mobile number.");
       return;
     }
 
     if (!profileImageUrl) {
       setMessageType("error");
-      setMessage("Please open the camera, capture your profile photo, and confirm it before submitting.");
+      setMessage("Please capture and confirm your profile photo.");
       return;
     }
 
     setSubmitting(true);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/rider/request-account`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: form.first_name.trim(),
-          last_name: form.last_name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
-          // Captured JPEG data URL; backend uploads it to Google Drive.
-          profile_image_data: profileImageUrl,
-        }),
-      });
-      const responseText = await response.text();
-      let data = {};
-      try {
-        data = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        data = {};
-      }
+      const response = await fetch(
+        `${BASE_URL}/rider/request-account`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            phone: form.phone.trim(),
+
+            // Sent for backend photo processing.
+            profile_image_data: profileImageUrl,
+          }),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok || data.status !== "request_submitted") {
-        setMessageType("error");
-        if (response.status === 413 || /Payload Too Large/i.test(responseText)) {
-          setMessage("The photo request is still too large. The backend JSON limit must be increased and the backend redeployed.");
-        } else {
-          setMessage(data.message || "We couldn't submit your request. Please try again.");
+        if (response.status === 401) {
+          throw new Error(
+            "Your login session has expired. Please log in again."
+          );
         }
-        return;
+
+        throw new Error(
+          data.message || "Unable to submit your rider application."
+        );
       }
 
       setSuccess(true);
       setMessageType("success");
-      setMessage(
-        "Your request was submitted successfully. Our Customer Support team will review it within 24 hours."
-      );
 
-      // This page is opened by the Become a Rider button using window.open().
-      // Browsers generally allow script-closing tabs opened by scripts.
-      window.setTimeout(() => {
-        window.close();
-      }, 3500);
+      setMessage(
+        "Your rider application has been submitted successfully. Customer Support will review your application."
+      );
     } catch (error) {
+      console.error("Rider application error:", error);
+
       setMessageType("error");
-      setMessage("A network error occurred. Please try again.");
+      setMessage(error.message || "A network error occurred.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  // ------------------------------------------------
+  // STYLES
+  // ------------------------------------------------
 
   const inputStyle = {
     width: "100%",
@@ -288,7 +406,28 @@ export default function BecomeRider() {
     outline: "none",
     background: "#fff",
     color: "#111827",
+    marginTop: 8,
   };
+
+  // ------------------------------------------------
+  // RENDER
+  // ------------------------------------------------
+
+  if (loadingUser) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#f3f6f4",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        <p>Loading your account...</p>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -344,15 +483,49 @@ export default function BecomeRider() {
         >
           DWJD Rider Community
         </p>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 36px)", lineHeight: 1.15, color: "#111827", margin: "0 0 12px" }}>
+
+        <h1
+          style={{
+            fontSize: "clamp(28px, 5vw, 36px)",
+            lineHeight: 1.15,
+            color: "#111827",
+            margin: "0 0 12px",
+          }}
+        >
           Become a Rider
         </h1>
-        <p style={{ color: "#6b7280", fontSize: 14, lineHeight: 1.7, margin: "0 0 28px" }}>
-          Share your details to request a rider account. Our Customer Support team
-          will review your request within 24 hours.
+
+        <p
+          style={{
+            color: "#6b7280",
+            fontSize: 14,
+            lineHeight: 1.7,
+            margin: "0 0 28px",
+          }}
+        >
+          Apply using your existing DWJD account. After approval,
+          your existing account will be converted into a rider account.
+          You do not need to create another account.
         </p>
 
-        {success ? (
+        {!authenticated ? (
+          <div
+            role="alert"
+            style={{
+              border: "1px solid #fecaca",
+              background: "#fef2f2",
+              color: "#991b1b",
+              borderRadius: 16,
+              padding: 18,
+              lineHeight: 1.7,
+            }}
+          >
+            {message || "Please log in before requesting rider access."}
+            <p style={{ marginTop: 10, fontSize: 13 }}>
+              Log in to DWJD and open this page again.
+            </p>
+          </div>
+        ) : success ? (
           <div
             role="status"
             style={{
@@ -365,14 +538,20 @@ export default function BecomeRider() {
             }}
           >
             <div style={{ fontSize: 24, marginBottom: 8 }}>✓</div>
-            <strong>Request submitted successfully!</strong>
+
+            <strong>Application submitted successfully!</strong>
+
             <p style={{ margin: "8px 0 0" }}>{message}</p>
-            <p style={{ fontSize: 13, margin: "10px 0 0" }}>
-              This tab will close automatically. If your browser blocks it, you can close it yourself.
+
+            <p style={{ marginTop: 12, fontSize: 13 }}>
+              Your existing account remains unchanged until an
+              administrator approves and converts it.
             </p>
           </div>
         ) : (
           <form onSubmit={submitRequest}>
+            {/* ACCOUNT DETAILS */}
+
             <div
               style={{
                 display: "grid",
@@ -380,112 +559,184 @@ export default function BecomeRider() {
                 gap: 14,
               }}
             >
-              <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 700 }}>
+              <label
+                style={{
+                  display: "block",
+                  color: "#374151",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
                 First name
+
                 <input
-                  name="first_name"
-                  autoComplete="given-name"
                   value={form.first_name}
-                  onChange={updateField}
-                  required
-                  maxLength={80}
-                  placeholder="Enter first name"
-                  style={{ ...inputStyle, marginTop: 8 }}
+                  readOnly
+                  style={{
+                    ...inputStyle,
+                    background: "#f3f4f6",
+                  }}
                 />
               </label>
-              <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 700 }}>
+
+              <label
+                style={{
+                  display: "block",
+                  color: "#374151",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
                 Last name
+
                 <input
-                  name="last_name"
-                  autoComplete="family-name"
                   value={form.last_name}
-                  onChange={updateField}
-                  required
-                  maxLength={80}
-                  placeholder="Enter last name"
-                  style={{ ...inputStyle, marginTop: 8 }}
+                  readOnly
+                  style={{
+                    ...inputStyle,
+                    background: "#f3f4f6",
+                  }}
                 />
               </label>
             </div>
 
-            <label style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 700, marginTop: 18 }}>
+            <label
+              style={{
+                display: "block",
+                color: "#374151",
+                fontSize: 13,
+                fontWeight: 700,
+                marginTop: 18,
+              }}
+            >
               Email address
+
               <input
-                name="email"
                 type="email"
-                autoComplete="email"
                 value={form.email}
-                onChange={updateField}
-                required
-                maxLength={254}
-                placeholder="you@example.com"
-                style={{ ...inputStyle, marginTop: 8 }}
+                readOnly
+                style={{
+                  ...inputStyle,
+                  background: "#f3f4f6",
+                }}
               />
             </label>
 
-            <section style={{ marginTop: 20, padding: 16, border: "1px solid #d1fae5", background: "#f0fdf4", borderRadius: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <label
+              style={{
+                display: "block",
+                color: "#374151",
+                fontSize: 13,
+                fontWeight: 700,
+                marginTop: 18,
+              }}
+            >
+              Mobile number
+
+              <input
+                type="tel"
+                autoComplete="tel"
+                value={form.phone}
+                onChange={updatePhone}
+                required
+                maxLength={20}
+                placeholder="e.g. +91 98765 43210"
+                style={inputStyle}
+              />
+            </label>
+
+            {/* PROFILE PHOTO */}
+
+            <section
+              style={{
+                marginTop: 20,
+                padding: 16,
+                border: "1px solid #d1fae5",
+                background: "#f0fdf4",
+                borderRadius: 16,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                }}
+              >
                 {profileImageUrl ? (
-                  <img src={profileImageUrl} alt="Confirmed rider profile" style={{ width: 76, height: 76, borderRadius: "50%", objectFit: "cover", border: "3px solid #86efac" }} />
-                ) : capturedPhoto ? (
-                  <img src={capturedPhoto} alt="Captured rider profile preview" style={{ width: 76, height: 76, borderRadius: "50%", objectFit: "cover", border: "3px solid #86efac" }} />
+                  <img
+                    src={profileImageUrl}
+                    alt="Confirmed rider profile"
+                    style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "3px solid #86efac",
+                    }}
+                  />
                 ) : (
-                  <div style={{ width: 76, height: 76, borderRadius: "50%", background: "#dcfce7", display: "grid", placeItems: "center", fontSize: 28 }}>📷</div>
+                  <div
+                    style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: "50%",
+                      background: "#dcfce7",
+                      display: "grid",
+                      placeItems: "center",
+                      fontSize: 28,
+                    }}
+                  >
+                    📷
+                  </div>
                 )}
+
                 <div style={{ flex: 1 }}>
-                  <strong style={{ display: "block", color: "#166534", fontSize: 14 }}>Rider profile photo *</strong>
-                  <span style={{ display: "block", color: "#4b5563", fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>
-                    {profileImageUrl ? "Photo confirmed. It will be uploaded when you submit the request." : "Use your live camera. Gallery uploads are not available."}
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#166534",
+                      fontSize: 14,
+                    }}
+                  >
+                    Rider profile photo *
+                  </strong>
+
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#4b5563",
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      marginTop: 4,
+                    }}
+                  >
+                    {profileImageUrl
+                      ? "Photo confirmed."
+                      : "Use your live camera to capture a photo."}
                   </span>
-                  <button type="button" onClick={openCamera} style={{ marginTop: 10, border: 0, borderRadius: 10, padding: "10px 13px", background: "#166534", color: "white", fontWeight: 800, cursor: "pointer" }}>
+
+                  <button
+                    type="button"
+                    onClick={openCamera}
+                    style={{
+                      marginTop: 10,
+                      border: 0,
+                      borderRadius: 10,
+                      padding: "10px 13px",
+                      background: "#166534",
+                      color: "white",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
                     {profileImageUrl ? "Retake Photo" : "Open Camera"}
                   </button>
                 </div>
               </div>
             </section>
 
-            <button
-              type="button"
-              onClick={verifyEmail}
-              disabled={checkingEmail}
-              style={{
-                width: "100%",
-                marginTop: 12,
-                padding: 13,
-                border: "1px solid #bbf7d0",
-                borderRadius: 12,
-                background: checkingEmail ? "#dcfce7" : "#f0fdf4",
-                color: "#166534",
-                fontWeight: 800,
-                cursor: checkingEmail ? "wait" : "pointer",
-              }}
-            >
-              {checkingEmail ? "Checking email..." : emailEligible ? "Email eligible ✓" : "Verify Email"}
-            </button>
-
-            {emailEligible && (
-              <motion.label
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                style={{ display: "block", color: "#374151", fontSize: 13, fontWeight: 700, marginTop: 18 }}
-              >
-                Mobile number
-                <input
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={form.phone}
-                  onChange={updateField}
-                  required
-                  maxLength={20}
-                  placeholder="e.g. +91 98765 43210"
-                  style={{ ...inputStyle, marginTop: 8 }}
-                />
-                <span style={{ display: "block", color: "#6b7280", fontSize: 12, fontWeight: 400, marginTop: 7 }}>
-                  Include your country code if applicable.
-                </span>
-              </motion.label>
-            )}
+            {/* MESSAGE */}
 
             {message && (
               <div
@@ -496,75 +747,287 @@ export default function BecomeRider() {
                   borderRadius: 12,
                   fontSize: 13,
                   lineHeight: 1.6,
-                  color: messageType === "error" ? "#991b1b" : "#166534",
-                  background: messageType === "error" ? "#fef2f2" : "#f0fdf4",
-                  border: `1px solid ${messageType === "error" ? "#fecaca" : "#bbf7d0"}`,
+                  color:
+                    messageType === "error" ? "#991b1b" : "#166534",
+                  background:
+                    messageType === "error" ? "#fef2f2" : "#f0fdf4",
+                  border: `1px solid ${
+                    messageType === "error" ? "#fecaca" : "#bbf7d0"
+                  }`,
                 }}
               >
                 {message}
               </div>
             )}
 
-            {emailEligible && (
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{
-                  width: "100%",
-                  marginTop: 22,
-                  padding: 15,
-                  border: "none",
-                  borderRadius: 12,
-                  background: "#111827",
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: 14,
-                  cursor: submitting ? "wait" : "pointer",
-                  opacity: submitting ? 0.7 : 1,
-                  boxShadow: "0 10px 24px rgba(17, 24, 39, .16)",
-                }}
-              >
-                {submitting ? "Submitting request..." : "Request Rider Account →"}
-              </button>
-            )}
+            {/* SUBMIT */}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: "100%",
+                marginTop: 22,
+                padding: 15,
+                border: "none",
+                borderRadius: 12,
+                background: "#111827",
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: 14,
+                cursor: submitting ? "wait" : "pointer",
+                opacity: submitting ? 0.7 : 1,
+                boxShadow: "0 10px 24px rgba(17, 24, 39, .16)",
+              }}
+            >
+              {submitting
+                ? "Submitting application..."
+                : "Submit Rider Application →"}
+            </button>
           </form>
         )}
 
-        <p style={{ margin: "22px 0 0", color: "#9ca3af", fontSize: 12, textAlign: "center", lineHeight: 1.6 }}>
-          By submitting, you agree that DWJD Customer Support may contact you about this request.
+        <p
+          style={{
+            margin: "22px 0 0",
+            color: "#9ca3af",
+            fontSize: 12,
+            textAlign: "center",
+            lineHeight: 1.6,
+          }}
+        >
+          By submitting, you agree that DWJD Customer Support may
+          contact you about this application.
         </p>
       </motion.section>
 
+      {/* CAMERA MODAL */}
+
       {cameraOpen && (
-        <div role="dialog" aria-modal="true" aria-label="Capture rider profile photo" onClick={(event) => { if (event.target === event.currentTarget && !uploadingPhoto) { setCameraOpen(false); stopCamera(); } }} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(3, 7, 18, .82)", display: "grid", placeItems: "center", padding: 16 }}>
-          <section style={{ width: "100%", maxWidth: 520, background: "#fff", borderRadius: 22, padding: 20, boxShadow: "0 25px 80px rgba(0,0,0,.35)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Capture rider profile photo"
+          onClick={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !uploadingPhoto
+            ) {
+              setCameraOpen(false);
+              stopCamera();
+            }
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(3, 7, 18, .82)",
+            display: "grid",
+            placeItems: "center",
+            padding: 16,
+          }}
+        >
+          <section
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              background: "#fff",
+              borderRadius: 22,
+              padding: 20,
+              boxShadow: "0 25px 80px rgba(0,0,0,.35)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: 14,
+              }}
+            >
               <div>
-                <h2 style={{ margin: 0, color: "#111827", fontSize: 21 }}>Rider profile photo</h2>
-                <p style={{ margin: "5px 0 0", color: "#6b7280", fontSize: 13 }}>Capture a clear photo using your live camera.</p>
+                <h2
+                  style={{
+                    margin: 0,
+                    color: "#111827",
+                    fontSize: 21,
+                  }}
+                >
+                  Rider profile photo
+                </h2>
+
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    color: "#6b7280",
+                    fontSize: 13,
+                  }}
+                >
+                  Capture a clear photo using your live camera.
+                </p>
               </div>
-              <button type="button" disabled={uploadingPhoto} onClick={() => { setCameraOpen(false); stopCamera(); }} aria-label="Close camera" style={{ width: 42, height: 42, borderRadius: 12, border: "1px solid #e5e7eb", background: "#f9fafb", fontSize: 22, cursor: "pointer" }}>×</button>
+
+              <button
+                type="button"
+                disabled={uploadingPhoto}
+                onClick={() => {
+                  setCameraOpen(false);
+                  stopCamera();
+                }}
+                aria-label="Close camera"
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  border: "1px solid #e5e7eb",
+                  background: "#f9fafb",
+                  fontSize: 22,
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
             </div>
-            <div style={{ overflow: "hidden", borderRadius: 16, background: "#111827", aspectRatio: "4 / 3", display: "grid", placeItems: "center" }}>
+
+            <div
+              style={{
+                overflow: "hidden",
+                borderRadius: 16,
+                background: "#111827",
+                aspectRatio: "4 / 3",
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
               {capturedPhoto ? (
-                <img src={capturedPhoto} alt="Captured photo preview" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                <img
+                  src={capturedPhoto}
+                  alt="Captured photo preview"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                  }}
+                />
               ) : (
-                <video ref={videoRef} autoPlay muted playsInline aria-label="Live camera preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  aria-label="Live camera preview"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
               )}
             </div>
+
             <canvas ref={canvasRef} style={{ display: "none" }} />
-            {cameraError && <p role="alert" style={{ color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 11, fontSize: 13, lineHeight: 1.5 }}>{cameraError}</p>}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+
+            {cameraError && (
+              <p
+                role="alert"
+                style={{
+                  color: "#b91c1c",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: 10,
+                  padding: 11,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                }}
+              >
+                {cameraError}
+              </p>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+                marginTop: 16,
+              }}
+            >
               {!capturedPhoto ? (
-                <button type="button" onClick={capturePhoto} style={{ flex: 1, minWidth: 130, border: 0, borderRadius: 12, padding: 14, background: "#166534", color: "white", fontWeight: 800, cursor: "pointer" }}>📸 Capture Photo</button>
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  style={{
+                    flex: 1,
+                    minWidth: 130,
+                    border: 0,
+                    borderRadius: 12,
+                    padding: 14,
+                    background: "#166534",
+                    color: "white",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  📸 Capture Photo
+                </button>
               ) : (
                 <>
-                  <button type="button" disabled={uploadingPhoto} onClick={retakePhoto} style={{ flex: 1, minWidth: 110, border: "1px solid #d1d5db", borderRadius: 12, padding: 14, background: "#fff", color: "#111827", fontWeight: 800, cursor: "pointer" }}>Retake</button>
-                  <button type="button" disabled={uploadingPhoto} onClick={confirmPhoto} style={{ flex: 1, minWidth: 150, border: 0, borderRadius: 12, padding: 14, background: "#166534", color: "white", fontWeight: 800, cursor: uploadingPhoto ? "wait" : "pointer", opacity: uploadingPhoto ? .7 : 1 }}>{uploadingPhoto ? "Confirming photo…" : "✓ Confirm Photo"}</button>
+                  <button
+                    type="button"
+                    disabled={uploadingPhoto}
+                    onClick={retakePhoto}
+                    style={{
+                      flex: 1,
+                      minWidth: 110,
+                      border: "1px solid #d1d5db",
+                      borderRadius: 12,
+                      padding: 14,
+                      background: "#fff",
+                      color: "#111827",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Retake
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={uploadingPhoto}
+                    onClick={confirmPhoto}
+                    style={{
+                      flex: 1,
+                      minWidth: 150,
+                      border: 0,
+                      borderRadius: 12,
+                      padding: 14,
+                      background: "#166534",
+                      color: "white",
+                      fontWeight: 800,
+                      cursor: uploadingPhoto ? "wait" : "pointer",
+                      opacity: uploadingPhoto ? 0.7 : 1,
+                    }}
+                  >
+                    {uploadingPhoto
+                      ? "Confirming..."
+                      : "✓ Confirm Photo"}
+                  </button>
                 </>
               )}
             </div>
-            <p style={{ margin: "12px 0 0", color: "#9ca3af", fontSize: 11, lineHeight: 1.5 }}>Camera access requires permission and a secure HTTPS connection. No gallery picker is provided.</p>
+
+            <p
+              style={{
+                margin: "12px 0 0",
+                color: "#9ca3af",
+                fontSize: 11,
+                lineHeight: 1.5,
+              }}
+            >
+              Camera access requires permission and a secure HTTPS
+              connection.
+            </p>
           </section>
         </div>
       )}
