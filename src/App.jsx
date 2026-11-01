@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -6,10 +7,13 @@ import OpeningPage from "./Opening_page";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import Login from "./pages/Login";
+import AuthCallback from "./pages/AuthCallback";
 import BecomeRider from "./BecomeRider";
+
 // Main
 import Afterlogin from "./pages/Afterlogin";
 import PromotionRequest from "./PromotionRequest";
+
 // Navbar
 import Home from "./pages/Navbar/Home";
 import About from "./pages/Navbar/About";
@@ -44,7 +48,10 @@ export default function App() {
   return (
     <Routes>
 
-      {/* ================= ROOT ================= */}
+      {/* =====================================
+          ROOT
+      ===================================== */}
+
       <Route
         path="/"
         element={
@@ -56,17 +63,28 @@ export default function App() {
         }
       />
 
-      {/* ================= AUTH ================= */}
+
+      {/* =====================================
+          AUTHENTICATION
+      ===================================== */}
+
+      {/* Signup */}
       <Route
         path="/signup"
-        element={<Signup setEmail={setEmail} />}
+        element={
+          <Signup setEmail={setEmail} />
+        }
       />
 
+      {/* OTP Verification */}
       <Route
         path="/verify-otp"
-        element={<VerifyOtp email={email} />}
+        element={
+          <VerifyOtp email={email} />
+        }
       />
 
+      {/* Login */}
       <Route
         path="/login"
         element={
@@ -78,7 +96,17 @@ export default function App() {
         }
       />
 
-      {/* ================= USER / RIDER ================= */}
+      {/* Google OAuth Callback - PUBLIC ROUTE */}
+      <Route
+        path="/auth/callback"
+        element={<AuthCallback />}
+      />
+
+
+      {/* =====================================
+          USER / RIDER DASHBOARD
+      ===================================== */}
+
       <Route
         path="/afterlogin"
         element={
@@ -89,43 +117,129 @@ export default function App() {
       >
 
         {/* Home */}
-        <Route index element={<Home />} />
+        <Route
+          index
+          element={<Home />}
+        />
 
         {/* Navbar */}
-        <Route path="about" element={<About />} />
-        <Route path="contact" element={<Contact />} />
+        <Route
+          path="about"
+          element={<About />}
+        />
 
-        {/* Profile */}
-        <Route path="profile" element={<Myprofile />} />
-        <Route path="profile/edit" element={<Edit />} />
+        <Route
+          path="contact"
+          element={<Contact />}
+        />
 
-        {/* Donate */}
-        <Route path="donate" element={<DonationsType />} />
-        <Route path="donate/food" element={<Food />} />
-        <Route path="donate/clothes" element={<Cloths />} />
-        <Route path="donate/other" element={<Other />} />
-        <Route path="donate/request" element={<MyRequests />} />
+
+        {/* =====================================
+            PROFILE
+        ===================================== */}
+
+        <Route
+          path="profile"
+          element={<Myprofile />}
+        />
+
+        <Route
+          path="profile/edit"
+          element={<Edit />}
+        />
+
+
+        {/* =====================================
+            DONATE
+        ===================================== */}
+
+        <Route
+          path="donate"
+          element={<DonationsType />}
+        />
+
+        <Route
+          path="donate/food"
+          element={<Food />}
+        />
+
+        <Route
+          path="donate/clothes"
+          element={<Cloths />}
+        />
+
+        <Route
+          path="donate/other"
+          element={<Other />}
+        />
+
+        <Route
+          path="donate/request"
+          element={<MyRequests />}
+        />
+
         <Route
           path="donate/nearorphanages"
           element={<NearbyOrphanages />}
         />
 
-        {/* Pickup */}
-        <Route path="pickup/requests" element={<UsersRequests />} />
-        <Route path="pickup/direction" element={<Direction />} />
-        <Route path="pickup/verify" element={<DonateOtpVerify />} />
-        <Route path="pickup/my-rides" element={<MyRides />} />
-        <Route path="pickup/delivery" element={<Delivery />} />
-    
+
+        {/* =====================================
+            PICKUP
+        ===================================== */}
+
+        <Route
+          path="pickup/requests"
+          element={<UsersRequests />}
+        />
+
+        <Route
+          path="pickup/direction"
+          element={<Direction />}
+        />
+
+        <Route
+          path="pickup/verify"
+          element={<DonateOtpVerify />}
+        />
+
+        <Route
+          path="pickup/my-rides"
+          element={<MyRides />}
+        />
+
+        <Route
+          path="pickup/delivery"
+          element={<Delivery />}
+        />
+
       </Route>
-          <Route
-  path="/become-rider"
-  element={<BecomeRider />}
-/>
-<Route
-  path="/promotion-request"
-  element={<PromotionRequest />}
-/>
+
+
+      {/* =====================================
+          OTHER ROUTES
+      ===================================== */}
+
+      <Route
+        path="/become-rider"
+        element={<BecomeRider />}
+      />
+
+      <Route
+        path="/promotion-request"
+        element={<PromotionRequest />}
+      />
+
+
+      {/* =====================================
+          FALLBACK
+      ===================================== */}
+
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
+      />
+
     </Routes>
   );
 }

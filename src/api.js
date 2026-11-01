@@ -1,13 +1,42 @@
+
 // ============================================
 // BASE URL
 // ============================================
 
 // Local development:
-// const BASE_URL = "http://localhost:5000";
+// export const BASE_URL = "http://localhost:5000";
 
 // Production backend:
 export const BASE_URL =
   "https://back-end-project-group.onrender.com";
+
+
+// ============================================
+// COMMON API RESPONSE HANDLER
+// ============================================
+
+async function handleResponse(res) {
+  let result;
+
+  try {
+    result = await res.json();
+  } catch {
+    throw new Error("The server returned an invalid response.");
+  }
+
+  if (!res.ok) {
+    const error = new Error(
+      result.message || result.status || "Something went wrong."
+    );
+
+    error.status = result.status;
+    error.httpStatus = res.status;
+
+    throw error;
+  }
+
+  return result;
+}
 
 
 // ============================================
@@ -20,7 +49,6 @@ export async function signup(data) {
   const res = await fetch(`${BASE_URL}/signup`, {
     method: "POST",
 
-    // JSON for existing callers; FormData for image uploads.
     ...(isFormData
       ? {}
       : {
@@ -32,19 +60,7 @@ export async function signup(data) {
     body: isFormData ? data : JSON.stringify(data),
   });
 
-  const result = await res.json();
-
-  if (!res.ok) {
-    const error = new Error(
-      result.message || result.status || "Signup failed."
-    );
-
-    error.status = result.status;
-
-    throw error;
-  }
-
-  return result;
+  return handleResponse(res);
 }
 
 
@@ -55,15 +71,13 @@ export async function signup(data) {
 export async function verifyOtp(data) {
   const res = await fetch(`${BASE_URL}/verify-otp`, {
     method: "POST",
-
     headers: {
       "Content-Type": "application/json",
     },
-
     body: JSON.stringify(data),
   });
 
-  return res.json();
+  return handleResponse(res);
 }
 
 
@@ -74,13 +88,37 @@ export async function verifyOtp(data) {
 export async function resendOtp(data) {
   const res = await fetch(`${BASE_URL}/resend-otp`, {
     method: "POST",
-
     headers: {
       "Content-Type": "application/json",
     },
-
     body: JSON.stringify(data),
   });
 
-  return res.json();
+  return handleResponse(res);
+}
+
+
+// ============================================
+// GOOGLE OAUTH - EXCHANGE LOGIN CODE
+// POST /auth/google/exchange
+// ============================================
+
+export async function googleAuthExchange(code) {
+  if (!code || typeof code !== "string") {
+    throw new Error("Google authentication code is missing.");
+  }
+
+  const res = await fetch(
+    `${BASE_URL}/auth/google/exchange`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ code }),
+    }
+  );
+
+  return handleResponse(res);
 }
