@@ -2,13 +2,19 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-import { BASE_URL } from "../../api.js";
+// ============================================
+// BACKEND CONFIGURATION
+// ============================================
 
-// --------------------------------------------------
-// GET LOGGED-IN USER
-// --------------------------------------------------
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://back-end-project-group.onrender.com";
 
-function getLoggedInUser() {
+// ============================================
+// AUTHENTICATION HELPERS
+// ============================================
+
+function getStoredUser() {
   const keys = ["user", "userInfo", "loggedInUser", "profile"];
 
   for (const key of keys) {
@@ -25,22 +31,22 @@ function getLoggedInUser() {
         parsed?.profile,
       ].filter(Boolean);
 
-      for (const candidate of candidates) {
-        if (candidate.email || candidate._id) {
-          return candidate;
-        }
-      }
+      const user = candidates.find(
+        (item) => item && (item._id || item.email)
+      );
+
+      if (user) return user;
     } catch {
-      // Try the next storage key.
+      // Continue checking other storage keys.
     }
   }
 
   return null;
 }
 
-// --------------------------------------------------
-// COMPONENT
-// --------------------------------------------------
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export default function BecomeRider() {
   const [form, setForm] = useState({
@@ -58,6 +64,7 @@ export default function BecomeRider() {
   const [messageType, setMessageType] = useState("info");
   const [success, setSuccess] = useState(false);
 
+  // Camera states
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [capturedPhoto, setCapturedPhoto] = useState("");
@@ -69,15 +76,15 @@ export default function BecomeRider() {
   const canvasRef = useRef(null);
   const photoBlobRef = useRef(null);
 
-  // ------------------------------------------------
-  // LOAD AUTHENTICATED USER
-  // ------------------------------------------------
+  // ==========================================
+  // LOAD LOGGED-IN USER
+  // ==========================================
 
   useEffect(() => {
     document.title = "Become a Rider | DWJD";
 
     const token = localStorage.getItem("token");
-    const user = getLoggedInUser();
+    const user = getStoredUser();
 
     if (!token || !user) {
       setAuthenticated(false);
@@ -90,11 +97,13 @@ export default function BecomeRider() {
     if (user.user_type && user.user_type !== "user") {
       setAuthenticated(false);
       setMessageType("error");
+
       setMessage(
         user.user_type === "rider"
           ? "You already have a rider account."
           : "This account cannot submit a rider application."
       );
+
       setLoadingUser(false);
       return;
     }
@@ -106,15 +115,16 @@ export default function BecomeRider() {
       phone: user.phone || "",
     });
 
+    // Keep the user's existing photo as a fallback.
     setProfileImageUrl(user.profile_image || "");
 
     setAuthenticated(true);
     setLoadingUser(false);
   }, []);
 
-  // ------------------------------------------------
-  // PHONE INPUT
-  // ------------------------------------------------
+  // ==========================================
+  // UPDATE PHONE
+  // ==========================================
 
   const updatePhone = (event) => {
     setForm((current) => ({
@@ -123,9 +133,9 @@ export default function BecomeRider() {
     }));
   };
 
-  // ------------------------------------------------
-  // CAMERA CLEANUP
-  // ------------------------------------------------
+  // ==========================================
+  // STOP CAMERA
+  // ==========================================
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -139,12 +149,16 @@ export default function BecomeRider() {
   };
 
   useEffect(() => {
-    return () => stopCamera();
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, []);
 
-  // ------------------------------------------------
+  // ==========================================
   // OPEN CAMERA
-  // ------------------------------------------------
+  // ==========================================
 
   const openCamera = () => {
     setCameraError("");
@@ -153,9 +167,9 @@ export default function BecomeRider() {
     setCameraOpen(true);
   };
 
-  // ------------------------------------------------
-  // START LIVE CAMERA
-  // ------------------------------------------------
+  // ==========================================
+  // START FRONT CAMERA
+  // ==========================================
 
   useEffect(() => {
     let cancelled = false;
@@ -165,7 +179,7 @@ export default function BecomeRider() {
 
       if (!navigator.mediaDevices?.getUserMedia) {
         setCameraError(
-          "Camera is unavailable. Please use HTTPS and a supported browser."
+          "Camera is unavailable. Use HTTPS and a supported browser."
         );
         return;
       }
@@ -220,9 +234,9 @@ export default function BecomeRider() {
     };
   }, [cameraOpen, capturedPhoto]);
 
-  // ------------------------------------------------
+  // ==========================================
   // CAPTURE PHOTO
-  // ------------------------------------------------
+  // ==========================================
 
   const capturePhoto = () => {
     const video = videoRef.current;
@@ -250,7 +264,7 @@ export default function BecomeRider() {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          setCameraError("Could not capture the photo.");
+          setCameraError("Could not capture the photo. Try again.");
           return;
         }
 
@@ -271,19 +285,20 @@ export default function BecomeRider() {
     );
   };
 
-  // ------------------------------------------------
+  // ==========================================
   // RETAKE PHOTO
-  // ------------------------------------------------
+  // ==========================================
 
   const retakePhoto = () => {
     setCapturedPhoto("");
+    setProfileImageUrl("");
     photoBlobRef.current = null;
     setCameraError("");
   };
 
-  // ------------------------------------------------
+  // ==========================================
   // CONFIRM PHOTO
-  // ------------------------------------------------
+  // ==========================================
 
   const confirmPhoto = async () => {
     if (!photoBlobRef.current || !capturedPhoto) {
@@ -295,20 +310,25 @@ export default function BecomeRider() {
     setCameraError("");
 
     try {
+      // Keep the JPEG data URL until the application is submitted.
       setProfileImageUrl(capturedPhoto);
       setCameraOpen(false);
       stopCamera();
 
       setMessageType("success");
-      setMessage("Profile photo confirmed.");
+      setMessage("Photo confirmed. Submit your rider application to save it.");
+    } catch (error) {
+      setCameraError(
+        error.message || "Could not confirm this photo."
+      );
     } finally {
       setUploadingPhoto(false);
     }
   };
 
-  // ------------------------------------------------
+  // ==========================================
   // SUBMIT RIDER APPLICATION
-  // ------------------------------------------------
+  // ==========================================
 
   const submitRequest = async (event) => {
     event.preventDefault();
@@ -335,9 +355,9 @@ export default function BecomeRider() {
       return;
     }
 
-    if (!profileImageUrl) {
+    if (!capturedPhoto || !photoBlobRef.current) {
       setMessageType("error");
-      setMessage("Please capture and confirm your profile photo.");
+      setMessage("Please capture and confirm a new profile photo.");
       return;
     }
 
@@ -345,7 +365,7 @@ export default function BecomeRider() {
 
     try {
       const response = await fetch(
-        `${BASE_URL}/rider/request-account`,
+        `${API_BASE_URL}/rider/request-account`,
         {
           method: "POST",
 
@@ -354,21 +374,35 @@ export default function BecomeRider() {
             Authorization: `Bearer ${token}`,
           },
 
+          // Identity is obtained from the JWT on the backend.
+          // Do not send a user ID or email as trusted identity.
           body: JSON.stringify({
             phone: form.phone.trim(),
-
-            // Sent for backend photo processing.
-            profile_image_data: profileImageUrl,
+            profile_image_data: capturedPhoto,
           }),
         }
       );
 
-      const data = await response.json().catch(() => ({}));
+      const responseText = await response.text();
+
+      let data = {};
+
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        throw new Error("The server returned an invalid response.");
+      }
 
       if (!response.ok || data.status !== "request_submitted") {
         if (response.status === 401) {
           throw new Error(
             "Your login session has expired. Please log in again."
+          );
+        }
+
+        if (response.status === 413) {
+          throw new Error(
+            "The photo is too large. Please retake it and try again."
           );
         }
 
@@ -381,8 +415,14 @@ export default function BecomeRider() {
       setMessageType("success");
 
       setMessage(
-        "Your rider application has been submitted successfully. Customer Support will review your application."
+        data.message ||
+          "Your rider application has been submitted successfully."
       );
+
+      // This page may have been opened using window.open().
+      window.setTimeout(() => {
+        window.close();
+      }, 3500);
     } catch (error) {
       console.error("Rider application error:", error);
 
@@ -393,9 +433,9 @@ export default function BecomeRider() {
     }
   };
 
-  // ------------------------------------------------
-  // STYLES
-  // ------------------------------------------------
+  // ==========================================
+  // INPUT STYLE
+  // ==========================================
 
   const inputStyle = {
     width: "100%",
@@ -406,12 +446,11 @@ export default function BecomeRider() {
     outline: "none",
     background: "#fff",
     color: "#111827",
-    marginTop: 8,
   };
 
-  // ------------------------------------------------
-  // RENDER
-  // ------------------------------------------------
+  // ==========================================
+  // LOADING
+  // ==========================================
 
   if (loadingUser) {
     return (
@@ -424,10 +463,14 @@ export default function BecomeRider() {
           fontFamily: "Arial, sans-serif",
         }}
       >
-        <p>Loading your account...</p>
+        <p>Loading your DWJD account...</p>
       </main>
     );
   }
+
+  // ==========================================
+  // MAIN UI
+  // ==========================================
 
   return (
     <main
@@ -521,9 +564,6 @@ export default function BecomeRider() {
             }}
           >
             {message || "Please log in before requesting rider access."}
-            <p style={{ marginTop: 10, fontSize: 13 }}>
-              Log in to DWJD and open this page again.
-            </p>
           </div>
         ) : success ? (
           <div
@@ -543,9 +583,13 @@ export default function BecomeRider() {
 
             <p style={{ margin: "8px 0 0" }}>{message}</p>
 
-            <p style={{ marginTop: 12, fontSize: 13 }}>
-              Your existing account remains unchanged until an
-              administrator approves and converts it.
+            <p style={{ fontSize: 13, marginTop: 10 }}>
+              Your existing account will remain a normal user account
+              until an administrator approves and converts it.
+            </p>
+
+            <p style={{ fontSize: 12, marginTop: 10 }}>
+              You can close this tab if it does not close automatically.
             </p>
           </div>
         ) : (
@@ -555,7 +599,8 @@ export default function BecomeRider() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(180px, 1fr))",
                 gap: 14,
               }}
             >
@@ -574,6 +619,7 @@ export default function BecomeRider() {
                   readOnly
                   style={{
                     ...inputStyle,
+                    marginTop: 8,
                     background: "#f3f4f6",
                   }}
                 />
@@ -594,6 +640,7 @@ export default function BecomeRider() {
                   readOnly
                   style={{
                     ...inputStyle,
+                    marginTop: 8,
                     background: "#f3f4f6",
                   }}
                 />
@@ -617,6 +664,7 @@ export default function BecomeRider() {
                 readOnly
                 style={{
                   ...inputStyle,
+                  marginTop: 8,
                   background: "#f3f4f6",
                 }}
               />
@@ -641,8 +689,23 @@ export default function BecomeRider() {
                 required
                 maxLength={20}
                 placeholder="e.g. +91 98765 43210"
-                style={inputStyle}
+                style={{
+                  ...inputStyle,
+                  marginTop: 8,
+                }}
               />
+
+              <span
+                style={{
+                  display: "block",
+                  color: "#6b7280",
+                  fontSize: 12,
+                  fontWeight: 400,
+                  marginTop: 7,
+                }}
+              >
+                Include your country code if applicable.
+              </span>
             </label>
 
             {/* PROFILE PHOTO */}
@@ -711,9 +774,9 @@ export default function BecomeRider() {
                       marginTop: 4,
                     }}
                   >
-                    {profileImageUrl
-                      ? "Photo confirmed."
-                      : "Use your live camera to capture a photo."}
+                    {capturedPhoto
+                      ? "New photo captured and confirmed."
+                      : "Use your live camera. Gallery uploads are not available."}
                   </span>
 
                   <button
@@ -730,7 +793,7 @@ export default function BecomeRider() {
                       cursor: "pointer",
                     }}
                   >
-                    {profileImageUrl ? "Retake Photo" : "Open Camera"}
+                    {capturedPhoto ? "Retake Photo" : "Open Camera"}
                   </button>
                 </div>
               </div>
@@ -797,11 +860,13 @@ export default function BecomeRider() {
           }}
         >
           By submitting, you agree that DWJD Customer Support may
-          contact you about this application.
+          contact you about this request.
         </p>
       </motion.section>
 
-      {/* CAMERA MODAL */}
+      {/* ========================================
+          CAMERA MODAL
+      ======================================== */}
 
       {cameraOpen && (
         <div
@@ -926,7 +991,10 @@ export default function BecomeRider() {
               )}
             </div>
 
-            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <canvas
+              ref={canvasRef}
+              style={{ display: "none" }}
+            />
 
             {cameraError && (
               <p
@@ -1010,7 +1078,7 @@ export default function BecomeRider() {
                     }}
                   >
                     {uploadingPhoto
-                      ? "Confirming..."
+                      ? "Confirming photo..."
                       : "✓ Confirm Photo"}
                   </button>
                 </>
@@ -1026,7 +1094,7 @@ export default function BecomeRider() {
               }}
             >
               Camera access requires permission and a secure HTTPS
-              connection.
+              connection. Gallery uploads are not available.
             </p>
           </section>
         </div>
