@@ -1,647 +1,1100 @@
-import { useEffect, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const BASE_URL = "https://back-end-project-group.onrender.com";
 
 const STATUS_META = {
   not_picked: {
-    label:  "Not Picked",
-    color:  "#fbbf24",
-    bg:     "rgba(251,191,36,0.1)",
-    border: "rgba(251,191,36,0.25)",
-    icon:   "⏳",
+    label: "Pending",
+    color: "#D97706",
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    icon: "clock",
+    progress: 0,
   },
   picked: {
-    label:  "Picked Up",
-    color:  "#60a5fa",
-    bg:     "rgba(96,165,250,0.1)",
-    border: "rgba(96,165,250,0.25)",
-    icon:   "🚗",
+    label: "Picked Up",
+    color: "#2563EB",
+    bg: "#EFF6FF",
+    border: "#BFDBFE",
+    icon: "truck",
+    progress: 1,
   },
   collected: {
-    label:  "Collected",
-    color:  "#a78bfa",
-    bg:     "rgba(167,139,250,0.1)",
-    border: "rgba(167,139,250,0.25)",
-    icon:   "📦",
+    label: "Collected",
+    color: "#7C3AED",
+    bg: "#F5F3FF",
+    border: "#DDD6FE",
+    icon: "package",
+    progress: 2,
   },
   delivered: {
-    label:  "Delivered",
-    color:  "#34d399",
-    bg:     "rgba(52,211,153,0.1)",
-    border: "rgba(52,211,153,0.25)",
-    icon:   "✅",
+    label: "Delivered",
+    color: "#059669",
+    bg: "#ECFDF5",
+    border: "#A7F3D0",
+    icon: "check",
+    progress: 3,
   },
 };
 
 const ITEM_ICON = {
-  food:    "🍱",
+  food: "🍱",
   clothes: "👕",
-  other:   "📦",
+  other: "📦",
 };
 
+const FILTERS = [
+  { key: "all", label: "All requests" },
+  { key: "not_picked", label: "Pending" },
+  { key: "picked", label: "Picked up" },
+  { key: "collected", label: "Collected" },
+  { key: "delivered", label: "Delivered" },
+];
+
+function Icon({ name, size = 20 }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+  };
+
+  const paths = {
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    truck: <><path d="M3 6h12v12H3z" /><path d="M15 10h4l3 4v4h-7" /><circle cx="7.5" cy="18" r="1.5" /><circle cx="18.5" cy="18" r="1.5" /></>,
+    package: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 8 9 5 9-5M12 13v9M3 8v10l9 4 9-4V8" /></>,
+    check: <><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></>,
+    box: <><path d="M4 7 12 3l8 4v10l-8 4-8-4V7Z" /><path d="m4 7 8 4 8-4M12 11v10" /></>,
+    refresh: <><path d="M20 7v5h-5" /><path d="M4 17v-5h5" /><path d="M5.5 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.5-3" /></>,
+    search: <><circle cx="10.8" cy="10.8" r="7" /><path d="m16 16 5 5" /></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,
+    map: <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z" /><path d="M9 3v15M15 6v15" /></>,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
+    arrow: <><path d="M5 12h14M13 6l6 6-6 6" /></>,
+    alert: <><path d="M12 3 2.5 20h19L12 3Z" /><path d="M12 9v5M12 17h.01" /></>,
+  };
+
+  return <svg {...common}>{paths[name] || paths.box}</svg>;
+}
+
+function formatDate(value) {
+  if (!value) return "Date unavailable";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function MyRequests() {
-  const user = JSON.parse(localStorage.getItem("user"));
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
   const [resending, setResending] = useState(null);
-  const [filter, setFilter]     = useState("all");
+  const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  useEffect(() => { fetchRequests(); }, []);
-
-  async function fetchRequests() {
+  const user = useMemo(() => {
     try {
-      const res  = await fetch(`${BASE_URL}/my-requests`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email: user.email }),
-      });
-      const data = await res.json();
-      if (data.status === "success") setRequests(data.requests);
+      return JSON.parse(localStorage.getItem("user") || "null");
     } catch {
-      console.error("Fetch failed");
+      return null;
+    }
+  }, []);
+
+  const fetchRequests = useCallback(async () => {
+    if (!user?.email) {
+      setError("Please sign in to view your donation requests.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(`${BASE_URL}/my-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.status !== "success") {
+        throw new Error(data.message || "Unable to load your requests.");
+      }
+
+      setRequests(Array.isArray(data.requests) ? data.requests : []);
+    } catch (err) {
+      console.error("Fetch requests error:", err);
+      setError(err.message || "Unable to connect to the server.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   async function resendOtp(donationId) {
     setResending(donationId);
+    setNotice("");
+    setError("");
+
     try {
-      const res  = await fetch(`${BASE_URL}/resend-donation-otp`, {
-        method:  "POST",
+      const res = await fetch(`${BASE_URL}/resend-donation-otp`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ donation_id: donationId }),
+        body: JSON.stringify({ donation_id: donationId }),
       });
+
       const data = await res.json();
-      alert(data.status === "otp_resent" ? "OTP resent successfully 📩" : data.status);
-    } catch {
-      alert("Server error");
+
+      if (!res.ok || data.status !== "otp_resent") {
+        throw new Error(data.message || data.status || "Unable to resend OTP.");
+      }
+
+      setNotice("Verification OTP has been sent to your email.");
+    } catch (err) {
+      console.error("Resend OTP error:", err);
+      setError(err.message || "Unable to resend OTP.");
     } finally {
       setResending(null);
     }
   }
 
-  const FILTERS = [
-    { key: "all",        label: "All" },
-    { key: "not_picked", label: "Pending" },
-    { key: "picked",     label: "Picked" },
-    { key: "collected",  label: "Collected" },
-    { key: "delivered",  label: "Delivered" },
-  ];
+  const filtered = useMemo(() => {
+    if (filter === "all") return requests;
+    return requests.filter((r) => r.donation_status === filter);
+  }, [requests, filter]);
 
-  const filtered = filter === "all"
-    ? requests
-    : requests.filter(r => r.donation_status === filter);
+  const stats = useMemo(() => [
+    {
+      key: "all",
+      label: "Total requests",
+      value: requests.length,
+      icon: "box",
+      color: "#059669",
+      bg: "#ECFDF5",
+    },
+    {
+      key: "not_picked",
+      label: "Awaiting pickup",
+      value: requests.filter((r) => r.donation_status === "not_picked").length,
+      icon: "clock",
+      color: "#D97706",
+      bg: "#FFFBEB",
+    },
+    {
+      key: "picked",
+      label: "Picked up",
+      value: requests.filter((r) => r.donation_status === "picked").length,
+      icon: "truck",
+      color: "#2563EB",
+      bg: "#EFF6FF",
+    },
+    {
+      key: "delivered",
+      label: "Successfully delivered",
+      value: requests.filter((r) => r.donation_status === "delivered").length,
+      icon: "check",
+      color: "#059669",
+      bg: "#ECFDF5",
+    },
+  ], [requests]);
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
         .mr-root {
+          --green: #059669;
+          --green-dark: #047857;
+          --ink: #172B24;
+          --muted: #718078;
+          --line: #E8EEEA;
           min-height: 100vh;
-          background: #07080f;
-          color: #eeeaf4;
-          font-family: 'Syne', sans-serif;
-          position: relative;
-          overflow-x: hidden;
-          padding: 48px 24px 100px;
+          padding: 46px 24px 90px;
+          background: #F6F9F7;
+          color: var(--ink);
+          font-family: 'Inter', sans-serif;
         }
 
-        .mr-root::before {
-          content: '';
-          position: fixed; inset: 0;
-          background:
-            radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,0.07), transparent 60%),
-            radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,0.05), transparent 60%);
-          pointer-events: none; z-index: 0;
-        }
-
-        .mr-grid-bg {
-          position: fixed; inset: 0;
-          background-image:
-            linear-gradient(rgba(52,211,153,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(52,211,153,0.03) 1px, transparent 1px);
-          background-size: 56px 56px;
-          pointer-events: none; z-index: 0;
-        }
+        .mr-root * { box-sizing: border-box; }
 
         .mr-wrap {
-          position: relative; z-index: 1;
-          max-width: 720px; margin: 0 auto;
-          animation: mrFadeUp 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+          width: 100%;
+          max-width: 1120px;
+          margin: 0 auto;
+          animation: mrEnter .55s ease both;
         }
 
-        @keyframes mrFadeUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes mrEnter {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
-        /* HEADER */
-        .mr-header { text-align: center; margin-bottom: 36px; }
-
-        .mr-badge {
-          display: inline-flex; align-items: center; gap: 8px;
-          background: rgba(52,211,153,0.08);
-          border: 1px solid rgba(52,211,153,0.2);
-          border-radius: 100px; padding: 6px 18px;
-          font-family: 'DM Mono', monospace; font-size: 11px;
-          color: #34d399; letter-spacing: 0.1em; text-transform: uppercase;
-          margin-bottom: 16px;
+        .mr-topline {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 36px;
         }
 
-        .mr-badge-dot {
-          width: 6px; height: 6px; background: #34d399;
-          border-radius: 50%; animation: mrBlink 2s ease-in-out infinite;
+        .mr-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: 'Manrope', sans-serif;
+          font-size: 17px;
+          font-weight: 800;
+          letter-spacing: -.5px;
         }
 
-        @keyframes mrBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .mr-brand-icon {
+          display: grid;
+          place-items: center;
+          width: 42px;
+          height: 42px;
+          border-radius: 13px;
+          color: white;
+          background: linear-gradient(135deg,#10B981,#047857);
+          box-shadow: 0 6px 16px #05966930;
+        }
+
+        .mr-brand small {
+          display: block;
+          color: #87938C;
+          font-family: 'Inter', sans-serif;
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 1.2px;
+          text-transform: uppercase;
+          margin-top: 2px;
+        }
+
+        .mr-refresh {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          min-height: 42px;
+          padding: 0 15px;
+          border: 1px solid var(--line);
+          border-radius: 11px;
+          background: white;
+          color: #47574E;
+          font: 600 12px 'Inter', sans-serif;
+          cursor: pointer;
+          transition: .2s ease;
+        }
+
+        .mr-refresh:hover {
+          border-color: #A7DCC6;
+          color: var(--green);
+          transform: translateY(-1px);
+        }
+
+        .mr-heading { margin-bottom: 30px; }
+
+        .mr-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 13px;
+          color: var(--green);
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 1.3px;
+          text-transform: uppercase;
+        }
+
+        .mr-eyebrow-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #10B981;
+          box-shadow: 0 0 0 4px #10B98118;
+        }
 
         .mr-title {
-          font-size: clamp(26px, 5vw, 40px); font-weight: 800;
-          letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 8px;
-          background: linear-gradient(135deg, #eeeaf4 0%, #a8a0c8 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-          background-clip: text;
+          margin: 0;
+          font-family: 'Manrope', sans-serif;
+          font-size: clamp(30px,4vw,43px);
+          font-weight: 800;
+          letter-spacing: -1.8px;
+          line-height: 1.15;
+          color: #172B24;
         }
 
-        .mr-title span {
-          background: linear-gradient(135deg, #34d399, #10b981);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
+        .mr-title span { color: var(--green); }
 
         .mr-subtitle {
-          font-family: 'DM Mono', monospace; font-size: 12px;
-          color: rgba(238,234,244,0.35);
+          margin: 11px 0 0;
+          color: #78877F;
+          font-size: 14px;
+          line-height: 1.7;
         }
 
-        /* FILTERS */
-        .mr-filters {
-          display: flex; gap: 6px; flex-wrap: wrap;
-          margin-bottom: 28px; justify-content: center;
-        }
-
-        .mr-filter-btn {
-          padding: 7px 16px; border-radius: 100px;
-          border: 1px solid rgba(255,255,255,0.07);
-          background: rgba(255,255,255,0.03);
-          color: rgba(238,234,244,0.45);
-          font-family: 'DM Mono', monospace; font-size: 11px;
-          cursor: pointer; transition: all 0.2s; white-space: nowrap;
-        }
-
-        .mr-filter-btn:hover {
-          border-color: rgba(52,211,153,0.2);
-          color: rgba(238,234,244,0.7);
-        }
-
-        .mr-filter-btn.active {
-          background: rgba(52,211,153,0.1);
-          border-color: rgba(52,211,153,0.35);
-          color: #34d399;
-        }
-
-        /* STATS */
         .mr-stats {
-          display: flex; gap: 10px; justify-content: center;
-          margin-bottom: 28px; flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: repeat(4,minmax(0,1fr));
+          gap: 15px;
+          margin-bottom: 30px;
         }
 
         .mr-stat {
-          display: flex; flex-direction: column; align-items: center;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 14px; padding: 12px 20px;
-          min-width: 80px;
+          min-width: 0;
+          padding: 19px;
+          border: 1px solid #E9EFEB;
+          border-radius: 17px;
+          background: #fff;
+          box-shadow: 0 3px 12px #193B2B06;
+          transition: transform .22s ease, box-shadow .22s ease;
         }
 
-        .mr-stat-num {
-          font-size: 22px; font-weight: 800;
-          letter-spacing: -0.02em;
+        .mr-stat.clickable { cursor: pointer; }
+
+        .mr-stat:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px #193B2B0D;
+        }
+
+        .mr-stat-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 15px;
+        }
+
+        .mr-stat-icon {
+          display: grid;
+          place-items: center;
+          width: 38px;
+          height: 38px;
+          border-radius: 12px;
+        }
+
+        .mr-stat-number {
+          font-family: 'Manrope', sans-serif;
+          font-size: 30px;
+          font-weight: 800;
+          letter-spacing: -1px;
+          line-height: 1;
         }
 
         .mr-stat-label {
-          font-family: 'DM Mono', monospace; font-size: 10px;
-          color: rgba(238,234,244,0.35); margin-top: 2px;
-          text-transform: uppercase; letter-spacing: 0.06em;
+          margin-top: 8px;
+          color: #859189;
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1.5;
         }
 
-        /* LIST */
-        .mr-list { display: flex; flex-direction: column; gap: 14px; }
+        .mr-toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 15px;
+          margin-bottom: 17px;
+        }
 
-        /* CARD */
+        .mr-section-title {
+          font-family: 'Manrope', sans-serif;
+          font-size: 17px;
+          font-weight: 800;
+          letter-spacing: -.4px;
+        }
+
+        .mr-count {
+          color: #849188;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .mr-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 22px;
+        }
+
+        .mr-filter {
+          min-height: 37px;
+          padding: 0 15px;
+          border: 1px solid #E5ECE7;
+          border-radius: 9px;
+          background: white;
+          color: #718078;
+          font: 600 11px 'Inter',sans-serif;
+          cursor: pointer;
+          transition: .2s ease;
+        }
+
+        .mr-filter:hover {
+          border-color: #A7DCC6;
+          color: var(--green);
+        }
+
+        .mr-filter.active {
+          border-color: var(--green);
+          background: #ECFDF5;
+          color: var(--green-dark);
+        }
+
+        .mr-list {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
         .mr-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 20px; padding: 22px 22px 18px;
-          position: relative; overflow: hidden;
-          transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-          animation: mrCardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+          position: relative;
+          padding: 22px;
+          border: 1px solid #E7EDE9;
+          border-radius: 17px;
+          background: white;
+          box-shadow: 0 3px 12px #193B2B05;
+          animation: mrCardIn .35s ease both;
+          transition: border-color .2s ease, box-shadow .2s ease;
         }
 
         @keyframes mrCardIn {
-          from { opacity: 0; transform: translateY(14px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .mr-card::before {
-          content: '';
-          position: absolute; top: 0; left: 0; right: 0; height: 1px;
-          background: linear-gradient(90deg, transparent, var(--s-color, rgba(52,211,153,0.4)), transparent);
+          from { opacity: 0; transform: translateY(9px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .mr-card:hover {
-          border-color: var(--s-border, rgba(52,211,153,0.2));
-          transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+          border-color: #B9DFCD;
+          box-shadow: 0 9px 26px #193B2B0B;
         }
 
-        /* CARD TOP ROW */
         .mr-card-top {
-          display: flex; align-items: flex-start;
-          justify-content: space-between; gap: 12px;
-          margin-bottom: 14px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 15px;
         }
 
-        .mr-card-left { display: flex; align-items: center; gap: 14px; }
+        .mr-card-left {
+          display: flex;
+          align-items: center;
+          gap: 13px;
+          min-width: 0;
+        }
 
         .mr-item-icon {
-          width: 46px; height: 46px; border-radius: 14px;
-          background: var(--s-bg, rgba(52,211,153,0.08));
-          border: 1px solid var(--s-border, rgba(52,211,153,0.2));
-          display: flex; align-items: center; justify-content: center;
-          font-size: 20px; flex-shrink: 0;
+          display: grid;
+          place-items: center;
+          width: 49px;
+          height: 49px;
+          flex-shrink: 0;
+          border: 1px solid #E8F0EB;
+          border-radius: 14px;
+          background: #F4F8F5;
+          font-size: 22px;
         }
 
         .mr-item-name {
-          font-size: 15px; font-weight: 700;
-          color: #eeeaf4; letter-spacing: -0.01em;
-          margin-bottom: 3px; line-height: 1.3;
+          overflow-wrap: anywhere;
+          color: #20372B;
+          font-family: 'Manrope',sans-serif;
+          font-size: 15px;
+          font-weight: 800;
         }
 
         .mr-item-type {
-          font-family: 'DM Mono', monospace; font-size: 10px;
-          color: rgba(238,234,244,0.35); text-transform: uppercase;
-          letter-spacing: 0.08em;
+          margin-top: 4px;
+          color: #8A968F;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: capitalize;
         }
 
-        /* STATUS BADGE */
-        .mr-status-badge {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 6px 12px; border-radius: 100px;
-          background: var(--s-bg, rgba(52,211,153,0.08));
-          border: 1px solid var(--s-border, rgba(52,211,153,0.2));
-          font-family: 'DM Mono', monospace; font-size: 11px;
-          color: var(--s-color, #34d399);
-          white-space: nowrap; flex-shrink: 0;
+        .mr-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          flex-shrink: 0;
+          padding: 7px 11px;
+          border: 1px solid;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 700;
         }
 
-        /* CARD META ROW */
-        .mr-meta-row {
-          display: flex; gap: 20px; flex-wrap: wrap;
-          padding-top: 14px;
-          border-top: 1px solid rgba(255,255,255,0.05);
+        .mr-divider {
+          height: 1px;
+          margin: 19px 0;
+          background: #EDF1EE;
         }
 
-        .mr-meta-item {
-          display: flex; flex-direction: column; gap: 2px;
+        .mr-progress-heading {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 13px;
+          color: #87938B;
+          font-size: 10px;
+          font-weight: 700;
         }
 
-        .mr-meta-label {
-          font-family: 'DM Mono', monospace; font-size: 9px;
-          color: rgba(238,234,244,0.28); text-transform: uppercase;
-          letter-spacing: 0.1em;
+        .mr-progress-heading strong {
+          color: #53665A;
+          font-weight: 700;
         }
 
-        .mr-meta-value {
-          font-family: 'DM Mono', monospace; font-size: 12px;
-          color: rgba(238,234,244,0.6);
-        }
-
-        /* PROGRESS TRACK */
         .mr-progress {
-          display: flex; align-items: center; gap: 0;
-          margin: 16px 0 4px;
+          display: flex;
+          align-items: flex-start;
+          margin-bottom: 21px;
         }
 
         .mr-progress-step {
-          display: flex; flex-direction: column; align-items: center;
-          flex: 1; position: relative;
+          position: relative;
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .mr-progress-step:not(:last-child)::after {
+          position: absolute;
+          top: 11px;
+          left: calc(50% + 12px);
+          width: calc(100% - 24px);
+          height: 3px;
+          border-radius: 5px;
+          background: #E8EEEA;
+          content: "";
+        }
+
+        .mr-progress-step.done:not(:last-child)::after {
+          background: #34B989;
         }
 
         .mr-progress-dot {
-          width: 10px; height: 10px; border-radius: 50%;
-          border: 2px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.05);
-          z-index: 1; transition: all 0.3s;
-          position: relative;
+          z-index: 1;
+          display: grid;
+          place-items: center;
+          width: 24px;
+          height: 24px;
+          border: 2px solid #E0E8E2;
+          border-radius: 50%;
+          background: white;
+          color: transparent;
+          font-size: 11px;
+          transition: .2s ease;
         }
 
-        .mr-progress-dot.done {
-          background: var(--s-color, #34d399);
-          border-color: var(--s-color, #34d399);
-          box-shadow: 0 0 8px var(--s-color, rgba(52,211,153,0.5));
+        .mr-progress-step.done .mr-progress-dot {
+          border-color: #10B981;
+          background: #10B981;
+          color: white;
         }
-
-        .mr-progress-line {
-          position: absolute; top: 4px; left: 50%; right: -50%;
-          height: 2px;
-          background: rgba(255,255,255,0.06);
-          z-index: 0;
-        }
-
-        .mr-progress-line.done { background: var(--s-color, #34d399); }
 
         .mr-progress-label {
-          font-family: 'DM Mono', monospace; font-size: 9px;
-          color: rgba(238,234,244,0.25); margin-top: 6px;
-          text-align: center; white-space: nowrap;
-        }
-
-        .mr-progress-label.done { color: var(--s-color, #34d399); }
-
-        /* RESEND BTN */
-        .mr-resend-btn {
-          display: inline-flex; align-items: center; gap: 6px;
-          margin-top: 14px;
-          padding: 8px 16px; border-radius: 10px;
-          border: 1px solid rgba(96,165,250,0.25);
-          background: rgba(96,165,250,0.08);
-          color: #60a5fa;
-          font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
-          cursor: pointer; transition: all 0.2s;
-        }
-
-        .mr-resend-btn:hover {
-          background: rgba(96,165,250,0.15);
-          border-color: rgba(96,165,250,0.4);
-        }
-
-        .mr-resend-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .mr-resend-spinner {
-          width: 11px; height: 11px;
-          border: 2px solid rgba(96,165,250,0.2);
-          border-top-color: #60a5fa;
-          border-radius: 50%;
-          animation: mrSpin 0.7s linear infinite;
-        }
-
-        @keyframes mrSpin { to { transform: rotate(360deg); } }
-
-        /* EMPTY */
-        .mr-empty {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 20px; padding: 60px 24px;
+          color: #A0AAA3;
+          font-size: 9px;
+          font-weight: 600;
           text-align: center;
-          display: flex; flex-direction: column;
-          align-items: center; gap: 12px;
         }
 
-        .mr-empty-icon { font-size: 40px; }
+        .mr-progress-step.done .mr-progress-label {
+          color: #16875F;
+        }
+
+        .mr-meta {
+          display: grid;
+          grid-template-columns: repeat(4,minmax(0,1fr));
+          gap: 14px;
+          padding: 15px;
+          border-radius: 12px;
+          background: #F7FAF8;
+        }
+
+        .mr-meta-label {
+          margin-bottom: 6px;
+          color: #96A198;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: .7px;
+          text-transform: uppercase;
+        }
+
+        .mr-meta-value {
+          overflow-wrap: anywhere;
+          color: #405248;
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .mr-resend {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          min-height: 39px;
+          margin-top: 15px;
+          padding: 0 14px;
+          border: 1px solid #BBDCCB;
+          border-radius: 9px;
+          background: #F0FBF5;
+          color: #07865C;
+          font: 700 11px 'Inter',sans-serif;
+          cursor: pointer;
+          transition: .2s ease;
+        }
+
+        .mr-resend:hover:not(:disabled) {
+          border-color: #059669;
+          background: #DCFCEB;
+          transform: translateY(-1px);
+        }
+
+        .mr-resend:disabled {
+          cursor: not-allowed;
+          opacity: .6;
+        }
+
+        .mr-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 65px 22px;
+          border: 1px dashed #D5E3D9;
+          border-radius: 17px;
+          background: #fff;
+          text-align: center;
+        }
+
+        .mr-empty-icon {
+          display: grid;
+          place-items: center;
+          width: 65px;
+          height: 65px;
+          margin-bottom: 17px;
+          border-radius: 20px;
+          background: #ECFDF5;
+          color: #059669;
+        }
 
         .mr-empty-title {
-          font-size: 16px; font-weight: 700; color: #eeeaf4;
+          color: #263D30;
+          font-family: 'Manrope',sans-serif;
+          font-size: 17px;
+          font-weight: 800;
         }
 
-        .mr-empty-sub {
-          font-family: 'DM Mono', monospace; font-size: 12px;
-          color: rgba(238,234,244,0.35);
+        .mr-empty-text {
+          max-width: 340px;
+          margin-top: 8px;
+          color: #8A978F;
+          font-size: 12px;
+          line-height: 1.7;
         }
 
-        /* LOADING */
-        .mr-loading {
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          min-height: 100vh; gap: 16px;
-          background: #07080f;
+        .mr-alert {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 17px;
+          padding: 12px 15px;
+          border: 1px solid;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
         }
 
-        .mr-load-plate {
-          width: 72px; height: 72px; border-radius: 50%;
-          border: 2px dashed rgba(52,211,153,0.3);
-          display: flex; align-items: center; justify-content: center;
-          animation: mrSpin 6s linear infinite;
+        .mr-alert.error {
+          border-color: #FECACA;
+          background: #FEF2F2;
+          color: #B91C1C;
         }
 
-        .mr-load-icon {
-          font-size: 28px;
-          animation: mrPop 1.6s ease-in-out infinite;
+        .mr-alert.success {
+          border-color: #A7F3D0;
+          background: #ECFDF5;
+          color: #047857;
         }
 
-        @keyframes mrPop {
-          0%,100% { transform: scale(1); opacity: 0.8; }
-          50%      { transform: scale(1.12); opacity: 1; }
+        .mr-retry {
+          margin-top: 14px;
+          padding: 10px 18px;
+          border: 0;
+          border-radius: 9px;
+          background: #059669;
+          color: white;
+          font: 700 11px 'Inter',sans-serif;
+          cursor: pointer;
         }
 
-        .mr-load-text {
-          font-family: 'DM Mono', monospace; font-size: 13px;
-          color: rgba(238,234,244,0.4);
+        .mr-skeleton {
+          height: 180px;
+          margin-bottom: 14px;
+          border: 1px solid #E8EEEA;
+          border-radius: 17px;
+          background: linear-gradient(90deg,#fff 25%,#F0F5F1 50%,#fff 75%);
+          background-size: 200% 100%;
+          animation: mrShimmer 1.4s infinite;
         }
 
-        @media (max-width: 480px) {
-          .mr-root { padding: 32px 16px 80px; }
+        @keyframes mrShimmer {
+          to { background-position: -200% 0; }
+        }
+
+        .mr-footer {
+          margin-top: 40px;
+          color: #A0AAA3;
+          font-size: 10px;
+          text-align: center;
+        }
+
+        @media (max-width: 850px) {
+          .mr-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+          .mr-meta { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        }
+
+        @media (max-width: 560px) {
+          .mr-root { padding: 25px 15px 60px; }
+          .mr-topline { margin-bottom: 29px; }
+          .mr-brand { font-size: 15px; }
+          .mr-heading { margin-bottom: 23px; }
+          .mr-title { letter-spacing: -1.2px; }
+          .mr-stats { gap: 10px; }
+          .mr-stat { padding: 15px; }
+          .mr-stat-number { font-size: 25px; }
+          .mr-stat-label { font-size: 10px; }
+          .mr-card { padding: 16px; }
           .mr-card-top { flex-direction: column; }
-          .mr-status-badge { align-self: flex-start; }
+          .mr-status { align-self: flex-start; }
+          .mr-meta { gap: 13px; padding: 13px; }
+          .mr-progress-label { font-size: 8px; }
+          .mr-filter { padding: 0 11px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mr-root *, .mr-root *::before, .mr-root *::after {
+            animation-duration: .01ms !important;
+            transition-duration: .01ms !important;
+          }
         }
       `}</style>
 
-      {/* LOADING */}
-      {loading && (
-        <div className="mr-loading">
-          <div className="mr-load-plate">
-            <div className="mr-load-icon">📋</div>
-          </div>
-          <div className="mr-load-text">Loading your requests...</div>
-        </div>
-      )}
+      <main className="mr-root">
+        <div className="mr-wrap">
 
-      {!loading && (
-        <div className="mr-root">
-          <div className="mr-grid-bg" />
-
-          <div className="mr-wrap">
-
-            {/* HEADER */}
-            <div className="mr-header">
-              <div className="mr-badge">
-                <span className="mr-badge-dot" />
-                Donation Tracker
+          <div className="mr-topline">
+            <div className="mr-brand">
+              <div className="mr-brand-icon">
+                <Icon name="box" size={22} />
               </div>
-              <h1 className="mr-title">My <span>Requests</span></h1>
-              <p className="mr-subtitle">Track your donation requests and their status</p>
+              <div>
+                DWJD
+                <small>Donation platform</small>
+              </div>
             </div>
 
-            {/* STATS */}
-            {requests.length > 0 && (
+            <button
+              className="mr-refresh"
+              onClick={fetchRequests}
+              disabled={loading}
+            >
+              <Icon name="refresh" size={15} />
+              Refresh
+            </button>
+          </div>
+
+          <header className="mr-heading">
+            <div className="mr-eyebrow">
+              <span className="mr-eyebrow-dot" />
+              Your donation activity
+            </div>
+
+            <h1 className="mr-title">
+              My <span>Requests.</span>
+            </h1>
+
+            <p className="mr-subtitle">
+              Follow your donations from pickup to successful delivery.
+              Every contribution makes a difference.
+            </p>
+          </header>
+
+          {error && (
+            <div className="mr-alert error" role="alert">
+              <Icon name="alert" size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {notice && (
+            <div className="mr-alert success" role="status">
+              <Icon name="check" size={18} />
+              <span>{notice}</span>
+            </div>
+          )}
+
+          {loading ? (
+            <>
               <div className="mr-stats">
-                {[
-                  { key: "all",        label: "Total",     num: requests.length },
-                  { key: "not_picked", label: "Pending",   num: requests.filter(r => r.donation_status === "not_picked").length },
-                  { key: "picked",     label: "Picked",    num: requests.filter(r => r.donation_status === "picked").length },
-                  { key: "delivered",  label: "Delivered", num: requests.filter(r => r.donation_status === "delivered").length },
-                ].map(s => (
-                  <div
-                    key={s.key}
-                    className="mr-stat"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setFilter(s.key)}
-                  >
-                    <div
-                      className="mr-stat-num"
-                      style={{ color: s.key === "all" ? "#34d399" : (STATUS_META[s.key]?.color || "#34d399") }}
-                    >
-                      {s.num}
-                    </div>
-                    <div className="mr-stat-label">{s.label}</div>
-                  </div>
+                {[1, 2, 3, 4].map((n) => (
+                  <div className="mr-skeleton" key={n} />
                 ))}
               </div>
-            )}
-
-            {/* FILTER TABS */}
-            {requests.length > 0 && (
-              <div className="mr-filters">
-                {FILTERS.map(f => (
-                  <button
-                    key={f.key}
-                    className={`mr-filter-btn ${filter === f.key ? "active" : ""}`}
-                    onClick={() => setFilter(f.key)}
+              <div className="mr-skeleton" />
+              <div className="mr-skeleton" />
+            </>
+          ) : error && requests.length === 0 ? (
+            <div className="mr-empty">
+              <div className="mr-empty-icon">
+                <Icon name="alert" size={28} />
+              </div>
+              <div className="mr-empty-title">Unable to load requests</div>
+              <p className="mr-empty-text">
+                Please check your connection and try again.
+              </p>
+              <button className="mr-retry" onClick={fetchRequests}>
+                Try again
+              </button>
+            </div>
+          ) : (
+            <>
+              <section className="mr-stats" aria-label="Request summary">
+                {stats.map((stat) => (
+                  <div
+                    key={stat.key}
+                    className="mr-stat clickable"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setFilter(stat.key)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setFilter(stat.key);
+                      }
+                    }}
+                    aria-label={`Filter ${stat.label}`}
                   >
-                    {f.key !== "all" && STATUS_META[f.key]?.icon + " "}
-                    {f.label}
+                    <div className="mr-stat-top">
+                      <div
+                        className="mr-stat-icon"
+                        style={{ background: stat.bg, color: stat.color }}
+                      >
+                        <Icon name={stat.icon} size={19} />
+                      </div>
+                    </div>
+                    <div
+                      className="mr-stat-number"
+                      style={{ color: stat.color }}
+                    >
+                      {stat.value}
+                    </div>
+                    <div className="mr-stat-label">{stat.label}</div>
+                  </div>
+                ))}
+              </section>
+
+              <div className="mr-toolbar">
+                <div className="mr-section-title">Donation history</div>
+                <div className="mr-count">
+                  Showing {filtered.length} of {requests.length}
+                </div>
+              </div>
+
+              <nav className="mr-filters" aria-label="Filter requests">
+                {FILTERS.map((item) => (
+                  <button
+                    key={item.key}
+                    className={`mr-filter ${filter === item.key ? "active" : ""}`}
+                    onClick={() => setFilter(item.key)}
+                    aria-pressed={filter === item.key}
+                  >
+                    {item.label}
                   </button>
                 ))}
-              </div>
-            )}
+              </nav>
 
-            {/* EMPTY STATE */}
-            {requests.length === 0 && (
-              <div className="mr-empty">
-                <div className="mr-empty-icon">📭</div>
-                <div className="mr-empty-title">No requests yet</div>
-                <div className="mr-empty-sub">Your donation requests will appear here</div>
-              </div>
-            )}
+              {requests.length === 0 ? (
+                <div className="mr-empty">
+                  <div className="mr-empty-icon">
+                    <Icon name="box" size={28} />
+                  </div>
+                  <div className="mr-empty-title">No donations yet</div>
+                  <p className="mr-empty-text">
+                    Your donation requests will appear here once you
+                    make your first contribution.
+                  </p>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="mr-empty">
+                  <div className="mr-empty-icon">
+                    <Icon name="search" size={28} />
+                  </div>
+                  <div className="mr-empty-title">No matching requests</div>
+                  <p className="mr-empty-text">
+                    There are no requests in this category.
+                    Try selecting another filter.
+                  </p>
+                </div>
+              ) : (
+                <div className="mr-list">
+                  {filtered.map((req, index) => {
+                    const status =
+                      STATUS_META[req.donation_status] ||
+                      STATUS_META.not_picked;
 
-            {/* FILTERED EMPTY */}
-            {requests.length > 0 && filtered.length === 0 && (
-              <div className="mr-empty">
-                <div className="mr-empty-icon">🔍</div>
-                <div className="mr-empty-title">No {filter.replace("_", " ")} requests</div>
-                <div className="mr-empty-sub">Try selecting a different filter</div>
-              </div>
-            )}
+                    const stepIndex = status.progress;
+                    const steps = [
+                      { key: "not_picked", label: "Pending" },
+                      { key: "picked", label: "Picked up" },
+                      { key: "collected", label: "Collected" },
+                      { key: "delivered", label: "Delivered" },
+                    ];
 
-            {/* REQUEST LIST */}
-            <div className="mr-list">
-              {filtered.map((req, i) => {
-                const status = STATUS_META[req.donation_status] || STATUS_META.not_picked;
-                const showResend = req.donation_status === "not_picked" && req.is_verified === false;
+                    const showResend =
+                      req.donation_status === "not_picked" &&
+                      req.is_verified === false;
 
-                const STEPS = ["not_picked", "picked", "collected", "delivered"];
-                const stepIdx = STEPS.indexOf(req.donation_status);
-
-                return (
-                  <div
-                    key={req._id}
-                    className="mr-card"
-                    style={{
-                      "--s-color":  status.color,
-                      "--s-bg":     status.bg,
-                      "--s-border": status.border,
-                      animationDelay: `${i * 0.07}s`,
-                    }}
-                  >
-                    {/* TOP */}
-                    <div className="mr-card-top">
-                      <div className="mr-card-left">
-                        <div className="mr-item-icon">
-                          {ITEM_ICON[req.item_type] || "📦"}
-                        </div>
-                        <div>
-                          <div className="mr-item-name">{req.item_name}</div>
-                          <div className="mr-item-type">{req.item_type} donation</div>
-                        </div>
-                      </div>
-                      <div className="mr-status-badge">
-                        {status.icon} {status.label}
-                      </div>
-                    </div>
-
-                    {/* PROGRESS TRACK */}
-                    <div className="mr-progress">
-                      {STEPS.map((step, si) => {
-                        const isDone = si <= stepIdx;
-                        const isLast = si === STEPS.length - 1;
-                        return (
-                          <div key={step} className="mr-progress-step">
-                            {!isLast && (
-                              <div className={`mr-progress-line ${isDone && si < stepIdx ? "done" : ""}`} />
-                            )}
-                            <div className={`mr-progress-dot ${isDone ? "done" : ""}`} />
-                            <div className={`mr-progress-label ${isDone ? "done" : ""}`}>
-                              {STATUS_META[step]?.icon}
+                    return (
+                      <article
+                        key={req._id}
+                        className="mr-card"
+                        style={{ animationDelay: `${index * 65}ms` }}
+                      >
+                        <div className="mr-card-top">
+                          <div className="mr-card-left">
+                            <div className="mr-item-icon">
+                              {ITEM_ICON[req.item_type] || "📦"}
+                            </div>
+                            <div>
+                              <div className="mr-item-name">
+                                {req.item_name || "Donation"}
+                              </div>
+                              <div className="mr-item-type">
+                                {req.item_type || "Other"} donation
+                              </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    {/* META */}
-                    <div className="mr-meta-row">
-                      <div className="mr-meta-item">
-                        <div className="mr-meta-label">Quantity</div>
-                        <div className="mr-meta-value">{req.quantity}</div>
-                      </div>
-                      <div className="mr-meta-item">
-                        <div className="mr-meta-label">Price</div>
-                        <div className="mr-meta-value">
-                          {req.price_type === "free" ? "Free" : `₹${req.price_amount}`}
-                        </div>
-                      </div>
-                      <div className="mr-meta-item">
-                        <div className="mr-meta-label">Date</div>
-                        <div className="mr-meta-value">
-                          {new Date(req.createdAt).toLocaleDateString("en-IN", {
-                            day: "numeric", month: "short", year: "numeric"
-                          })}
-                        </div>
-                      </div>
-                      {req.pickup_location && (
-                        <div className="mr-meta-item">
-                          <div className="mr-meta-label">Pickup</div>
-                          <div className="mr-meta-value" style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {req.pickup_location}
+                          <div
+                            className="mr-status"
+                            style={{
+                              color: status.color,
+                              background: status.bg,
+                              borderColor: status.border,
+                            }}
+                          >
+                            <Icon name={status.icon} size={14} />
+                            {status.label}
                           </div>
                         </div>
-                      )}
-                    </div>
 
-                    {/* RESEND OTP */}
-                    {showResend && (
-                      <button
-                        className="mr-resend-btn"
-                        disabled={resending === req._id}
-                        onClick={() => resendOtp(req._id)}
-                      >
-                        {resending === req._id
-                          ? <span className="mr-resend-spinner" />
-                          : "📩"
-                        }
-                        {resending === req._id ? "Sending..." : "Resend OTP"}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                        <div className="mr-divider" />
 
-          </div>
+                        <div className="mr-progress-heading">
+                          <span>DELIVERY PROGRESS</span>
+                          <strong>
+                            {Math.round((stepIndex + 1) / 4 * 100)}% complete
+                          </strong>
+                        </div>
+
+                        <div className="mr-progress">
+                          {steps.map((step, i) => {
+                            const done = i <= stepIndex;
+
+                            return (
+                              <div
+                                key={step.key}
+                                className={`mr-progress-step ${done ? "done" : ""}`}
+                              >
+                                <div className="mr-progress-dot">
+                                  {done ? "✓" : ""}
+                                </div>
+                                <div className="mr-progress-label">
+                                  {step.label}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mr-meta">
+                          <div>
+                            <div className="mr-meta-label">Quantity</div>
+                            <div className="mr-meta-value">
+                              {req.quantity ?? "—"}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="mr-meta-label">Price</div>
+                            <div className="mr-meta-value">
+                              {req.price_type === "free"
+                                ? "Free donation"
+                                : `₹${req.price_amount ?? 0}`}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="mr-meta-label">Created on</div>
+                            <div className="mr-meta-value">
+                              {formatDate(req.createdAt)}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="mr-meta-label">Pickup location</div>
+                            <div className="mr-meta-value">
+                              {req.pickup_location || "Not specified"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {showResend && (
+                          <button
+                            className="mr-resend"
+                            disabled={resending === req._id}
+                            onClick={() => resendOtp(req._id)}
+                          >
+                            <Icon name="mail" size={15} />
+                            {resending === req._id
+                              ? "Sending OTP..."
+                              : "Resend verification OTP"}
+                          </button>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          <footer className="mr-footer">
+            © {new Date().getFullYear()} DWJD · Making a difference, one donation at a time.
+          </footer>
         </div>
-      )}
+      </main>
     </>
   );
 }

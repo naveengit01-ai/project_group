@@ -400,27 +400,54 @@ export default function AI_Bot() {
       }
 
       const finalText = await readAIStream(
-        response,
-        (tokenText, fullText) => {
-          setChat((prev) => {
-            const updated = [...prev];
-            const lastIndex = updated.length - 1;
+  response,
+  (tokenText, fullText) => {
+    setChat((prev) => {
+      const updated = [...prev];
+      const lastIndex = updated.length - 1;
 
-            if (updated[lastIndex]?.from === "bot") {
-              updated[lastIndex] = {
-                ...updated[lastIndex],
-                text: fullText,
-              };
-            }
+      if (updated[lastIndex]?.from === "bot") {
+        updated[lastIndex] = {
+          ...updated[lastIndex],
+          text: fullText,
+        };
+      }
 
-            return updated;
-          });
+      return updated;
+    });
 
-          setMood(detectBotMood(fullText));
-        }
-      );
+    setMood(detectBotMood(fullText));
+  }
+);
 
-      setMood(detectBotMood(finalText));
+// Detect questions about the DWJD website.
+const isAboutWebsiteQuestion =
+  /\b(tell me about|about this website|about dwjd|what is dwjd|what does dwjd do|explain dwjd|what is this platform|about this platform)\b/i.test(
+    cleanMessage
+  );
+
+if (isAboutWebsiteQuestion) {
+  const aboutContent = {
+    question: cleanMessage,
+    response: finalText,
+    generatedAt: new Date().toISOString(),
+  };
+
+  localStorage.setItem(
+    "dwjd_ai_about_content",
+    JSON.stringify(aboutContent)
+  );
+
+  // Notify the About page immediately.
+  window.dispatchEvent(
+    new CustomEvent("dwjd-about-content-updated", {
+      detail: aboutContent,
+    })
+  );
+}
+
+setMood(detectBotMood(finalText));
+      
 
     } catch (error) {
       console.error("DWJD AI error:", error);
