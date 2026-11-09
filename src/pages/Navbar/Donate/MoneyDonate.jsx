@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -26,7 +25,7 @@ import {
 const API_BASE = (
   import.meta.env.VITE_API_BASE_URL ||
   "https://back-end-project-group.onrender.com"
-).replace(/\/$/, "");
+).replace(/\/+$/, "");
 
 const INITIAL_FORM = {
   occasionType: "Birthday",
@@ -74,6 +73,10 @@ const ALLOWED_FILE_TYPES = [
   "video/quicktime",
 ];
 
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_TOTAL_SIZE = 100 * 1024 * 1024; // 100 MB
+
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-[#11151f] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/10";
 
@@ -85,9 +88,7 @@ function SectionHeading({ number, title, subtitle }) {
       </div>
 
       <div>
-        <h2 className="text-lg font-bold text-white sm:text-xl">
-          {title}
-        </h2>
+        <h2 className="text-lg font-bold text-white sm:text-xl">{title}</h2>
         <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       </div>
     </div>
@@ -99,9 +100,7 @@ function FormField({ label, required, children }) {
     <label className="block min-w-0">
       <span className="mb-2 block text-sm font-medium text-slate-300">
         {label}
-        {required && (
-          <span className="ml-1 text-emerald-400">*</span>
-        )}
+        {required && <span className="ml-1 text-emerald-400">*</span>}
       </span>
       {children}
     </label>
@@ -135,9 +134,7 @@ async function apiRequest(path, options = {}) {
   const data = await readResponse(response);
 
   if (!response.ok) {
-    throw new Error(
-      data.message || `Request failed (${response.status}).`
-    );
+    throw new Error(data.message || `Request failed (${response.status}).`);
   }
 
   return data;
@@ -150,9 +147,9 @@ function loadRazorpay() {
       return;
     }
 
-    const existingScript = document.querySelector(
-      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
-    );
+    const scriptUrl = "https://checkout.razorpay.com/v1/checkout.js";
+
+    const existingScript = document.querySelector(`script[src="${scriptUrl}"]`);
 
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(true), {
@@ -167,7 +164,7 @@ function loadRazorpay() {
     }
 
     const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.src = scriptUrl;
     script.async = true;
 
     script.onload = () => resolve(true);
@@ -178,22 +175,49 @@ function loadRazorpay() {
 }
 
 function getTodayString() {
-  const today = new Date();
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    return formatter.format(new Date());
+  } catch {
+    const today = new Date();
+    return [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+}
 
-  return [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getDate()).padStart(2, "0"),
-  ].join("-");
+function getMinimumScheduleDateTime() {
+  return new Date(Date.now() + 2 * 60 * 60 * 1000);
+}
+
+function getScheduledISTTimestamp(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return NaN;
+  const iso = `${dateStr}T${timeStr}:00+05:30`;
+  const parsed = new Date(iso);
+  return parsed.getTime();
 }
 
 export default function MoneyDonate() {
   const navigate = useNavigate();
+
   const fileInputRef = useRef(null);
   const previewUrlsRef = useRef([]);
   const checkoutRef = useRef(null);
+  const paymentHandlerStartedRef = useRef(false);
+
+  // Tracks the exact form parameters used to create a pending donation record.
+  // If the user alters the amount or any detail, we invalidate the pending donation.
+  const pendingDonationSnapshotRef = useRef(null);
 
   const [form, setForm] = useState(INITIAL_FORM);
+
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
 
@@ -201,16 +225,21 @@ export default function MoneyDonate() {
   const [keyLoading, setKeyLoading] = useState(true);
 
   const [busy, setBusy] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Retain an unpaid donation ID when checkout is dismissed or fails.
+  // Donation created in MongoDB but payment not completed.
   const [pendingDonationId, setPendingDonationId] = useState(null);
+
+  // Payment verified successfully, but media may still need uploading.
+  const [paidDonationId, setPaidDonationId] = useState(null);
 
   const today = getTodayString();
 
   // --------------------------------------------------
-  // LOAD PUBLIC RAZORPAY KEY FROM EXISTING BACKEND
+  // LOAD PUBLIC RAZORPAY KEY FROM BACKEND
   // --------------------------------------------------
 
   useEffect(() => {
@@ -273,15 +302,15 @@ export default function MoneyDonate() {
       url: URL.createObjectURL(file),
     }));
 
-    previewUrlsRef.current = nextPreviews.map(
-      (item) => item.url
-    );
+    previewUrlsRef.current = nextPreviews.map((item) => item.url);
 
     setPreviews(nextPreviews);
   };
 
   // --------------------------------------------------
   // FORM FIELD UPDATES
+  // If the user modifies any field, reset the pending donation
+  // so payment order is always generated for the current amount & details.
   // --------------------------------------------------
 
   const updateField = (event) => {
@@ -291,67 +320,105 @@ export default function MoneyDonate() {
       ...previous,
       [name]: type === "checkbox" ? checked : value,
     }));
+
+    // Invalidate unpaid donation request whenever form details change
+    if (pendingDonationId) {
+      setPendingDonationId(null);
+      pendingDonationSnapshotRef.current = null;
+    }
+  };
+
+  const handleOccasionSelect = (name) => {
+    setForm((old) => ({
+      ...old,
+      occasionType: name,
+    }));
+
+    if (pendingDonationId && pendingDonationSnapshotRef.current?.occasionType !== name) {
+      setPendingDonationId(null);
+      pendingDonationSnapshotRef.current = null;
+    }
+  };
+
+  const handleAmountSelect = (selectedAmount) => {
+    setForm((old) => ({
+      ...old,
+      amount: String(selectedAmount),
+    }));
+
+    // If user previously attempted payment with a different amount,
+    // clear the pending donation so a new order is created for this amount.
+    if (
+      pendingDonationId &&
+      pendingDonationSnapshotRef.current?.amount !== String(selectedAmount)
+    ) {
+      setPendingDonationId(null);
+      pendingDonationSnapshotRef.current = null;
+    }
   };
 
   // --------------------------------------------------
   // FILE UPLOAD HANDLING
+  // Files stay in browser until payment is verified.
   // --------------------------------------------------
 
   const handleFiles = (event) => {
-    setError("");
+    if (paidDonationId || busy || uploadingMedia) return;
 
     const selected = Array.from(event.target.files || []);
+    if (!selected.length) return;
 
-    const valid = selected.filter((file) =>
-      ALLOWED_FILE_TYPES.includes(file.type)
+    setError("");
+    setSuccess("");
+
+    const combined = [...files, ...selected];
+
+    if (combined.length > MAX_FILES) {
+      setError(`You can upload a maximum of ${MAX_FILES} files.`);
+      event.target.value = "";
+      return;
+    }
+
+    const invalid = combined.find(
+      (file) => !ALLOWED_FILE_TYPES.includes(file.type)
     );
 
-    if (valid.length !== selected.length) {
+    if (invalid) {
       setError(
-        "Some files were skipped because their format is unsupported."
+        `${invalid.name} is not a supported file. Upload JPG, PNG, WEBP, MP4, WEBM, or MOV files.`
       );
-    }
-
-    const combined = [...files, ...valid];
-
-    if (combined.length > 5) {
-      setError("You can upload a maximum of 5 files.");
       event.target.value = "";
       return;
     }
 
-    if (
-      combined.some(
-        (file) => file.size > 50 * 1024 * 1024
-      )
-    ) {
-      setError("Each uploaded file must be below 50 MB.");
+    const oversized = combined.find((file) => file.size > MAX_FILE_SIZE);
+
+    if (oversized) {
+      setError(`${oversized.name} exceeds the 50 MB per-file limit.`);
       event.target.value = "";
       return;
     }
 
-    const totalSize = combined.reduce(
-      (sum, file) => sum + file.size,
-      0
-    );
+    const totalSize = combined.reduce((total, file) => total + file.size, 0);
 
-    if (totalSize > 100 * 1024 * 1024) {
-      setError("The total upload size cannot exceed 100 MB.");
+    if (totalSize > MAX_TOTAL_SIZE) {
+      setError("The total media size cannot exceed 100 MB.");
       event.target.value = "";
       return;
     }
 
     setFiles(combined);
     refreshPreviews(combined);
-
     event.target.value = "";
   };
 
   const removeFile = (index) => {
-    const remaining = files.filter((_, i) => i !== index);
+    if (paidDonationId || busy || uploadingMedia) return;
 
-    setFiles(remaining);
-    refreshPreviews(remaining);
+    const updated = files.filter((_, fileIndex) => fileIndex !== index);
+    setFiles(updated);
+    refreshPreviews(updated);
+    setError("");
   };
 
   // --------------------------------------------------
@@ -365,22 +432,25 @@ export default function MoneyDonate() {
       return "Your login session has expired. Please log in again.";
     }
 
+    if (!form.occasionType) {
+      return "Please select an occasion.";
+    }
+
+    if (!form.occasionTitle.trim()) {
+      return "Please enter a title for the occasion.";
+    }
+
     if (!form.recipientName.trim()) {
       return "Please enter the recipient's name.";
     }
 
-    if (
-      !form.recipientEmail.trim() &&
-      !form.recipientPhone.trim()
-    ) {
+    if (!form.recipientEmail.trim() && !form.recipientPhone.trim()) {
       return "Please provide at least one recipient contact detail.";
     }
 
     if (
       form.recipientEmail.trim() &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        form.recipientEmail.trim()
-      )
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.recipientEmail.trim())
     ) {
       return "Please enter a valid recipient email address.";
     }
@@ -393,15 +463,16 @@ export default function MoneyDonate() {
       return "Please select the greeting delivery time.";
     }
 
-    const scheduled = new Date(
-      `${form.occasionDate}T${form.scheduledWishTime}:00+05:30`
+    const scheduledTimestamp = getScheduledISTTimestamp(
+      form.occasionDate,
+      form.scheduledWishTime
     );
 
     if (
-      Number.isNaN(scheduled.getTime()) ||
-      scheduled <= new Date()
+      !Number.isFinite(scheduledTimestamp) ||
+      scheduledTimestamp < getMinimumScheduleDateTime().getTime()
     ) {
-      return "Please select a future date and time for the greeting.";
+      return "Please schedule the greeting at least 2 hours in advance (IST).";
     }
 
     const amount = Number(form.amount);
@@ -430,30 +501,25 @@ export default function MoneyDonate() {
   };
 
   // --------------------------------------------------
-  // CREATE DONATION REQUEST
+  // API 1: CREATE DONATION REQUEST
+  //
+  // IMPORTANT:
+  // Send JSON only. Do not send media files here.
+  // Backend must save media: [].
   // --------------------------------------------------
 
   const createDonationRequest = async (token) => {
-    const payload = new FormData();
-
-    Object.entries(form).forEach(([key, value]) => {
-      payload.append(key, String(value));
-    });
-
-    files.forEach((file) => {
-      payload.append("media", file);
-    });
-
-    const data = await apiRequest("/occasion-donations", {
+    const data = await apiRequest("/api/occasion-donations", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: payload,
+      body: JSON.stringify(form),
     });
 
-    const donationId = data.donation?.id;
+    const donationId = data.donation?.id || data.donation?._id || data.id;
 
     if (!donationId) {
       throw new Error("The server did not return a donation ID.");
@@ -461,16 +527,26 @@ export default function MoneyDonate() {
 
     setPendingDonationId(donationId);
 
+    // Save snapshot of the parameters this donation was created with
+    pendingDonationSnapshotRef.current = {
+      id: donationId,
+      amount: String(form.amount).trim(),
+      occasionType: form.occasionType,
+      recipientName: form.recipientName,
+      occasionDate: form.occasionDate,
+      scheduledWishTime: form.scheduledWishTime,
+    };
+
     return donationId;
   };
 
   // --------------------------------------------------
-  // CREATE RAZORPAY ORDER
+  // API 2: CREATE RAZORPAY ORDER
   // --------------------------------------------------
 
   const createPaymentOrder = async (donationId, token) => {
     const data = await apiRequest(
-      `/occasion-donations/${donationId}/create-order`,
+      `/api/occasion-donations/${donationId}/create-order`,
       {
         method: "POST",
         headers: {
@@ -489,16 +565,12 @@ export default function MoneyDonate() {
   };
 
   // --------------------------------------------------
-  // VERIFY PAYMENT ON BACKEND
+  // API 3: VERIFY PAYMENT
   // --------------------------------------------------
 
-  const verifyPayment = async (
-    donationId,
-    paymentResponse,
-    token
-  ) => {
+  const verifyPayment = async (donationId, paymentResponse, token) => {
     const data = await apiRequest(
-      `/occasion-donations/${donationId}/verify-payment`,
+      `/api/occasion-donations/${donationId}/verify-payment`,
       {
         method: "POST",
         headers: {
@@ -514,14 +586,100 @@ export default function MoneyDonate() {
   };
 
   // --------------------------------------------------
-  // RESET FORM AFTER SUCCESSFUL PAYMENT
+  // API 4: UPLOAD MEDIA AFTER PAYMENT VERIFICATION
+  // --------------------------------------------------
+
+  const uploadPaidMedia = async (donationId, token) => {
+    if (!files.length) {
+      setSuccess(
+        "Payment successful! Your donation request is saved and awaiting review."
+      );
+      resetForm();
+      return;
+    }
+
+    setUploadingMedia(true);
+    setError("");
+
+    try {
+      const payload = new FormData();
+      files.forEach((file) => {
+        payload.append("media", file);
+      });
+
+      const data = await apiRequest(
+        `/api/occasion-donations/${donationId}/upload-media`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: payload,
+        }
+      );
+
+      setSuccess(
+        data.message ||
+          "Payment successful! Your media has been uploaded and your occasion donation is complete."
+      );
+
+      resetForm();
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    } catch (err) {
+      console.error("Paid donation media upload error:", err);
+      setError(
+        `Payment succeeded, but media upload failed: ${err.message}. Your payment is safe. Use the retry button below to upload without paying again.`
+      );
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // RETRY MEDIA UPLOAD
+  // Payment is already successful. Do not create a new order.
+  // --------------------------------------------------
+
+  const retryMediaUpload = async () => {
+    if (!paidDonationId) {
+      setError("No paid donation is available for media upload.");
+      return;
+    }
+
+    if (!files.length) {
+      setError("Please select the media files before retrying.");
+      return;
+    }
+
+    if (uploadingMedia || busy) return;
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("Please log in again before retrying media upload.");
+      return;
+    }
+
+    await uploadPaidMedia(paidDonationId, token);
+  };
+
+  // --------------------------------------------------
+  // RESET FORM AFTER COMPLETION
   // --------------------------------------------------
 
   const resetForm = () => {
     setForm(INITIAL_FORM);
     setFiles([]);
     refreshPreviews([]);
+
     setPendingDonationId(null);
+    setPaidDonationId(null);
+    pendingDonationSnapshotRef.current = null;
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -538,47 +696,62 @@ export default function MoneyDonate() {
     setError("");
     setSuccess("");
 
-    const validationError = validateForm();
-
-    if (validationError) {
-      setError(validationError);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (paidDonationId) {
+      setError(
+        "Your payment has already been verified. Please retry media upload instead of paying again."
+      );
       return;
     }
 
-    if (busy) return;
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    if (busy || keyLoading) return;
 
     setBusy(true);
+    paymentHandlerStartedRef.current = false;
 
     try {
       const token = localStorage.getItem("token");
-
       if (!token) {
         throw new Error("Please log in again to continue.");
       }
 
       const razorpayLoaded = await loadRazorpay();
-
       if (!razorpayLoaded || !window.Razorpay) {
-        throw new Error("Unable to load Razorpay Checkout.");
+        throw new Error(
+          "Unable to load Razorpay checkout. Check your internet connection and try again."
+        );
       }
 
-      // Step 1: Create the donation only if one is not pending.
-      // This avoids creating another request on a retry.
-      let donationId = pendingDonationId;
+      // Check if we can safely reuse the pending donation ID.
+      // Reusing is ONLY allowed if the form amount and key details still match
+      // the snapshot from when that pending donation was created.
+      const currentAmount = String(form.amount).trim();
+      const snapshot = pendingDonationSnapshotRef.current;
 
+      const canReusePending =
+        pendingDonationId &&
+        snapshot &&
+        snapshot.id === pendingDonationId &&
+        snapshot.amount === currentAmount &&
+        snapshot.occasionType === form.occasionType &&
+        snapshot.recipientName === form.recipientName &&
+        snapshot.occasionDate === form.occasionDate &&
+        snapshot.scheduledWishTime === form.scheduledWishTime;
+
+      let donationId = canReusePending ? pendingDonationId : null;
+
+      // If amount or details changed (e.g. from 1000 to 500), create a fresh donation record
       if (!donationId) {
-        const donation = await createDonationRequest(token);
-        donationId = donation;
+        donationId = await createDonationRequest(token);
       }
 
-      // Step 2: Ask backend to create the Razorpay order.
-      const orderData = await createPaymentOrder(
-        donationId,
-        token
-      );
+      const orderData = await createPaymentOrder(donationId, token);
 
-      // Step 3: Open Razorpay Checkout.
       const checkout = new window.Razorpay({
         key: razorpayKey,
         amount: orderData.order.amount,
@@ -586,45 +759,71 @@ export default function MoneyDonate() {
         name: "DWJD",
         description: `Donation for ${form.occasionType}`,
         order_id: orderData.order.id,
-        prefill: orderData.prefill || {},
+        prefill: orderData.prefill || {
+          name: form.recipientName,
+          email: form.recipientEmail,
+          contact: form.recipientPhone,
+        },
         theme: {
           color: "#10b981",
         },
-
         modal: {
           ondismiss: () => {
             checkoutRef.current = null;
             setBusy(false);
+            if (!paymentHandlerStartedRef.current) {
+              setError(
+                "Payment was cancelled. You can change details or retry payment."
+              );
+            }
           },
         },
-
-        // Step 4: Verify payment on your backend.
         handler: async (paymentResponse) => {
-          try {
-            setError("");
+          if (paymentHandlerStartedRef.current) return;
+          paymentHandlerStartedRef.current = true;
+          setBusy(true);
+          setError("");
+          setSuccess("");
 
+          try {
             const verified = await verifyPayment(
               donationId,
               paymentResponse,
               token
             );
 
-            setSuccess(
-              `Your donation was successful! Reference: ${
-                verified.donation?.referenceCode || donationId
-              }. Your request is awaiting admin review.`
-            );
+            const isVerifiedPaid =
+              verified.paymentStatus === "paid" ||
+              verified.donation?.paymentStatus === "paid" ||
+              verified.success === true;
 
-            resetForm();
+            if (!isVerifiedPaid) {
+              throw new Error(
+                verified.message ||
+                  "The backend has not confirmed successful payment."
+              );
+            }
 
-            window.scrollTo({
-              top: 0,
-              behavior: "smooth",
-            });
+            setPaidDonationId(donationId);
+            setPendingDonationId(null);
+            pendingDonationSnapshotRef.current = null;
+
+            if (files.length > 0) {
+              setSuccess(
+                "Payment verified successfully. Uploading your selected media..."
+              );
+              await uploadPaidMedia(donationId, token);
+            } else {
+              setSuccess(
+                "Payment successful! Your occasion donation is complete and saved."
+              );
+              resetForm();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
           } catch (verificationError) {
+            console.error("Payment verification error:", verificationError);
             setError(
-              verificationError.message ||
-                "Payment verification failed. Please contact DWJD support with your payment reference."
+              `Payment verification could not be confirmed: ${verificationError.message}. Do not pay again yet. Check your donation history or contact DWJD support.`
             );
           } finally {
             checkoutRef.current = null;
@@ -638,41 +837,34 @@ export default function MoneyDonate() {
       checkout.on("payment.failed", (response) => {
         setError(
           response.error?.description ||
-            "Payment failed. Please try again."
+            "Payment failed. Your donation request remains saved. You can try again."
         );
-
         checkoutRef.current = null;
         setBusy(false);
       });
 
       checkout.open();
     } catch (requestError) {
+      console.error("Donation submission error:", requestError);
       setError(
-        requestError.message ||
-          "Something went wrong. Please try again."
+        requestError.message || "Something went wrong. Please try again."
       );
-
       checkoutRef.current = null;
       setBusy(false);
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   // --------------------------------------------------
-  // SELECTED OCCASION
+  // SELECTED OCCASION & FORMATTING
   // --------------------------------------------------
 
   const selectedOccasion = OCCASIONS.find(
     (item) => item.name === form.occasionType
   );
 
-  const formattedAmount = Number(
-    form.amount || 0
-  ).toLocaleString("en-IN");
+  const formattedAmount = Number(form.amount || 0).toLocaleString("en-IN");
+  const isPaid = Boolean(paidDonationId);
 
   // --------------------------------------------------
   // UI
@@ -715,22 +907,25 @@ export default function MoneyDonate() {
           </div>
 
           <h1 className="mx-auto max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-            Make their day
+            Make their day{" "}
             <span className="block bg-gradient-to-r from-emerald-300 via-green-400 to-teal-300 bg-clip-text text-transparent">
               meaningful.
             </span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-slate-400 sm:text-base">
-            Celebrate a special moment by donating in someone's
-            name. A thoughtful gift can make a real difference.
+            Celebrate a special moment by donating in someone's name. A
+            thoughtful gift can make a real difference.
           </p>
         </header>
 
         {/* Razorpay loading notice */}
         {keyLoading && (
           <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-            <LoaderCircle className="animate-spin text-emerald-400" size={19} />
+            <LoaderCircle
+              className="animate-spin text-emerald-400"
+              size={19}
+            />
             Preparing secure payment...
           </div>
         )}
@@ -742,12 +937,11 @@ export default function MoneyDonate() {
             className="mb-6 flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.08] p-4 text-sm text-red-200"
           >
             <X size={19} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-
+            <span className="flex-1">{error}</span>
             <button
               type="button"
               onClick={() => setError("")}
-              className="ml-auto"
+              className="ml-auto text-red-300 hover:text-white"
               aria-label="Dismiss error"
             >
               <X size={16} />
@@ -761,24 +955,88 @@ export default function MoneyDonate() {
             role="status"
             className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.08] p-4 text-sm text-emerald-200"
           >
-            <CheckCircle2 size={20} className="shrink-0" />
+            <CheckCircle2 size={20} className="shrink-0 text-emerald-400" />
             <span>{success}</span>
           </div>
         )}
 
-        {pendingDonationId && (
-          <div className="mb-6 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4 text-sm leading-6 text-amber-200">
-            You have an unpaid donation request. Continuing will
-            retry payment for that request.
-            <span className="mt-1 block text-xs text-amber-200/70">
-              Request reference: {pendingDonationId}
-            </span>
+        {/* Unpaid donation notice */}
+        {pendingDonationId && !paidDonationId && (
+          <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4 text-sm leading-6 text-amber-200 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span>
+                You have an unpaid donation request for ₹
+                {Number(
+                  pendingDonationSnapshotRef.current?.amount || form.amount
+                ).toLocaleString("en-IN")}
+                . If you changed the amount or details, submit below to generate a new order.
+              </span>
+              <span className="mt-1 block text-xs text-amber-200/70">
+                Request ID: {pendingDonationId}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPendingDonationId(null);
+                pendingDonationSnapshotRef.current = null;
+              }}
+              className="shrink-0 self-start rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition hover:bg-amber-400/20 sm:self-center"
+            >
+              Start new request
+            </button>
+          </div>
+        )}
+
+        {/* Paid donation, media upload pending */}
+        {paidDonationId && (
+          <div className="mb-6 rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.07] p-5">
+            <div className="flex items-start gap-3">
+              <CheckCircle2
+                size={23}
+                className="shrink-0 text-emerald-400"
+              />
+              <div>
+                <h3 className="font-bold text-emerald-300">
+                  Your payment is verified!
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-slate-300">
+                  Your donation is saved. If media upload did not complete,
+                  retry it below. You do not need to pay again.
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Donation ID: {paidDonationId}
+                </p>
+              </div>
+            </div>
+
+            {files.length > 0 && (
+              <button
+                type="button"
+                onClick={retryMediaUpload}
+                disabled={uploadingMedia || busy}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-[#06251a] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                {uploadingMedia ? (
+                  <>
+                    <LoaderCircle size={18} className="animate-spin" />
+                    Uploading media...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={18} />
+                    Retry media upload
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
 
         <form onSubmit={submitDonation}>
           <div className="grid gap-7 lg:grid-cols-[1fr_340px]">
-            {/* Main form */}
+            {/* Main form fields */}
             <div className="space-y-6">
               {/* Occasion */}
               <Panel>
@@ -790,29 +1048,21 @@ export default function MoneyDonate() {
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {OCCASIONS.map((occasion) => {
-                    const active =
-                      form.occasionType === occasion.name;
+                    const active = form.occasionType === occasion.name;
 
                     return (
                       <button
                         type="button"
                         key={occasion.name}
-                        disabled={busy || !!pendingDonationId}
-                        onClick={() =>
-                          setForm((old) => ({
-                            ...old,
-                            occasionType: occasion.name,
-                          }))
-                        }
+                        disabled={busy || isPaid}
+                        onClick={() => handleOccasionSelect(occasion.name)}
                         className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${
                           active
                             ? "border-emerald-400/60 bg-emerald-400/[0.10] text-emerald-300"
                             : "border-white/[0.07] bg-white/[0.02] text-slate-400 hover:border-white/20 hover:bg-white/[0.05]"
                         }`}
                       >
-                        <span className="text-2xl">
-                          {occasion.emoji}
-                        </span>
+                        <span className="text-2xl">{occasion.emoji}</span>
                         <span className="text-xs font-semibold">
                           {occasion.name}
                         </span>
@@ -822,15 +1072,16 @@ export default function MoneyDonate() {
                 </div>
 
                 <div className="mt-6">
-                  <FormField label="Give your occasion a title">
+                  <FormField label="Give your occasion a title" required>
                     <input
                       name="occasionTitle"
                       value={form.occasionTitle}
                       onChange={updateField}
-                      disabled={busy || !!pendingDonationId}
+                      disabled={busy || isPaid}
                       maxLength={100}
                       placeholder="Example: Celebrating Rahul's birthday"
                       className={inputClass}
+                      required
                     />
                   </FormField>
                 </div>
@@ -842,14 +1093,13 @@ export default function MoneyDonate() {
                         size={17}
                         className="pointer-events-none absolute left-4 top-4 text-emerald-400"
                       />
-
                       <input
                         type="date"
                         name="occasionDate"
                         min={today}
                         value={form.occasionDate}
                         onChange={updateField}
-                        disabled={busy || !!pendingDonationId}
+                        disabled={busy || isPaid}
                         required
                         className={`${inputClass} pl-11`}
                       />
@@ -865,13 +1115,12 @@ export default function MoneyDonate() {
                         size={17}
                         className="pointer-events-none absolute left-4 top-4 text-emerald-400"
                       />
-
                       <input
                         type="time"
                         name="scheduledWishTime"
                         value={form.scheduledWishTime}
                         onChange={updateField}
-                        disabled={busy || !!pendingDonationId}
+                        disabled={busy || isPaid}
                         required
                         className={`${inputClass} pl-11`}
                       />
@@ -895,12 +1144,11 @@ export default function MoneyDonate() {
                         size={17}
                         className="pointer-events-none absolute left-4 top-4 text-slate-500"
                       />
-
                       <input
                         name="recipientName"
                         value={form.recipientName}
                         onChange={updateField}
-                        disabled={busy || !!pendingDonationId}
+                        disabled={busy || isPaid}
                         placeholder="Full name"
                         maxLength={100}
                         required
@@ -915,13 +1163,12 @@ export default function MoneyDonate() {
                         size={17}
                         className="pointer-events-none absolute left-4 top-4 text-slate-500"
                       />
-
                       <input
                         type="email"
                         name="recipientEmail"
                         value={form.recipientEmail}
                         onChange={updateField}
-                        disabled={busy || !!pendingDonationId}
+                        disabled={busy || isPaid}
                         placeholder="example@email.com"
                         maxLength={150}
                         className={`${inputClass} pl-11`}
@@ -935,13 +1182,12 @@ export default function MoneyDonate() {
                         size={17}
                         className="pointer-events-none absolute left-4 top-4 text-slate-500"
                       />
-
                       <input
                         type="tel"
                         name="recipientPhone"
                         value={form.recipientPhone}
                         onChange={updateField}
-                        disabled={busy || !!pendingDonationId}
+                        disabled={busy || isPaid}
                         placeholder="+91 98765 43210"
                         maxLength={20}
                         className={`${inputClass} pl-11`}
@@ -955,12 +1201,11 @@ export default function MoneyDonate() {
                         size={17}
                         className="pointer-events-none absolute left-4 top-4 text-slate-500"
                       />
-
                       <input
                         name="dedicationName"
                         value={form.dedicationName}
                         onChange={updateField}
-                        disabled={busy || !!pendingDonationId}
+                        disabled={busy || isPaid}
                         placeholder="With love, ..."
                         maxLength={100}
                         className={`${inputClass} pl-11`}
@@ -975,14 +1220,13 @@ export default function MoneyDonate() {
                     name="recipientContactConsent"
                     checked={form.recipientContactConsent}
                     onChange={updateField}
-                    disabled={busy || !!pendingDonationId}
+                    disabled={busy || isPaid}
                     className="mt-1 accent-emerald-400"
                   />
-
                   <span>
-                    I have permission to share the recipient's
-                    contact information with DWJD for the purpose
-                    of delivering this greeting.
+                    I have permission to share the recipient's contact
+                    information with DWJD for the purpose of delivering this
+                    greeting.
                   </span>
                 </label>
               </Panel>
@@ -997,20 +1241,14 @@ export default function MoneyDonate() {
 
                 <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {AMOUNTS.map((amount) => {
-                    const active =
-                      Number(form.amount) === amount;
+                    const active = Number(form.amount) === amount;
 
                     return (
                       <button
                         key={amount}
                         type="button"
-                        disabled={busy || !!pendingDonationId}
-                        onClick={() =>
-                          setForm((old) => ({
-                            ...old,
-                            amount: String(amount),
-                          }))
-                        }
+                        disabled={busy || isPaid}
+                        onClick={() => handleAmountSelect(amount)}
                         className={`rounded-xl border py-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                           active
                             ? "border-emerald-400 bg-emerald-400/10 text-emerald-300"
@@ -1023,22 +1261,18 @@ export default function MoneyDonate() {
                   })}
                 </div>
 
-                <FormField
-                  label="Custom donation amount (INR)"
-                  required
-                >
+                <FormField label="Custom donation amount (INR)" required>
                   <div className="relative">
                     <IndianRupee
                       size={18}
                       className="pointer-events-none absolute left-4 top-4 text-emerald-400"
                     />
-
                     <input
                       type="number"
                       name="amount"
                       value={form.amount}
                       onChange={updateField}
-                      disabled={busy || !!pendingDonationId}
+                      disabled={busy || isPaid}
                       min="1"
                       max="1000000"
                       step="1"
@@ -1055,13 +1289,12 @@ export default function MoneyDonate() {
                       name="donorMessage"
                       value={form.donorMessage}
                       onChange={updateField}
-                      disabled={busy || !!pendingDonationId}
+                      disabled={busy || isPaid}
                       rows={4}
                       maxLength={1000}
                       placeholder="Write something special..."
                       className={`${inputClass} resize-none`}
                     />
-
                     <div className="mt-2 text-right text-xs text-slate-600">
                       {form.donorMessage.length}/1000
                     </div>
@@ -1083,14 +1316,14 @@ export default function MoneyDonate() {
                   accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                   multiple
                   onChange={handleFiles}
-                  disabled={busy || !!pendingDonationId}
+                  disabled={busy || isPaid}
                   className="hidden"
                 />
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={busy || !!pendingDonationId}
+                  disabled={busy || isPaid}
                   className="flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-emerald-400/30 bg-emerald-400/[0.035] px-5 py-10 text-center transition hover:bg-emerald-400/[0.07] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-400">
@@ -1134,7 +1367,7 @@ export default function MoneyDonate() {
                         <button
                           type="button"
                           onClick={() => removeFile(index)}
-                          disabled={busy || !!pendingDonationId}
+                          disabled={busy || isPaid}
                           aria-label={`Remove ${preview.name}`}
                           className="absolute right-2 top-2 rounded-lg bg-black/70 p-2 text-white transition hover:bg-red-500 disabled:opacity-50"
                         >
@@ -1148,6 +1381,12 @@ export default function MoneyDonate() {
                     ))}
                   </div>
                 )}
+
+                <p className="mt-4 text-xs leading-6 text-emerald-300/70">
+                  Your selected media stays in your browser until payment is
+                  successfully verified. Only then will DWJD upload it to Google
+                  Drive.
+                </p>
               </Panel>
 
               {/* Consent */}
@@ -1162,10 +1401,8 @@ export default function MoneyDonate() {
                     <h3 className="font-bold text-white">
                       A little confirmation
                     </h3>
-
                     <p className="mt-1 text-xs leading-6 text-slate-500">
-                      Please review your information before making
-                      the payment.
+                      Please review your information before making the payment.
                     </p>
                   </div>
                 </div>
@@ -1176,14 +1413,12 @@ export default function MoneyDonate() {
                     name="termsAccepted"
                     checked={form.termsAccepted}
                     onChange={updateField}
-                    disabled={busy || !!pendingDonationId}
+                    disabled={busy || isPaid}
                     className="mt-1 accent-emerald-400"
                   />
-
                   <span>
-                    I confirm that the information I provided is
-                    accurate and I agree to DWJD's donation terms
-                    and review process.
+                    I confirm that the information I provided is accurate and I
+                    agree to DWJD's donation terms and review process.
                   </span>
                 </label>
               </Panel>
@@ -1217,20 +1452,14 @@ export default function MoneyDonate() {
 
                 <div className="border-t border-white/[0.08] p-6">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">
-                      Donation amount
-                    </span>
-
+                    <span className="text-slate-400">Donation amount</span>
                     <span className="font-bold text-white">
                       ₹{formattedAmount}
                     </span>
                   </div>
 
                   <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="text-slate-400">
-                      Recipient
-                    </span>
-
+                    <span className="text-slate-400">Recipient</span>
                     <span className="max-w-[150px] truncate font-semibold text-white">
                       {form.recipientName || "Not added"}
                     </span>
@@ -1238,15 +1467,22 @@ export default function MoneyDonate() {
 
                   <div className="mt-4 flex items-center justify-between text-sm">
                     <span className="text-slate-400">Date</span>
-
                     <span className="font-semibold text-white">
                       {form.occasionDate || "Not selected"}
                     </span>
                   </div>
 
                   <div className="mt-4 flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Media</span>
+                    <span className="text-slate-400">Greeting time</span>
+                    <span className="font-semibold text-white">
+                      {form.scheduledWishTime
+                        ? `${form.scheduledWishTime} IST`
+                        : "Not selected"}
+                    </span>
+                  </div>
 
+                  <div className="mt-4 flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Media</span>
                     <span className="font-semibold text-white">
                       {files.length} file(s)
                     </span>
@@ -1258,47 +1494,48 @@ export default function MoneyDonate() {
                     <span className="font-semibold text-slate-300">
                       Total donation
                     </span>
-
                     <span className="text-2xl font-black text-emerald-400">
                       ₹{formattedAmount}
                     </span>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={busy || keyLoading || !razorpayKey}
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 px-5 py-4 font-extrabold text-[#06251a] shadow-lg shadow-emerald-500/10 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {busy ? (
-                      <>
-                        <LoaderCircle
-                          size={19}
-                          className="animate-spin"
-                        />
-                        Processing...
-                      </>
-                    ) : keyLoading ? (
-                      <>
-                        <LoaderCircle
-                          size={19}
-                          className="animate-spin"
-                        />
-                        Loading payment...
-                      </>
-                    ) : (
-                      <>
-                        <Wallet size={19} />
-                        Continue to payment
-                        <ArrowRight size={18} />
-                      </>
-                    )}
-                  </button>
+                  {!paidDonationId && (
+                    <button
+                      type="submit"
+                      disabled={busy || keyLoading || !razorpayKey}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 px-5 py-4 font-extrabold text-[#06251a] shadow-lg shadow-emerald-500/10 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {busy ? (
+                        <>
+                          <LoaderCircle size={19} className="animate-spin" />
+                          Processing...
+                        </>
+                      ) : keyLoading ? (
+                        <>
+                          <LoaderCircle size={19} className="animate-spin" />
+                          Loading payment...
+                        </>
+                      ) : (
+                        <>
+                          <Wallet size={19} />
+                          {pendingDonationId
+                            ? "Retry payment"
+                            : "Continue to payment"}
+                          <ArrowRight size={18} />
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {paidDonationId && files.length === 0 && (
+                    <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-emerald-400/10 px-4 py-4 text-sm font-bold text-emerald-300">
+                      <CheckCircle2 size={19} />
+                      Payment completed
+                    </div>
+                  )}
 
                   <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
-                    <ShieldCheck
-                      size={15}
-                      className="text-emerald-400"
-                    />
+                    <ShieldCheck size={15} className="text-emerald-400" />
                     Secure payment powered by Razorpay
                   </div>
                 </div>
@@ -1314,7 +1551,6 @@ export default function MoneyDonate() {
                     <h3 className="text-sm font-bold text-white">
                       What happens next?
                     </h3>
-
                     <p className="text-xs text-slate-500">
                       Your donation journey
                     </p>
@@ -1324,35 +1560,67 @@ export default function MoneyDonate() {
                 <div className="mt-5 space-y-4">
                   {[
                     "Complete your payment",
+                    "Payment is verified by DWJD",
+                    "Media is uploaded to Google Drive",
                     "DWJD reviews your request",
                     "Approved greeting is scheduled",
                     "Recipient receives the greeting",
                   ].map((item, index) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-3"
-                    >
+                    <div key={item} className="flex items-center gap-3">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-xs font-bold text-emerald-400">
                         {index + 1}
                       </div>
 
-                      <p className="text-xs text-slate-400">
-                        {item}
-                      </p>
+                      <p className="text-xs text-slate-400">{item}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               <p className="px-2 text-center text-xs leading-6 text-slate-600">
-                Payment does not guarantee approval. Rejected
-                requests are handled through the refund process.
-                Refund processing time depends on the payment
-                provider and bank.
+                Payment does not guarantee approval. Rejected requests are
+                handled through the refund process. Refund processing time
+                depends on the payment provider and bank.
               </p>
             </aside>
           </div>
+
+          {/* Bottom Submit Action */}
+          <div className="mt-8 flex flex-col-reverse items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#0e121c] p-5 sm:flex-row sm:p-7">
+            <p className="max-w-lg text-xs leading-6 text-slate-500">
+              By continuing, you agree to the donation terms. Your donation
+              request is saved even if payment is cancelled or fails. Media is
+              uploaded only after payment verification.
+            </p>
+
+            <button
+              type="submit"
+              disabled={
+                busy || uploadingMedia || keyLoading || isPaid || !razorpayKey
+              }
+              className="flex w-full shrink-0 items-center justify-center gap-3 rounded-xl bg-emerald-400 px-7 py-4 font-bold text-[#06251a] shadow-lg shadow-emerald-900/20 transition hover:-translate-y-0.5 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            >
+              {busy || uploadingMedia ? (
+                <>
+                  <LoaderCircle size={19} className="animate-spin" />
+                  {uploadingMedia ? "Uploading media..." : "Processing..."}
+                </>
+              ) : (
+                <>
+                  <Wallet size={19} />
+                  {pendingDonationId
+                    ? "Retry payment"
+                    : "Continue to payment"}
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </div>
         </form>
+
+        <footer className="mt-10 text-center text-xs text-slate-600">
+          <p>© {new Date().getFullYear()} DWJD. Made with care.</p>
+        </footer>
       </div>
     </div>
   );

@@ -118,6 +118,20 @@ function prettyStatus(value) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+// Only completed Razorpay payments belong in the money-donation history.
+function isSuccessfulPayment(item) {
+  const paymentStatus = String(
+    item?.paymentStatus ??
+    item?.payment_status ??
+    item?.razorpayPaymentStatus ??
+    ""
+  ).trim().toLowerCase();
+
+  return ["paid", "success", "successful", "captured", "payment_successful"].includes(
+    paymentStatus
+  );
+}
+
 function getStatusStyle(value) {
   const status = String(value || "").toLowerCase();
 
@@ -234,16 +248,18 @@ export default function MyRequests() {
     setMoneyError("");
 
     try {
-      const res = await fetch(
-        `${BASE_URL}/occasion-donations/my-requests`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      
+const res = await fetch(
+  `${BASE_URL}/api/occasion-donations/my-requests`,
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+
 
       const data = await res.json();
 
@@ -355,7 +371,12 @@ export default function MyRequests() {
     },
   ], [requests]);
 
-  const moneyTotal = moneyRequests.length;
+  const successfulMoneyRequests = useMemo(
+    () => moneyRequests.filter(isSuccessfulPayment),
+    [moneyRequests]
+  );
+
+  const moneyTotal = successfulMoneyRequests.length;
 
   return (
     <>
@@ -1353,32 +1374,20 @@ export default function MyRequests() {
                       Try again
                     </button>
                   </div>
-                ) : moneyRequests.length === 0 ? (
+                ) : successfulMoneyRequests.length === 0 ? (
                   <div className="mr-money-empty">
-                    <strong>No money donation requests yet</strong>
-                    Your occasion donation requests will appear here
-                    after you submit one.
+                    <strong>No successful money donations yet</strong>
+                    Only completed and verified payments will appear here.
                   </div>
                 ) : (
                   <div className="mr-money-list">
-                    {moneyRequests.map((item, index) => {
-                      const paymentStatus =
-                        item.paymentStatus || "Not available";
-
-                      const adminStatus =
-                        item.adminStatus || "Not available";
-
-                      const greetingStatus =
-                        item.greetingStatus || "Not available";
-
-                      const rejectionReason =
-                        item.rejectionReason ||
-                        item.adminRejectionReason ||
-                        item.reviewNote ||
-                        item.rejection_note;
-
-                      const refundStatus =
-                        item.refundStatus || item.refund_status;
+                    {successfulMoneyRequests.map((item, index) => {
+                      const paymentId =
+                        item.razorpayPaymentId ||
+                        item.razorpay_payment_id ||
+                        item.paymentId ||
+                        item.payment_id ||
+                        item.payment_reference;
 
                       return (
                         <article
@@ -1392,13 +1401,19 @@ export default function MyRequests() {
                                   prettyStatus(item.occasionType) ||
                                   "Occasion Donation"}
                               </div>
-
                               <div className="mr-money-recipient">
                                 For {item.recipientName || "Recipient not specified"}
                               </div>
                             </div>
 
-                            <StatusPill value={adminStatus} />
+                            <span className="mr-money-status" style={{
+                              color: "#047857",
+                              background: "#ECFDF5",
+                              borderColor: "#A7F3D0"
+                            }}>
+                              <Icon name="check" size={12} />
+                              Payment Successful
+                            </span>
                           </div>
 
                           <div className="mr-money-amount">
@@ -1407,82 +1422,41 @@ export default function MyRequests() {
 
                           <div className="mr-money-details">
                             <div>
-                              <div className="mr-money-label">
-                                Occasion date
-                              </div>
+                              <div className="mr-money-label">Occasion date</div>
                               <div className="mr-money-value">
                                 {formatDate(item.occasionDate)}
                               </div>
                             </div>
 
                             <div>
-                              <div className="mr-money-label">
-                                Scheduled wish
-                              </div>
+                              <div className="mr-money-label">Paid on</div>
                               <div className="mr-money-value">
                                 {formatDateTime(
-                                  item.scheduledAt || item.scheduledWishTime
+                                  item.paymentPaidAt ||
+                                  item.payment_paid_at ||
+                                  item.paidAt ||
+                                  item.updatedAt ||
+                                  item.createdAt
                                 )}
                               </div>
                             </div>
 
-                            <div>
-                              <div className="mr-money-label">
-                                Payment
+                            {paymentId && (
+                              <div>
+                                <div className="mr-money-label">Payment ID</div>
+                                <div className="mr-money-value">{paymentId}</div>
                               </div>
-                              <StatusPill value={paymentStatus} />
-                            </div>
-
-                            <div>
-                              <div className="mr-money-label">
-                                Admin review
-                              </div>
-                              <StatusPill value={adminStatus} />
-                            </div>
-
-                            <div>
-                              <div className="mr-money-label">
-                                Greeting status
-                              </div>
-                              <StatusPill value={greetingStatus} />
-                            </div>
-
-                            <div>
-                              <div className="mr-money-label">
-                                Submitted on
-                              </div>
-                              <div className="mr-money-value">
-                                {formatDate(item.createdAt)}
-                              </div>
-                            </div>
+                            )}
 
                             {(item.referenceCode || item._id) && (
                               <div>
-                                <div className="mr-money-label">
-                                  Reference
-                                </div>
+                                <div className="mr-money-label">Donation reference</div>
                                 <div className="mr-money-value">
                                   {item.referenceCode || item._id}
                                 </div>
                               </div>
                             )}
-
-                            {refundStatus && (
-                              <div>
-                                <div className="mr-money-label">
-                                  Refund
-                                </div>
-                                <StatusPill value={refundStatus} />
-                              </div>
-                            )}
                           </div>
-
-                          {rejectionReason && (
-                            <div className="mr-money-reason">
-                              <strong>Review note: </strong>
-                              {rejectionReason}
-                            </div>
-                          )}
                         </article>
                       );
                     })}
