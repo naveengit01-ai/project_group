@@ -14,9 +14,17 @@ import {
   LockKeyhole,
 } from "lucide-react";
 
-import { apiRequest } from "../api.js";
+// --------------------------------------------------
+// CONFIGURATION
+// --------------------------------------------------
 
-const API = "/api/occasion-donations";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://back-end-project-group.onrender.com";
+
+// --------------------------------------------------
+// HELPERS
+// --------------------------------------------------
 
 const formatDate = (value) => {
   if (!value) return "";
@@ -48,15 +56,9 @@ const getCountdown = (target) => {
   return {
     expired: false,
     days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-    hours: Math.floor(
-      (difference / (1000 * 60 * 60)) % 24
-    ),
-    minutes: Math.floor(
-      (difference / (1000 * 60)) % 60
-    ),
-    seconds: Math.floor(
-      (difference / 1000) % 60
-    ),
+    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((difference / (1000 * 60)) % 60),
+    seconds: Math.floor((difference / 1000) % 60),
   };
 };
 
@@ -174,25 +176,10 @@ function LockedWish({ wish, countdown }) {
           </div>
 
           <div className="grid grid-cols-4 gap-2 sm:gap-4">
-            <CountdownBox
-              value={countdown.days}
-              label="Days"
-            />
-
-            <CountdownBox
-              value={countdown.hours}
-              label="Hours"
-            />
-
-            <CountdownBox
-              value={countdown.minutes}
-              label="Minutes"
-            />
-
-            <CountdownBox
-              value={countdown.seconds}
-              label="Seconds"
-            />
+            <CountdownBox value={countdown.days} label="Days" />
+            <CountdownBox value={countdown.hours} label="Hours" />
+            <CountdownBox value={countdown.minutes} label="Minutes" />
+            <CountdownBox value={countdown.seconds} label="Seconds" />
           </div>
         </div>
 
@@ -379,6 +366,10 @@ function PublishedWish({ wish }) {
   );
 }
 
+// --------------------------------------------------
+// MAIN COMPONENT
+// --------------------------------------------------
+
 export default function Wishes() {
   const { token } = useParams();
 
@@ -398,44 +389,55 @@ export default function Wishes() {
     setError("");
 
     try {
-      const result = await apiRequest(
-        `${API}/public/wishes/${encodeURIComponent(token)}`,
+      const response = await fetch(
+        `${API_BASE_URL}/api/occasion-donations/public/wishes/${encodeURIComponent(token)}`,
         {
           method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      if (!result?.ok) {
-        if (result?.status === "expired") {
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (data.status === "expired") {
           setPageStatus("expired");
-          setError(
-            result.message || "This wishes link has expired."
-          );
+          setError(data.message || "This wishes link has expired.");
           return;
         }
 
-        if (result?.status === "disabled") {
+        if (data.status === "disabled") {
           setPageStatus("disabled");
-          setError(
-            result.message || "This wishes page is unavailable."
-          );
+          setError(data.message || "This wishes page is unavailable.");
           return;
         }
 
-        throw new Error(
-          result?.message || "Unable to load this wishes page."
-        );
+        throw new Error(data.message || `Request failed with status ${response.status}`);
       }
 
-      if (!result.wish) {
+      if (data.status === "expired") {
+        setPageStatus("expired");
+        setError(data.message || "This wishes link has expired.");
+        return;
+      }
+
+      if (data.status === "disabled") {
+        setPageStatus("disabled");
+        setError(data.message || "This wishes page is unavailable.");
+        return;
+      }
+
+      if (!data.wish) {
         throw new Error("The wishes information is unavailable.");
       }
 
-      setWish(result.wish);
+      setWish(data.wish);
 
-      if (result.status === "locked") {
+      if (data.status === "locked") {
         setPageStatus("locked");
-      } else if (result.status === "published") {
+      } else if (data.status === "published") {
         setPageStatus("published");
       } else {
         throw new Error("Unexpected wishes page status.");
@@ -452,7 +454,7 @@ export default function Wishes() {
     loadWish();
   }, [loadWish]);
 
-  // Update countdown every second.
+  // Update countdown every second
   useEffect(() => {
     if (pageStatus !== "locked" || !wish?.scheduledAt) {
       return undefined;
@@ -463,9 +465,6 @@ export default function Wishes() {
 
       setCountdown(nextCountdown);
 
-      // Once the timer reaches zero, ask the backend whether
-      // the page has been published. The backend remains the
-      // authority for unlocking the wishes.
       if (nextCountdown.expired) {
         loadWish();
       }

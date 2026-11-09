@@ -368,7 +368,7 @@ export default function Afterlogin() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [user, navigate]);
 
@@ -378,7 +378,7 @@ export default function Afterlogin() {
 
     setUser(null);
 
-    navigate("/login", {
+    navigate("/", {
       replace: true,
     });
   };

@@ -40,7 +40,7 @@ import MyRides from "./pages/Navbar/Pickup/My_rides";
 import Delivery from "./pages/Navbar/Pickup/Delivery";
 
 // Public wishes page
-import Wishes from "./pages/Wishes";
+import Wishes from "./Wishes";
 
 // Auth
 import ProtectedRoute from "./hooks/ProtectedRoute";
