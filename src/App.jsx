@@ -39,6 +39,9 @@ import DonateOtpVerify from "./pages/Navbar/Pickup/Donate_otp_verify";
 import MyRides from "./pages/Navbar/Pickup/My_rides";
 import Delivery from "./pages/Navbar/Pickup/Delivery";
 
+// Public wishes page
+import Wishes from "./pages/Wishes";
+
 // Auth
 import ProtectedRoute from "./hooks/ProtectedRoute";
 import { isLoggedIn } from "./hooks/useAuth";
@@ -87,6 +90,13 @@ export default function App() {
         element={<AuthCallback />}
       />
 
+      {/* PUBLIC OCCASION WISHES */}
+      {/* No login is required to open this page. */}
+      <Route
+        path="/wishes/:token"
+        element={<Wishes />}
+      />
+
       {/* USER / RIDER DASHBOARD */}
       <Route
         path="/afterlogin"
@@ -111,10 +121,7 @@ export default function App() {
         <Route path="donate" element={<DonationsType />} />
         <Route path="donate/food" element={<Food />} />
         <Route path="donate/clothes" element={<Cloths />} />
-
-        {/* NEW MONEY DONATION ROUTE */}
         <Route path="donate/money" element={<MoneyDonate />} />
-
         <Route path="donate/other" element={<Other />} />
         <Route path="donate/request" element={<MyRequests />} />
         <Route
@@ -123,11 +130,26 @@ export default function App() {
         />
 
         {/* PICKUP */}
-        <Route path="pickup/requests" element={<UsersRequests />} />
-        <Route path="pickup/direction" element={<Direction />} />
-        <Route path="pickup/verify" element={<DonateOtpVerify />} />
-        <Route path="pickup/my-rides" element={<MyRides />} />
-        <Route path="pickup/delivery" element={<Delivery />} />
+        <Route
+          path="pickup/requests"
+          element={<UsersRequests />}
+        />
+        <Route
+          path="pickup/direction"
+          element={<Direction />}
+        />
+        <Route
+          path="pickup/verify"
+          element={<DonateOtpVerify />}
+        />
+        <Route
+          path="pickup/my-rides"
+          element={<MyRides />}
+        />
+        <Route
+          path="pickup/delivery"
+          element={<Delivery />}
+        />
       </Route>
 
       {/* OTHER ROUTES */}
