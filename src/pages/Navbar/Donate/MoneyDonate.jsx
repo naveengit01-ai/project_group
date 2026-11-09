@@ -194,7 +194,7 @@ function getTodayString() {
 }
 
 function getMinimumScheduleDateTime() {
-  return new Date(Date.now() + 2 * 60 * 60 * 1000);
+  return new Date(Date.now() + 5 * 60 * 1000);
 }
 
 function getScheduledISTTimestamp(dateStr, timeStr) {
@@ -472,7 +472,7 @@ export default function MoneyDonate() {
       !Number.isFinite(scheduledTimestamp) ||
       scheduledTimestamp < getMinimumScheduleDateTime().getTime()
     ) {
-      return "Please schedule the greeting at least 2 hours in advance (IST).";
+      return "Please schedule the greeting at least 5min  in advance (IST).";
     }
 
     const amount = Number(form.amount);
