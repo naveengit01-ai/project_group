@@ -27,6 +27,7 @@ import Edit from "./pages/Navbar/Profile/Edit";
 import DonationsType from "./pages/Navbar/Donate/Donations_Type";
 import Food from "./pages/Navbar/Donate/Food";
 import Cloths from "./pages/Navbar/Donate/Cloths";
+import MoneyDonate from "./pages/Navbar/Donate/MoneyDonate";
 import Other from "./pages/Navbar/Donate/Other";
 import MyRequests from "./pages/Navbar/Donate/my_requests";
 import NearbyOrphanages from "./pages/Navbar/Donate/Near_orphanages";
@@ -47,11 +48,7 @@ export default function App() {
 
   return (
     <Routes>
-
-      {/* =====================================
-          ROOT
-      ===================================== */}
-
+      {/* ROOT */}
       <Route
         path="/"
         element={
@@ -63,28 +60,17 @@ export default function App() {
         }
       />
 
-
-      {/* =====================================
-          AUTHENTICATION
-      ===================================== */}
-
-      {/* Signup */}
+      {/* AUTHENTICATION */}
       <Route
         path="/signup"
-        element={
-          <Signup setEmail={setEmail} />
-        }
+        element={<Signup setEmail={setEmail} />}
       />
 
-      {/* OTP Verification */}
       <Route
         path="/verify-otp"
-        element={
-          <VerifyOtp email={email} />
-        }
+        element={<VerifyOtp email={email} />}
       />
 
-      {/* Login */}
       <Route
         path="/login"
         element={
@@ -96,17 +82,12 @@ export default function App() {
         }
       />
 
-      {/* Google OAuth Callback - PUBLIC ROUTE */}
       <Route
         path="/auth/callback"
         element={<AuthCallback />}
       />
 
-
-      {/* =====================================
-          USER / RIDER DASHBOARD
-      ===================================== */}
-
+      {/* USER / RIDER DASHBOARD */}
       <Route
         path="/afterlogin"
         element={
@@ -115,111 +96,41 @@ export default function App() {
           </ProtectedRoute>
         }
       >
+        {/* HOME */}
+        <Route index element={<Home />} />
 
-        {/* Home */}
-        <Route
-          index
-          element={<Home />}
-        />
+        {/* NAVBAR */}
+        <Route path="about" element={<About />} />
+        <Route path="contact" element={<Contact />} />
 
-        {/* Navbar */}
-        <Route
-          path="about"
-          element={<About />}
-        />
+        {/* PROFILE */}
+        <Route path="profile" element={<Myprofile />} />
+        <Route path="profile/edit" element={<Edit />} />
 
-        <Route
-          path="contact"
-          element={<Contact />}
-        />
+        {/* DONATE */}
+        <Route path="donate" element={<DonationsType />} />
+        <Route path="donate/food" element={<Food />} />
+        <Route path="donate/clothes" element={<Cloths />} />
 
+        {/* NEW MONEY DONATION ROUTE */}
+        <Route path="donate/money" element={<MoneyDonate />} />
 
-        {/* =====================================
-            PROFILE
-        ===================================== */}
-
-        <Route
-          path="profile"
-          element={<Myprofile />}
-        />
-
-        <Route
-          path="profile/edit"
-          element={<Edit />}
-        />
-
-
-        {/* =====================================
-            DONATE
-        ===================================== */}
-
-        <Route
-          path="donate"
-          element={<DonationsType />}
-        />
-
-        <Route
-          path="donate/food"
-          element={<Food />}
-        />
-
-        <Route
-          path="donate/clothes"
-          element={<Cloths />}
-        />
-
-        <Route
-          path="donate/other"
-          element={<Other />}
-        />
-
-        <Route
-          path="donate/request"
-          element={<MyRequests />}
-        />
-
+        <Route path="donate/other" element={<Other />} />
+        <Route path="donate/request" element={<MyRequests />} />
         <Route
           path="donate/nearorphanages"
           element={<NearbyOrphanages />}
         />
 
-
-        {/* =====================================
-            PICKUP
-        ===================================== */}
-
-        <Route
-          path="pickup/requests"
-          element={<UsersRequests />}
-        />
-
-        <Route
-          path="pickup/direction"
-          element={<Direction />}
-        />
-
-        <Route
-          path="pickup/verify"
-          element={<DonateOtpVerify />}
-        />
-
-        <Route
-          path="pickup/my-rides"
-          element={<MyRides />}
-        />
-
-        <Route
-          path="pickup/delivery"
-          element={<Delivery />}
-        />
-
+        {/* PICKUP */}
+        <Route path="pickup/requests" element={<UsersRequests />} />
+        <Route path="pickup/direction" element={<Direction />} />
+        <Route path="pickup/verify" element={<DonateOtpVerify />} />
+        <Route path="pickup/my-rides" element={<MyRides />} />
+        <Route path="pickup/delivery" element={<Delivery />} />
       </Route>
 
-
-      {/* =====================================
-          OTHER ROUTES
-      ===================================== */}
-
+      {/* OTHER ROUTES */}
       <Route
         path="/become-rider"
         element={<BecomeRider />}
@@ -230,16 +141,11 @@ export default function App() {
         element={<PromotionRequest />}
       />
 
-
-      {/* =====================================
-          FALLBACK
-      ===================================== */}
-
+      {/* FALLBACK */}
       <Route
         path="*"
         element={<Navigate to="/" replace />}
       />
-
     </Routes>
   );
 }

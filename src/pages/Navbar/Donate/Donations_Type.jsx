@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import Home from "./../Home";
 
@@ -21,6 +22,16 @@ const CARDS = [
     colorBg: "rgba(96,165,250,0.08)",
     colorBorder: "rgba(96,165,250,0.25)",
     colorGlow: "rgba(96,165,250,0.15)",
+  },
+  {
+    title: "Money",
+    desc: "Contribute financially and support people in need",
+    icon: "💰",
+    path: "/afterlogin/donate/money",
+    color: "#fbbf24",
+    colorBg: "rgba(251,191,36,0.08)",
+    colorBorder: "rgba(251,191,36,0.25)",
+    colorGlow: "rgba(251,191,36,0.15)",
   },
   {
     title: "Other",
@@ -64,7 +75,8 @@ export default function DonationsType() {
 
         .dt-root::before {
           content: '';
-          position: fixed; inset: 0;
+          position: fixed;
+          inset: 0;
           background:
             radial-gradient(ellipse 70% 50% at 10% 0%, rgba(52,211,153,0.07), transparent 60%),
             radial-gradient(ellipse 50% 40% at 90% 100%, rgba(99,102,241,0.06), transparent 60%);
@@ -73,7 +85,8 @@ export default function DonationsType() {
         }
 
         .dt-grid-bg {
-          position: fixed; inset: 0;
+          position: fixed;
+          inset: 0;
           background-image:
             linear-gradient(rgba(52,211,153,0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(52,211,153,0.03) 1px, transparent 1px);
@@ -83,12 +96,12 @@ export default function DonationsType() {
         }
 
         .dt-wrap {
-          position: relative; z-index: 1;
+          position: relative;
+          z-index: 1;
           max-width: 1000px;
           margin: 0 auto;
         }
 
-        /* ── HEADER ── */
         .dt-header {
           text-align: center;
           margin-bottom: 56px;
@@ -97,11 +110,13 @@ export default function DonationsType() {
 
         @keyframes dtFadeUp {
           from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .dt-badge {
-          display: inline-flex; align-items: center; gap: 8px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
           background: rgba(52,211,153,0.08);
           border: 1px solid rgba(52,211,153,0.2);
           border-radius: 100px;
@@ -115,12 +130,17 @@ export default function DonationsType() {
         }
 
         .dt-badge-dot {
-          width: 6px; height: 6px;
-          background: #34d399; border-radius: 50%;
+          width: 6px;
+          height: 6px;
+          background: #34d399;
+          border-radius: 50%;
           animation: dtBlink 2s ease-in-out infinite;
         }
 
-        @keyframes dtBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        @keyframes dtBlink {
+          0%,100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
 
         .dt-title {
           font-size: clamp(28px, 5vw, 48px);
@@ -147,7 +167,6 @@ export default function DonationsType() {
           color: rgba(238,234,244,0.4);
         }
 
-        /* ── GRID ── */
         .dt-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -155,7 +174,6 @@ export default function DonationsType() {
           margin-bottom: 64px;
         }
 
-        /* ── CARD ── */
         .dt-card {
           background: rgba(255,255,255,0.03);
           border: 1px solid rgba(255,255,255,0.07);
@@ -170,23 +188,26 @@ export default function DonationsType() {
 
         @keyframes dtCardIn {
           from { opacity: 0; transform: translateY(20px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .dt-card::before {
           content: '';
           position: absolute;
-          top: 0; left: 0; right: 0;
+          top: 0;
+          left: 0;
+          right: 0;
           height: 1px;
-          background: linear-gradient(90deg, transparent, var(--card-color, rgba(52,211,153,0.4)), transparent);
+          background: linear-gradient(90deg, transparent, var(--card-color), transparent);
           opacity: 0;
           transition: opacity 0.35s;
         }
 
         .dt-card::after {
           content: '';
-          position: absolute; inset: 0;
-          background: radial-gradient(ellipse 80% 60% at 50% 100%, var(--card-glow, rgba(52,211,153,0.1)), transparent);
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse 80% 60% at 50% 100%, var(--card-glow), transparent);
           opacity: 0;
           transition: opacity 0.35s;
           pointer-events: none;
@@ -194,36 +215,45 @@ export default function DonationsType() {
 
         .dt-card:hover {
           transform: translateY(-6px);
-          border-color: var(--card-border, rgba(52,211,153,0.3));
-          box-shadow: 0 20px 48px rgba(0,0,0,0.4), 0 0 0 1px var(--card-border, rgba(52,211,153,0.1));
-          background: var(--card-bg, rgba(52,211,153,0.04));
+          border-color: var(--card-border);
+          box-shadow: 0 20px 48px rgba(0,0,0,0.4), 0 0 0 1px var(--card-border);
+          background: var(--card-bg);
         }
 
         .dt-card:hover::before,
-        .dt-card:hover::after { opacity: 1; }
+        .dt-card:hover::after {
+          opacity: 1;
+        }
 
-        .dt-card:active { transform: translateY(-2px) scale(0.98); }
+        .dt-card:active {
+          transform: translateY(-2px) scale(0.98);
+        }
 
         .dt-card-icon-wrap {
-          width: 52px; height: 52px;
+          width: 52px;
+          height: 52px;
           border-radius: 14px;
-          background: var(--card-bg, rgba(52,211,153,0.08));
-          border: 1px solid var(--card-border, rgba(52,211,153,0.2));
-          display: flex; align-items: center; justify-content: center;
+          background: var(--card-bg);
+          border: 1px solid var(--card-border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-size: 22px;
           margin-bottom: 18px;
           transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-          position: relative; z-index: 1;
+          position: relative;
+          z-index: 1;
         }
 
         .dt-card:hover .dt-card-icon-wrap {
           transform: scale(1.1) rotate(-4deg);
-          box-shadow: 0 8px 20px var(--card-glow, rgba(52,211,153,0.2));
+          box-shadow: 0 8px 20px var(--card-glow);
         }
 
         .dt-card-num {
           position: absolute;
-          top: 18px; right: 18px;
+          top: 18px;
+          right: 18px;
           font-family: 'DM Mono', monospace;
           font-size: 10px;
           color: rgba(238,234,244,0.2);
@@ -237,12 +267,13 @@ export default function DonationsType() {
           color: #eeeaf4;
           margin-bottom: 8px;
           letter-spacing: -0.01em;
-          position: relative; z-index: 1;
+          position: relative;
+          z-index: 1;
           transition: color 0.2s;
         }
 
         .dt-card:hover .dt-card-title {
-          color: var(--card-color, #34d399);
+          color: var(--card-color);
         }
 
         .dt-card-desc {
@@ -251,39 +282,49 @@ export default function DonationsType() {
           color: rgba(238,234,244,0.4);
           line-height: 1.6;
           margin-bottom: 22px;
-          position: relative; z-index: 1;
+          position: relative;
+          z-index: 1;
         }
 
         .dt-card-cta {
-          display: inline-flex; align-items: center; gap: 7px;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
           font-size: 13px;
           font-weight: 600;
-          color: var(--card-color, #34d399);
-          position: relative; z-index: 1;
+          color: var(--card-color);
+          position: relative;
+          z-index: 1;
           transition: gap 0.25s cubic-bezier(0.34,1.56,0.64,1);
         }
 
-        .dt-card:hover .dt-card-cta { gap: 12px; }
+        .dt-card:hover .dt-card-cta {
+          gap: 12px;
+        }
 
         .dt-card-arrow {
-          display: inline-flex; align-items: center; justify-content: center;
-          width: 22px; height: 22px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
-          background: var(--card-bg, rgba(52,211,153,0.1));
-          border: 1px solid var(--card-border, rgba(52,211,153,0.2));
+          background: var(--card-bg);
+          border: 1px solid var(--card-border);
           font-size: 11px;
           transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
         }
 
         .dt-card:hover .dt-card-arrow {
-          background: var(--card-color, #34d399);
+          background: var(--card-color);
           color: #07080f;
-          border-color: var(--card-color, #34d399);
+          border-color: var(--card-color);
         }
 
-        /* ── HOME SECTION DIVIDER ── */
         .dt-section-divider {
-          display: flex; align-items: center; gap: 16px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
           margin-bottom: 40px;
         }
 
@@ -316,42 +357,58 @@ export default function DonationsType() {
         <div className="dt-grid-bg" />
 
         <div className="dt-wrap">
-
-          {/* HEADER */}
           <div className="dt-header">
             <div className="dt-badge">
               <span className="dt-badge-dot" />
               Make a Difference
             </div>
+
             <h1 className="dt-title">
               What would you like to <span>Donate?</span>
             </h1>
-            <p className="dt-subtitle">Choose a category to continue your donation</p>
+
+            <p className="dt-subtitle">
+              Choose a category to continue your donation
+            </p>
           </div>
 
-          {/* CARDS */}
           <div className="dt-grid">
             {CARDS.map((card, i) => (
               <div
                 key={card.path}
                 className="dt-card"
+                role="button"
+                tabIndex={0}
                 style={{
-                  "--card-color":  card.color,
-                  "--card-bg":     card.colorBg,
+                  "--card-color": card.color,
+                  "--card-bg": card.colorBg,
                   "--card-border": card.colorBorder,
-                  "--card-glow":   card.colorGlow,
+                  "--card-glow": card.colorGlow,
                   animationDelay: `${i * 0.09}s`,
                 }}
                 onClick={() => navigate(card.path)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(card.path);
+                  }
+                }}
               >
-                <div className="dt-card-num">#{String(i + 1).padStart(2, "0")}</div>
+                <div className="dt-card-num">
+                  #{String(i + 1).padStart(2, "0")}
+                </div>
 
                 <div className="dt-card-icon-wrap">
                   {card.icon}
                 </div>
 
-                <div className="dt-card-title">{card.title}</div>
-                <div className="dt-card-desc">{card.desc}</div>
+                <div className="dt-card-title">
+                  {card.title}
+                </div>
+
+                <div className="dt-card-desc">
+                  {card.desc}
+                </div>
 
                 <div className="dt-card-cta">
                   Donate now
@@ -361,14 +418,14 @@ export default function DonationsType() {
             ))}
           </div>
 
-          {/* DIVIDER */}
           <div className="dt-section-divider">
             <div className="dt-divider-line" />
-            <span className="dt-divider-label">Sponsorships & Partners</span>
+            <span className="dt-divider-label">
+              Sponsorships & Partners
+            </span>
             <div className="dt-divider-line" />
           </div>
 
-          {/* HOME / SPONSORSHIPS */}
           <Home />
         </div>
       </div>
