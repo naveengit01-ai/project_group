@@ -1500,6 +1500,135 @@ export default function OpeningPage() {
 
           .promo-footnote-line { width: 28px; }
         }
+        
+/* DEVELOPER DETAILS */
+
+.developer-section {
+  padding: 90px 20px;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(74, 222, 128, 0.09),
+      transparent 65%
+    ),
+    #050a05;
+  display: flex;
+  justify-content: center;
+}
+
+.developer-card {
+  width: 100%;
+  max-width: 750px;
+  padding: 55px 30px;
+  text-align: center;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 25px;
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,0.05),
+    rgba(255,255,255,0.015)
+  );
+  box-shadow: 0 20px 70px rgba(0,0,0,0.3);
+}
+
+.developer-icon {
+  font-size: 48px;
+  margin-bottom: 18px;
+}
+
+.developer-label {
+  color: #4ade80;
+  font-size: 11px;
+  letter-spacing: 3px;
+  font-weight: 700;
+}
+
+.developer-card h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 5vw, 48px);
+  color: #f0ede8;
+  margin: 18px 0;
+}
+
+.developer-card h2 span {
+  color: #4ade80;
+}
+
+.developer-card p {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #a5aea8;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.developer-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 32px;
+}
+
+.developer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 24px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.developer-view {
+  background: #4ade80;
+  color: #050a05;
+}
+
+.developer-download {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(74,222,128,0.3);
+  color: #f0ede8;
+}
+
+.developer-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(74,222,128,0.18);
+}
+
+.developer-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 42px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: #77847b;
+  font-size: 11px;
+}
+
+@media (max-width: 500px) {
+  .developer-card {
+    padding: 40px 20px;
+  }
+
+  .developer-buttons {
+    flex-direction: column;
+  }
+
+  .developer-btn {
+    width: 100%;
+  }
+
+  .developer-footer {
+    justify-content: center;
+  }
+}
+
       `}</style>
 
       <div className="op-root">
@@ -1946,6 +2075,58 @@ export default function OpeningPage() {
 
           <section style={{ background: "#050a05" }}>
             <Home />
+
+{/* DEVELOPER DETAILS */}
+<section className="developer-section">
+  <motion.div
+    className="developer-card"
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ duration: 0.7 }}
+  >
+    <div className="developer-icon">👨‍💻</div>
+
+    <span className="developer-label">
+      BUILT WITH PASSION
+    </span>
+
+    <h2>
+      Developer <span>Details</span>
+    </h2>
+
+    <p>
+      Interested in knowing more about the developer
+      behind this project? Explore my professional
+      profile and experience.
+    </p>
+
+    <div className="developer-buttons">
+      <a
+        href="/NAVEEN%20KOLA.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="developer-btn developer-view"
+      >
+        📄 View Resume
+      </a>
+
+      <a
+        href="/NAVEEN%20KOLA.pdf"
+        download="NAVEEN_KOLA.pdf"
+        className="developer-btn developer-download"
+      >
+        ⬇ Download Resume
+      </a>
+    </div>
+
+    <div className="developer-footer">
+      <span>Designed & Developed with ❤️</span>
+      <span>DWJD Project</span>
+    </div>
+  </motion.div>
+</section>
+
           </section>
         </div>
 
@@ -1956,6 +2137,7 @@ export default function OpeningPage() {
             bottom: "24px",
             left: "24px",
             zIndex: 50
+            
           }}
         >
           <AI_Bot />
